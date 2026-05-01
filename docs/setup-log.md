@@ -60,3 +60,16 @@ codex-cli 0.125.0
 
 - Created local repo: `/Users/home/Desktop/Hermes Super Agent`.
 - Added docs/runbooks/templates/scripts structure.
+
+## 2026-05-01 — Made repo public, updated Hermes, imported Agent OS
+
+- Audited repo for obvious secret strings before making it public.
+- Changed GitHub visibility for `jbellsolutions/hermes-super-agent` from private to public.
+- Ran `hermes update`; Hermes updated successfully and synced bundled skills.
+- Cloned upstream Agent OS from `https://github.com/buildermethods/agent-os` to `/Users/home/agent-workspaces/upstream/agent-os`.
+- Imported upstream commit `822af65 Improved discover-standards Q&A workflow`.
+- Vendored upstream Agent OS into `third_party/agent-os/`.
+- Installed Agent OS commands into `.claude/commands/agent-os/`.
+- Added local `agent-os/standards/` with initial Hermes Super Agent standards.
+- Added `docs/agent-os-integration.md`.
+- Added `scripts/install-agent-os-to-project.sh` with a macOS `tac` compatibility shim.
