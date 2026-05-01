@@ -59,6 +59,18 @@ This repo exists to track what is installed, what works, what breaks, operationa
 4. **A0 Connector lets Agent Zero operate on the host Mac**.
 5. **Docker/Colima runs local services** like Agent Zero and future infrastructure.
 
+
+## Agent OS imported
+
+We imported Builder Methods Agent OS as a spec/standards workflow layer. See:
+
+- `docs/agent-os-integration.md`
+- `.claude/commands/agent-os/`
+- `agent-os/standards/`
+- `third_party/agent-os/`
+
+Use Agent OS patterns to discover standards, inject standards, shape specs, and plan products before sending implementation work to Codex or Agent Zero.
+
 ## Maintenance habit
 
 Whenever we change the setup, add a tool, discover a failure mode, or find a strong workflow:

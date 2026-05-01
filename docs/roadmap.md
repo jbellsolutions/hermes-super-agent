@@ -18,6 +18,7 @@
 - [ ] Create agent-workspaces folder structure.
 - [ ] Create standard task brief template.
 - [ ] Create Codex worktree workflow.
+- [x] Import Agent OS standards/spec workflow layer.
 - [ ] Create Agent Zero starter prompts.
 - [ ] Create daily health-check cron delivered to Telegram.
 

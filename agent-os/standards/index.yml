@@ -1,0 +1,7 @@
+# Agent OS Standards Index
+
+root:
+  super-agent-operating-model:
+    description: Operating model for choosing Hermes, Codex, Agent Zero, A0, or Docker for tasks
+  documentation-habit:
+    description: Documentation and commit rules for changing the Hermes Super Agent stack
