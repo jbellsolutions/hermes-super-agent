@@ -132,6 +132,9 @@ HTTP 200
 - `docs/deployments-inventory.md` now includes Railway and DigitalOcean read-only inventory.
 - `docs/portfolio-roadmap.md` defines the near-term Paperclip/COO/specialist-agent sequence.
 - `docs/symphony-intake.md` captures the OpenAI Symphony/harness-engineering evaluation for coding-agent orchestration.
+- `docs/builder-swarm-harness.md` turns Symphony's useful coding-agent pattern into a lightweight Super Agent builder-swarm contract.
+- `docs/deployment-health-specialist.md` defines the first specialist-agent pilot: read-only deployment health, costs, ownership, and broken-service reporting.
+- `templates/WORKFLOW.md` is the copyable repo-level workflow contract for Codex/Claude/Hermes coding workers.
 - `vault/projects/` starts project-level maps for key deployment candidates.
 - `runbooks/agent-zero.md` now contains the exact reproducible Agent Zero setup path: Colima/Docker install, non-interactive container run, OpenRouter key wiring, HTTP/UI verification, and A0 handoff.
 - `runbooks/a0-connector.md` now contains the exact A0 setup path: installer, tmux session, Read&Write/code-exec toggles, launchd persistence, Codex wrapper, and remote Codex verification.

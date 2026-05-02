@@ -65,3 +65,10 @@ All notable changes to agent-os.
 - Added `docs/portfolio-roadmap.md` with the recommended sequence: primary Hermes as hub, business-only COO specialist later, Paperclip as a pluggable dashboard/control-plane candidate, and read-only infrastructure mapping first.
 - Added `docs/symphony-intake.md` evaluating OpenAI Symphony as a coding-agent orchestration pattern, not a default dependency yet.
 - Added initial `vault/projects/` maps for `paperclip-ops`, `agentstack-hermes`, and `coo-platform`.
+
+## Deployment health pilot and builder swarm harness
+
+- Narrowed the first pilot to deployment health mapping, Railway `coo-platform`, Railway `agentstack-hermes`, and Paperclip inspection; `single-brain` and `cold-email-agent` are explicitly skipped for now.
+- Added `docs/deployment-health-specialist.md` for the first observe/report specialist-agent pilot.
+- Added `docs/builder-swarm-harness.md` and `templates/WORKFLOW.md` to capture Symphony-style coding-agent harness engineering without adopting Symphony as a mandatory runtime.
+- Updated project maps with read-only findings: `coo-platform` health check is live, `agentstack-hermes` is serving Hermes API and Paperclip UI, and `paperclip-ops` SSH is blocked by missing accepted key.

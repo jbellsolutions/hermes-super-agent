@@ -215,6 +215,9 @@ New operator/runtime intake notes:
 - [`docs/deployments-inventory.md`](./docs/deployments-inventory.md) — redacted Railway/DigitalOcean inventory as discovered.
 - [`docs/portfolio-roadmap.md`](./docs/portfolio-roadmap.md) — near-term roadmap for Paperclip, COO specialist, deployment mapping, and specialist-agent sequencing.
 - [`docs/symphony-intake.md`](./docs/symphony-intake.md) — OpenAI Symphony/harness-engineering evaluation for coding-agent orchestration.
+- [`docs/builder-swarm-harness.md`](./docs/builder-swarm-harness.md) — lightweight Symphony-style builder swarm contract without making Symphony a default dependency.
+- [`docs/deployment-health-specialist.md`](./docs/deployment-health-specialist.md) — first specialist-agent pilot: observe/report health, costs, ownership, and broken deployments.
+- [`templates/WORKFLOW.md`](./templates/WORKFLOW.md) — copyable coding-agent workflow contract for commercial/customer repos.
 - [`runbooks/deployment-access.md`](./runbooks/deployment-access.md) — safe Railway/DigitalOcean access and read-only inventory workflow.
 - [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) — exact Agent Zero install and verification path that worked locally.
 - [`runbooks/a0-connector.md`](./runbooks/a0-connector.md) — exact A0 host-bridge setup, launchd persistence, and Codex exposure.

@@ -50,6 +50,24 @@ Justin's instinct is right:
 
 ## Specialist-agent sequence
 
+### Current narrowed scope
+
+Justin confirmed the hierarchy:
+
+```text
+Justin
+  ├── Primary Hermes Super Agent — everything builder/hub, top technical control plane
+  └── Business COO chat — clean business-only COO specialist
+        └── Paperclip business teams — one company/offer per business model
+```
+
+Immediate scope is now:
+
+- Focus on Railway `coo-platform` and Railway `agentstack-hermes`.
+- Attempt `paperclip-ops` only as a Paperclip droplet candidate; do not block on it.
+- Skip `single-brain` for now.
+- Skip `cold-email-agent` for now.
+
 ### Phase 1 — Observe/report only
 
 Build no new autonomy yet. The primary Hermes should answer:
@@ -64,10 +82,11 @@ Build no new autonomy yet. The primary Hermes should answer:
 
 Targets:
 
-1. `paperclip-ops` droplet.
+1. `coo-platform` Railway project.
 2. `agentstack-hermes` Railway project.
-3. `coo-platform` Railway project.
-4. `single-brain` droplet.
+3. `paperclip-ops` droplet only if SSH access is available.
+
+Create the deployment health specialist first. It should map what exists, what is running, what is broken, what costs money, and which repo/business owns each deployment.
 
 ### Phase 2 — Business-only COO specialist
 
@@ -197,12 +216,12 @@ Do not use Symphony when:
 
 ## Recommended next build order
 
-1. Finish read-only SSH mapping for `paperclip-ops`, `single-brain`, and key lead-gen/cold-email droplets.
-2. Write project registry entries for each major deployment.
-3. Create a daily deployment health report that primary Hermes can send to Justin.
+1. Finish read-only mapping for Railway `coo-platform` and `agentstack-hermes`.
+2. Continue `paperclip-ops` only after SSH key access is solved.
+3. Create the deployment health specialist report loop.
 4. Create one COO Specialist identity/workspace, initially observe/report only.
-5. Pilot Paperclip against one workspace.
-6. Add Symphony/harness engineering for coding-heavy repos after the deployment map is stable.
+5. Pilot Paperclip against one workspace/company/offer.
+6. Add Symphony-style harness engineering for coding-heavy repos through `templates/WORKFLOW.md`, not as a mandatory dependency.
 
 ## What not to do yet
 

@@ -300,22 +300,36 @@ Fingerprints are available from `doctl compute ssh-key list` but omitted from th
 5. `cold-email-agent` and lead-gen droplets must be treated with outbound-action approval gates.
 6. Several duplicate/generated-name Railway projects likely need classification before cleanup.
 
+## Read-only findings after first health pass
+
+- Railway `coo-platform`:
+  - `console` latest deployment: `SUCCESS`
+  - Health URL: `https://console-production-8975.up.railway.app/api/health`
+  - Observed result: HTTP 200, `ok: true`, `service: "coo-console"`
+  - Start command: `npm run start --workspace @coo-platform/console`
+  - Railway source repo: `null`, so source mapping is still needed.
+
+- Railway `agentstack-hermes`:
+  - `paperclip-server`, `hermes-api`, `hermes-worker`, and `hermes-scheduler` latest deployments: `SUCCESS`
+  - Hermes API health: `https://hermes-api-production.up.railway.app/health`
+  - Observed result: HTTP 200, `ok: true`, `role: "api"`, `allowLiveRuns: false`
+  - Paperclip UI: `https://paperclip-server-production-b429.up.railway.app/`
+  - Observed result: HTTP 200, Paperclip app HTML served
+  - `paperclip-server` Railway source repo: `engerlina/paperclip`, branch `master`
+  - Hermes service source repos still unmapped.
+
+- DigitalOcean `paperclip-ops`:
+  - SSH attempted as `root`, `ubuntu`, and `justin`.
+  - Result: `Permission denied (publickey)`.
+  - Local SSH agent has no loaded identities; local `~/.ssh/id_ed25519` was not accepted by this droplet.
+  - No changes made.
+
 ## Next safe read-only steps
 
-1. SSH-read-only inspect the key droplets without changing services:
-   - `paperclip-ops`
-   - `single-brain`
-   - `cold-email-agent`
-   - `LinkedinLeadGen`
-2. Link Railway projects and DigitalOcean droplets to GitHub repos/local folders.
-3. Create `vault/projects/<project>.md` entries for:
-   - `agentstack-hermes`
-   - `paperclip-ops`
-   - `coo-platform`
-   - `single-brain`
-   - `cold-email-agent`
-4. Decide whether the first specialist agent is:
-   - COO/business-only agent, or
-   - Paperclip operations specialist, or
-   - deployment inventory/health specialist.
-5. Do not delete, restart, redeploy, or mutate anything until Justin approves exact scope.
+1. Find the actual source repo for Railway `coo-platform`.
+2. Find source repos for Railway `agentstack-hermes` Hermes services.
+3. Inspect Paperclip UI/API safely to map companies, offers, agents, runs, and heartbeat model.
+4. Create the deployment health specialist report loop before COO/Paperclip autonomy.
+5. Continue `paperclip-ops` only after the correct SSH key is available or approved.
+6. Skip `single-brain` and `cold-email-agent` for now.
+7. Do not delete, restart, redeploy, or mutate anything until Justin approves exact scope.

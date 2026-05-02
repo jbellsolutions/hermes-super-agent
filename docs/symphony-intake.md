@@ -70,13 +70,14 @@ Promote Symphony or a Symphony-compatible runner when:
 
 ## First Super Agent task
 
-Add a template:
+Implemented first lightweight step:
 
 ```text
 templates/WORKFLOW.md
+docs/builder-swarm-harness.md
 ```
 
-for repos that want Symphony-style coding-agent execution. The template should include:
+Use these for repos that want Symphony-style coding-agent execution. The template includes:
 
 - tracker source
 - workspace root
