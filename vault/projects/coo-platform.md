@@ -43,9 +43,11 @@ This likely maps to Justin's COO Agent / business-control-room concept. It may b
 
 ## Current recommendation
 
-Do not make `coo-platform` the main command center yet.
+Rebuild the COO as the new **Single Brain COO** rather than trusting this legacy Railway app.
 
-Keep primary Hermes as Justin's everything-builder/hub. Test the COO as a business-only specialist/dashboard after the deployment health specialist has mapped the portfolio.
+Keep `coo-platform` running until a replacement is live and verified, then consider shutting it down to remove lingering Slack/chat confusion.
+
+Primary Hermes remains Justin's everything-builder/hub. The rebuilt COO should be a business-only cofounder/operator that can later control Paperclip company teams.
 
 Recommended hierarchy:
 

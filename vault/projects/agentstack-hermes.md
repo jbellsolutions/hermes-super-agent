@@ -34,6 +34,51 @@ Railway project / active Paperclip + Hermes stack candidate.
 - `paperclip-server` source repo in Railway: `engerlina/paperclip`, branch `master`.
 - `hermes-api`, `hermes-worker`, and `hermes-scheduler` source repo in Railway status: `null`.
 
+## Paperclip API/UI inventory
+
+Unauthenticated safe reads found:
+
+- `/api/health` returns JSON:
+  - `status: ok`
+  - `version: 0.3.1`
+  - `deploymentMode: authenticated`
+  - `deploymentExposure: private`
+  - `authReady: true`
+  - `bootstrapStatus: ready`
+  - `bootstrapInviteActive: false`
+  - `features.companyDeletionEnabled: false`
+- `/api/skills/available` is public and returns Paperclip-managed skills:
+  - `paperclip`
+  - `paperclip-create-agent`
+  - `paperclip-create-plugin`
+  - `para-memory-files`
+
+Authenticated endpoints return `403 Board access required`, which is expected for private deployment mode:
+
+- `/api/companies`
+- `/api/companies/stats`
+- `/api/instance/scheduler-heartbeats`
+- `/api/plugins`
+
+The frontend bundle exposes a broad Paperclip API surface including companies, agents, agent hires/configurations, approvals, issues, routines, heartbeat runs, execution workspaces, costs, budgets, secrets, plugins, skills, and OpenClaw invite prompts.
+
+Important endpoint families discovered from the frontend bundle:
+
+- `/api/companies`
+- `/api/companies/:id/agents`
+- `/api/companies/:id/agent-configurations`
+- `/api/companies/:id/agent-hires`
+- `/api/companies/:id/budgets/overview`
+- `/api/companies/:id/heartbeat-runs`
+- `/api/companies/:id/live-runs`
+- `/api/companies/:id/sidebar-badges`
+- `/api/companies/:id/openclaw/invite-prompt`
+- `/api/issues/:id/runs`
+- `/api/heartbeat-runs/:id/log`
+- `/api/instance/scheduler-heartbeats`
+- `/api/skills/available`
+- `/api/plugins`
+
 ## Log sample findings
 
 - `paperclip-server` logs show active UI polling for company `live-runs` and `sidebar-badges` endpoints.

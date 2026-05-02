@@ -17,7 +17,7 @@
 - [ ] Create project registry.
 - [ ] Create agent-workspaces folder structure.
 - [ ] Create standard task brief template.
-- [ ] Create Codex worktree workflow.
+- [x] Create coding-agent `WORKFLOW.md` harness template.
 - [x] Import Agent OS standards/spec workflow layer.
 - [ ] Create Agent Zero starter prompts.
 - [ ] Create daily health-check cron delivered to Telegram.
@@ -45,8 +45,13 @@
 - [ ] Add optional Orgo AI runtime only after API/auth/cost/security discovery.
 - [x] Document Operator / Pro Operator / Enterprise packaging.
 - [x] Document hub-and-spoke portfolio model: primary Hermes plus isolated specialist agents.
-- [ ] Inventory Railway and DigitalOcean resources read-only, then create `docs/deployments-inventory.md`.
-- [ ] Create project registry entries for COO Agent, Agent Company, and active Paperclip businesses.
+- [x] Inventory Railway and DigitalOcean resources read-only, then create `docs/deployments-inventory.md`.
+- [x] Create project registry entries for COO Platform, Paperclip/Hermes stack, Paperclip Ops, and Single Brain.
+- [x] Add Cursor SDK intake as optional builder-swarm backend.
+- [x] Define Single Brain COO rebuild plan.
+- [ ] Find source repos for `coo-platform`, `hermes-api`, `hermes-worker`, and `hermes-scheduler`.
+- [ ] Restore SSH access to `single-brain` or choose clean replacement deployment target.
+- [ ] Create first deployment health specialist report loop.
 
 ## Phase 5 — Production workflows
 

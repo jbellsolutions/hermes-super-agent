@@ -134,6 +134,9 @@ HTTP 200
 - `docs/symphony-intake.md` captures the OpenAI Symphony/harness-engineering evaluation for coding-agent orchestration.
 - `docs/builder-swarm-harness.md` turns Symphony's useful coding-agent pattern into a lightweight Super Agent builder-swarm contract.
 - `docs/deployment-health-specialist.md` defines the first specialist-agent pilot: read-only deployment health, costs, ownership, and broken-service reporting.
+- `docs/coo-single-brain-rebuild.md` defines the rebuild path for the business-only Single Brain COO.
+- `docs/cursor-sdk-intake.md` evaluates Cursor's TypeScript SDK as an optional builder-swarm backend.
+- `docs/builder-tool-architecture.md` organizes Cursor SDK, Symphony, Codex, OpenClaw, Composio, Paperclip, and Hermes into coherent tool layers.
 - `templates/WORKFLOW.md` is the copyable repo-level workflow contract for Codex/Claude/Hermes coding workers.
 - `vault/projects/` starts project-level maps for key deployment candidates.
 - `runbooks/agent-zero.md` now contains the exact reproducible Agent Zero setup path: Colima/Docker install, non-interactive container run, OpenRouter key wiring, HTTP/UI verification, and A0 handoff.
