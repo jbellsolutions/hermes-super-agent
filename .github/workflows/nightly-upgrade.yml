@@ -1,4 +1,4 @@
-name: nightly-upgrade
+name: safe-nightly-upgrade
 
 on:
   schedule:
@@ -10,21 +10,47 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: astral-sh/setup-uv@v3
-      - run: uv sync
-      - name: Run nightly upgrader
+
+      - name: Install Python dependencies
+        run: uv sync
+
+      - name: Run safe nightly upgrader
         env:
           UPGRADER_ENABLE_NEMOCLAW: "false"
         run: uv run python -m agent_os.upgrader.daemon
-      - name: Commit any vault/upgrades/ logs
+
+      - name: Run quality gates before promotion
         run: |
-          git config user.email "agent-os@bot"
-          git config user.name "agent-os-upgrader"
-          git add vault/upgrades/ vault/.gitkeep || true
-          git diff --staged --quiet || git commit -m "nightly upgrade $(date -u +%Y-%m-%d)"
-          git push || true
+          uv run ruff check src tests
+          uv run pytest tests/smoke tests/unit -q
+
+      - name: Create safe-upgrade pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: automation/safe-nightly-upgrade
+          delete-branch: true
+          commit-message: "chore: safe nightly upgrade"
+          title: "chore: safe nightly upgrade"
+          body: |
+            Automated Super Agent daily update.
+
+            This PR was opened only after:
+            - updater streams completed
+            - `uv run ruff check src tests` passed
+            - `uv run pytest tests/smoke tests/unit -q` passed
+
+            Review `vault/upgrades/` before merging. Stable and consistent beats newest.
+          add-paths: |
+            .gitmodules
+            vendor/**
+            uv.lock
+            vault/upgrades/**

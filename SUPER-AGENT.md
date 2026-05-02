@@ -36,8 +36,11 @@ Secrets and auth files are intentionally not copied into this repo. If a command
 Every stack change should update at least one of:
 
 - `CHANGELOG.md`
+- `docs/update-policy.md` for update/tool-addition rules
 - `docs/local-stack/`
 - `docs/super-agent-runtime.md`
 - `vault/decisions/`
 - `vault/incidents/`
 - `vault/upgrades/`
+
+Daily automation should be conservative: check upstream updates, run smoke/unit/lint gates, and open a reviewable PR instead of silently pushing to `main`.
