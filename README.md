@@ -211,6 +211,8 @@ New operator/runtime intake notes:
 
 - [`docs/commercial-packaging.md`](./docs/commercial-packaging.md) — Operator / Pro Operator / Enterprise packaging and setup contract.
 - [`docs/portfolio-agent-architecture.md`](./docs/portfolio-agent-architecture.md) — hub-and-spoke model for one primary Hermes plus specialist business agents.
+- [`docs/specialist-agent-operations.md`](./docs/specialist-agent-operations.md) — how specialist agents report to and receive tasks from the primary Hermes agent.
+- [`docs/deployments-inventory.md`](./docs/deployments-inventory.md) — redacted Railway/DigitalOcean inventory as discovered.
 - [`runbooks/deployment-access.md`](./runbooks/deployment-access.md) — safe Railway/DigitalOcean access and read-only inventory workflow.
 - [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) — exact Agent Zero install and verification path that worked locally.
 - [`runbooks/a0-connector.md`](./runbooks/a0-connector.md) — exact A0 host-bridge setup, launchd persistence, and Codex exposure.

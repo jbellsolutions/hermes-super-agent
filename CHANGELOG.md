@@ -52,3 +52,9 @@ All notable changes to agent-os.
 - Added `runbooks/deployment-access.md` for safe read-only Railway and DigitalOcean inventory before any infrastructure changes.
 - Updated `LAUNCH.md`, `.env.example`, `scripts/launch.py`, and `.claude/skills/agent-os/SKILL.md` so dropped-link setup asks for business context, tier, first workflows, approval rules, deployment target, and only the relevant keys.
 - Documented COO Agent, Agent Company, and Paperclip as related repos to inventory and fold into the specialist-agent/productization path.
+
+## Railway connection and specialist-agent operations
+
+- Connected Railway CLI as `jbellsolutions` and captured a redacted read-only inventory in `docs/deployments-inventory.md`.
+- Installed DigitalOcean CLI (`doctl`) and documented DigitalOcean auth as pending token/`doctl auth init`.
+- Added `docs/specialist-agent-operations.md` describing how one primary Hermes chat can observe, rebuke/nudge, assign work to, and eventually control isolated specialist agents.
