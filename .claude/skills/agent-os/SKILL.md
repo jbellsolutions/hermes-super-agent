@@ -22,15 +22,17 @@ The user just dropped this repo's URL into your session. You are the conversatio
 
 ### Step 1 — Confirm scope
 
-Ask the user, in one short message, three things at once:
+Ask the user, in one short message, the minimum setup questions:
 
-1. *Which channels do they want active first?* (Slack? Telegram? Web text? Web voice? Any combination.)
-2. *Which model should Hermes default to?* (Default suggestion: `claude-opus-4-7` — Anthropic key required.)
-3. *Where do they want to deploy?* (Local-only / Railway / Docker Compose / Fly.io.)
+1. *Which commercial tier?* Operator / Pro Operator / Enterprise.
+2. *What business/project/offer is this for?* Include first 3 workflows the agent should own.
+3. *Which channels do they want active first?* Slack? Telegram? Web text? Web voice? Any combination.
+4. *Which model should Hermes default to?* Default suggestion: `claude-opus-4-7` unless they want OpenAI/OpenRouter.
+5. *Where do they want to deploy?* Local-only / Railway / DigitalOcean VPS / Docker Compose / Fly.io.
 
 Example phrasing:
 
-> *"I'll walk you through agent-os setup — should take 15–30 minutes depending on which keys you have ready. Three quick questions: (1) which channels do you want live first — Slack, Telegram, web chat, voice, or some mix? (2) which model should Hermes default to (Claude Opus 4.7 is the recommended default)? (3) deploy target — local-only for now, Railway, Docker Compose, or Fly?"*
+> *"I'll walk you through Super Agent setup like a commercial onboarding — should take 15–30 minutes depending on keys. Quick setup questions: (1) tier: Operator, Pro Operator, or Enterprise? (2) what business/project is this for and what first 3 workflows should the agent own? (3) channels: Slack, Telegram, web chat, voice, or a mix? (4) default model/provider? (5) deploy target: local, Railway, DigitalOcean/VPS, Docker Compose, or Fly?"*
 
 Use `AskUserQuestion` if you have it; otherwise plain prose.
 
@@ -40,11 +42,15 @@ Based on their channel choices, ask for ONLY the keys actually needed. Don't ask
 
 Required regardless of channel: `ANTHROPIC_API_KEY` (or whichever provider their default model needs).
 
+Business setup fields: `SUPER_AGENT_TIER`, `BUSINESS_NAME`, `BUSINESS_TYPE`, `FIRST_WORKFLOWS`, `HUMAN_APPROVAL_REQUIRED`.
+
 If they picked Slack: `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_SIGNING_SECRET`. Link them to https://api.slack.com/apps if they don't have an app yet.
 
 If Telegram: `TELEGRAM_BOT_TOKEN`. Link to @BotFather.
 
 If web voice: `LIVEKIT_*` triple, plus voice provider key (`OPENAI_API_KEY` or `GEMINI_API_KEY`).
+
+If Enterprise and deployment discovery is requested: `RAILWAY_TOKEN` and/or `DIGITALOCEAN_ACCESS_TOKEN`. If the user asks about Orgo/managed cloud computers, explain it is optional and only collect `ORGO_API_KEY` when the customer/workspace needs an isolated visible desktop.
 
 For each key the user doesn't have, ASK if they want to skip it (and disable that channel/runtime for now) or pause to grab it. Do not block.
 
@@ -96,6 +102,7 @@ Confirm the test passes. This is the load-bearing acceptance criterion for the a
 Give the user a 5-line summary:
 
 - What's running (channels, model, deploy target).
+- Tier/business/workflows and approval rules.
 - What's stubbed and which stage of `docs/EXECUTION-PLAN.md` lights it up.
 - What the daily loops do (upgrader at 02:00, agi-audit at 02:30, heartbeat every 5 min).
 - The three operating skills they have now (`/agent-os`, `/explain`, `/route`).
@@ -112,6 +119,10 @@ Run `agent-os manifest` to refresh the system graph. Then:
 3. Identify which package the work belongs to (`src/agent_os/orchestrator`, `src/agent_os/runtimes/<name>`, `src/agent_os/manifest`, `src/agent_os/quality`, `src/agent_os/upgrader`, `src/agent_os/channels`, `packages/webapp`, `packages/dashboard`).
 4. Use `/route --tags ...` to confirm which runtime your work would dispatch to.
 
+For commercial/multi-business decisions, read `docs/commercial-packaging.md` and `docs/portfolio-agent-architecture.md` before recommending another Hermes instance or a shared memory layout.
+
+For Railway/DigitalOcean discovery, follow `runbooks/deployment-access.md`: read-only inventory first, no mutations without explicit approval.
+
 If the work spans packages, write a short plan in `vault/decisions/<date>-<topic>.md` first.
 
 For introspection ("what's running?", "who wrote this output?", "how does X connect to Y?"), use `/explain`.
@@ -125,3 +136,5 @@ For introspection ("what's running?", "who wrote this output?", "how does X conn
 - **Single-state guarantee.** Every channel writes through `vault_memory` — no per-channel state.
 - **Smoke tests are non-negotiable for the upgrader.** A bad upstream commit silently promoted is the failure mode that takes the system down.
 - **Default to Hermes.** Specialist runtimes are exceptions, not defaults.
+- **Update setup instructions with every update.** If you add a tool, runtime, tier, deployment path, or workflow, update README/LAUNCH/setup docs in the same change.
+- **Separate serious businesses.** One primary Hermes can orchestrate the portfolio, but project/customer agents need isolated vaults, secrets, deploy targets, and skills.

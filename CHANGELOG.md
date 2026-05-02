@@ -18,6 +18,7 @@ All notable changes to agent-os.
 ### Notes
 - NemoClaw integration wired but disabled — flip `UPGRADER_ENABLE_NEMOCLAW=true` once NVIDIA marks it GA.
 - 14 old framework repos remain live per Justin's call. Revisit archive question after one vertical app onboards onto agent-os end-to-end.
+
 ## Super Agent conversion
 
 - Rebased `hermes-super-agent` onto `jbellsolutions/agent-os` as the actual repo foundation.
@@ -44,3 +45,10 @@ All notable changes to agent-os.
 - Added `docs/steipete-tool-intake.md` with prioritized intake for Peter/steipete tools.
 - Updated README, architecture, inventory, roadmap, and setup backlog to point future Hermes agents at the new runbooks and decision docs.
 
+## Commercial setup and portfolio architecture
+
+- Added `docs/commercial-packaging.md` with Operator / Pro Operator / Enterprise tier definitions.
+- Added `docs/portfolio-agent-architecture.md` with the recommended hub-and-spoke model: one primary Hermes Super Agent plus isolated specialist business/customer agents.
+- Added `runbooks/deployment-access.md` for safe read-only Railway and DigitalOcean inventory before any infrastructure changes.
+- Updated `LAUNCH.md`, `.env.example`, `scripts/launch.py`, and `.claude/skills/agent-os/SKILL.md` so dropped-link setup asks for business context, tier, first workflows, approval rules, deployment target, and only the relevant keys.
+- Documented COO Agent, Agent Company, and Paperclip as related repos to inventory and fold into the specialist-agent/productization path.

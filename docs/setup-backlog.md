@@ -22,6 +22,7 @@ Verified working locally:
 - Keep Agent Zero bound to localhost unless explicitly changed.
 - Never commit secrets or auth files.
 - Prefer PR-based updates over direct auto-pushes to `main`.
+- Every update must update the natural-language setup instructions when it changes tools, tiers, deployment paths, or onboarding context.
 
 ## Priority 1 — setup gaps
 
@@ -66,6 +67,28 @@ Then verify browser automation in a fresh session.
 Add a scoped token to `~/.hermes/.env` when needed. Do not store it in this repo.
 
 ## Priority 2 — high-value integrations
+
+### Commercial setup/onboarding
+
+Current tier model is documented in `docs/commercial-packaging.md`:
+
+- Operator: default internal/single-business setup.
+- Pro Operator: Agent Zero/A0 plus Tier 1 local tools when safe.
+- Enterprise: isolated customer/project deployments, Railway/DigitalOcean/VPS, optional Orgo.
+
+Launch flow now asks for business context, first workflows, and human-approval rules. Keep this current every time the framework changes.
+
+### Portfolio/business-agent architecture
+
+Decision doc: `docs/portfolio-agent-architecture.md`.
+
+Use one primary Hermes Super Agent as portfolio orchestrator. Serious businesses/customers get isolated specialist agents/workspaces with their own vaults, secrets, deploy targets, skills, and dashboards.
+
+Next steps:
+
+- Inventory current Railway and DigitalOcean resources using `runbooks/deployment-access.md`.
+- Create `docs/deployments-inventory.md` after read-only discovery.
+- Create `vault/projects/<project>.md` entries for COO Agent, Agent Company, and active Paperclip businesses.
 
 ### Peter/steipete tool intake
 

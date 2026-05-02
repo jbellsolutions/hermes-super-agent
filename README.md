@@ -29,13 +29,13 @@
 
 Three paths. Pick one. **You don't need to read the rest of this README to launch.**
 
-### Path A — Claude Code drives the install (recommended)
+### Path A — Claude Code/Codex drives the install (recommended)
 
-Drop this in any Claude Code session:
+Drop this in any Claude Code or Codex session:
 
-> *"Set up agent-os for me. Repo: https://github.com/jbellsolutions/hermes-super-agent"*
+> *"Set up Super Agent for me. Repo: https://github.com/jbellsolutions/hermes-super-agent. Interview me in plain English, ask only for the keys needed for my chosen tier, and verify everything before you say it is ready."*
 
-Claude Code will run the [`agent-os` skill](./.claude/skills/agent-os/SKILL.md) which detects it's a fresh repo and walks you through every step in plain English — keys, channels, deploy target. ~15 minutes if your keys are ready.
+Claude Code/Codex will read the setup instructions and the [`agent-os` skill](./.claude/skills/agent-os/SKILL.md), detect it's a fresh repo, and walk through every step in plain English — business context, tier, keys, channels, deploy target, and verification. ~15 minutes if your keys are ready.
 
 ### Path B — One-command wizard
 
@@ -45,7 +45,7 @@ cd hermes-super-agent
 ./scripts/launch.py
 ```
 
-Conversational Python wizard. Asks for keys, picks a deploy target, runs `uv sync` + `pnpm install`, runs the 23 smoke tests, builds the manifest graph, hands you a 5-line summary.
+Conversational Python wizard. Asks for business context, tier, keys, approval rules, and deploy target; runs `uv sync` + `pnpm install`, runs the smoke tests, builds the manifest graph, and hands you a summary.
 
 ### Path C — Self-driving setup (Hermes drives)
 
@@ -83,6 +83,16 @@ Then tell Hermes: *"Set yourself up. I want Slack + Telegram + web voice. Keys a
 | **Introspection** | Manifest layer + MCP server + `/explain` skill — finally answers "how do you all tie together?" |
 | **Security wrapper** | NemoClaw vendored and parked until NVIDIA marks GA — flip the env var the day they do. |
 | **Optional cloud computer** | Orgo AI or equivalent managed machine only when a VPS/customer deployment needs an isolated visible desktop. See [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md). |
+
+## Commercial packaging
+
+- **Operator** — default. Hermes + Codex + core tools + gateway + vault + safe updates. Best for one internal operator/business.
+- **Pro Operator** — Operator plus Agent Zero/A0 and the default recommended Tier 1 tool pack when prerequisites pass: Peekaboo, macos-automator-mcp, gogcli, wacli, claude-code-mcp, agent-rules, mcporter.
+- **Enterprise** — isolated customer/project deployments, Railway/DigitalOcean/VPS discovery, cost caps, approval gates, optional Orgo/managed cloud computer.
+
+Orgo is never a default dependency. It is a premium Enterprise option when a customer/workspace needs an isolated visible cloud computer.
+
+See [`docs/commercial-packaging.md`](./docs/commercial-packaging.md).
 
 The differentiator isn't adopting Hermes + OpenClaw — anyone can do that. The differentiator is running them tied together with **daily auto-updates** and a **quality flywheel** and a **single-state accessibility layer** that makes Slack, Telegram, web text, and web voice feel like one agent. See [STORY.md](./STORY.md) for the why.
 
@@ -199,6 +209,9 @@ Full ethos: [`ETHOS.md`](./ETHOS.md). 5-question filter for adopting new tools: 
 
 New operator/runtime intake notes:
 
+- [`docs/commercial-packaging.md`](./docs/commercial-packaging.md) — Operator / Pro Operator / Enterprise packaging and setup contract.
+- [`docs/portfolio-agent-architecture.md`](./docs/portfolio-agent-architecture.md) — hub-and-spoke model for one primary Hermes plus specialist business agents.
+- [`runbooks/deployment-access.md`](./runbooks/deployment-access.md) — safe Railway/DigitalOcean access and read-only inventory workflow.
 - [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) — exact Agent Zero install and verification path that worked locally.
 - [`runbooks/a0-connector.md`](./runbooks/a0-connector.md) — exact A0 host-bridge setup, launchd persistence, and Codex exposure.
 - [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md) — when a cloud computer like Orgo AI is valuable vs unnecessary cost.
@@ -213,9 +226,10 @@ New operator/runtime intake notes:
 3. [`LAUNCH.md`](./LAUNCH.md) — get it running. ~5 min.
 4. [`ARCHITECTURE.md`](./ARCHITECTURE.md) — the system shape, the four self-pillars in detail, the routing rules. ~10 min.
 5. [`ETHOS.md`](./ETHOS.md) + [`ECOSYSTEM-PLAYBOOK.md`](./ECOSYSTEM-PLAYBOOK.md) — the discipline that keeps the pathology from coming back. ~5 min.
-6. [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) + [`runbooks/a0-connector.md`](./runbooks/a0-connector.md) — reproduce the local Agent Zero/A0/Codex bridge. ~10 min.
-7. [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md) + [`docs/steipete-tool-intake.md`](./docs/steipete-tool-intake.md) — expansion decisions. ~10 min.
-8. [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md) — what ships in which session. ~5 min.
+6. [`docs/commercial-packaging.md`](./docs/commercial-packaging.md) + [`docs/portfolio-agent-architecture.md`](./docs/portfolio-agent-architecture.md) — sellable tiers and multi-agent structure. ~10 min.
+7. [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) + [`runbooks/a0-connector.md`](./runbooks/a0-connector.md) — reproduce the local Agent Zero/A0/Codex bridge. ~10 min.
+8. [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md) + [`docs/steipete-tool-intake.md`](./docs/steipete-tool-intake.md) — expansion decisions. ~10 min.
+9. [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md) — what ships in which session. ~5 min.
 
 ## License
 

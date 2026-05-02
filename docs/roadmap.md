@@ -22,6 +22,7 @@
 - [ ] Create Agent Zero starter prompts.
 - [ ] Create daily health-check cron delivered to Telegram.
 - [x] Expand Agent Zero/A0 runbooks with exact reproducible install steps.
+- [x] Add commercial onboarding fields to launch flow: tier, business context, first workflows, approval rules.
 
 ## Phase 3 — Automation
 
@@ -42,6 +43,10 @@
 - [x] Inventory Peter/steipete tools and prioritize Super Agent candidates.
 - [ ] Add Tier 1 steipete tools one at a time with smoke tests: Peekaboo, macos-automator-mcp, gogcli, wacli, claude-code-mcp, agent-rules, mcporter.
 - [ ] Add optional Orgo AI runtime only after API/auth/cost/security discovery.
+- [x] Document Operator / Pro Operator / Enterprise packaging.
+- [x] Document hub-and-spoke portfolio model: primary Hermes plus isolated specialist agents.
+- [ ] Inventory Railway and DigitalOcean resources read-only, then create `docs/deployments-inventory.md`.
+- [ ] Create project registry entries for COO Agent, Agent Company, and active Paperclip businesses.
 
 ## Phase 5 — Production workflows
 

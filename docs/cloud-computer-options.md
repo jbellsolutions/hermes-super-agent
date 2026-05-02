@@ -68,9 +68,9 @@ Orgo can be a strong selling point because customers understand "your agent has 
 
 Best packaging:
 
-- **Core tier:** Hermes + Codex + MCP/API tooling + browser automation.
-- **Pro tier:** adds Agent Zero visual workspace and persistent browser/session tooling.
-- **Enterprise / isolated workspace tier:** adds Orgo AI or equivalent managed cloud computers per customer/workspace.
+- **Operator:** Hermes + Codex + MCP/API tooling + browser automation.
+- **Pro Operator:** adds Agent Zero/A0 visual workspace, persistent browser/session tooling, and default recommended Tier 1 local tools when prerequisites pass.
+- **Enterprise:** adds Railway/DigitalOcean/VPS isolation, customer/workspace boundaries, cost controls, and Orgo AI or equivalent managed cloud computers only when the customer pays for that premium runtime.
 
 This keeps margins healthy while preserving the sexy demo for accounts that pay for it.
 
