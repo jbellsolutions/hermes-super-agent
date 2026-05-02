@@ -85,3 +85,11 @@ All notable changes to agent-os.
 - Added `docs/vault-sync-contract.md` making Obsidian + Notion sync mandatory for conversations, actions, decisions, health reports, and agent activity.
 - Added `docs/routing-intelligence-contract.md` defining when to use GPT-5.5, Opus 4.7, DeepSeek, Cursor SDK, Codex, Claude Code, Hermes subagents, browser/computer backends, and scoped tool bundles.
 - Updated the Single Brain COO plan with Justin's decisions: merge COO Agent + Single Brain sources, separate COO Hermes profile/VPS, own Telegram chat/bot if needed, initial Paperclip companies, and 7-day smoke test before retiring legacy `***REMOVED***`.
+
+## Hermes-first install, bidirectional brain, and dual frontier routing
+
+- Added `docs/hermes-first-install-walkthrough.md` so a fresh computer/customer/***REMOVED*** install starts by installing and verifying Hermes Agent, then configures Super Agent tools, shared brain sync, channels, tier, and smoke tests.
+- Updated `LAUNCH.md` and README drop-link prompts so Claude Code/Codex install Hermes first when missing instead of assuming the target machine already has Hermes.
+- Strengthened `docs/vault-sync-contract.md` from write-only logging to bidirectional shared-context retrieval: agents must write to and pull from Obsidian/Notion before answering cross-agent, cross-business, contact, offer, project, or deployment questions.
+- Updated routing/tool architecture so GPT-5.5 and Claude Opus 4.6/4.7 work together on architecture, debugging, security, auth, unit tests, and high-stakes deployment coding; Claude remains especially strong for content, design, and brand voice.
+- Clarified Cursor SDK as the preferred coding-team/harness runtime candidate, with Symphony used as an optional harness reference rather than a mandatory dependency when `WORKFLOW.md` plus Cursor SDK is sufficient.

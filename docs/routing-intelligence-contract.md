@@ -22,22 +22,33 @@ Every agent/tool/backend invocation should answer:
 
 ## Model routing
 
-### GPT-5.5
+### Dual-frontier review: GPT-5.5 + Claude Opus 4.6/4.7
 
-Use for:
+For the highest-value or highest-risk work, GPT-5.5 and Claude Opus 4.6/4.7 should work together rather than compete as a single default.
+
+Use the dual-frontier path for:
 
 - architecture
-- hard debugging
+- debugging
 - security
 - authentication/authorization
-- weak-test repos
+- unit tests and weak-test repos
 - infra/deployment decisions
 - high-stakes coding
 - system design
 
-### Claude Opus 4.7
+Default pattern:
 
-Use for:
+1. One frontier model drafts or diagnoses.
+2. The other frontier model reviews, critiques, and proposes alternatives.
+3. The orchestrator merges the answer into one implementation plan or patch.
+4. Tests, proof, and approval gates decide whether to ship.
+
+Claude may be equal or better for architecture in many cases; do not relegate Claude only to content/design. GPT-5.5 remains preferred for hard security/auth/debugging judgment, but the commercial Super Agent should use both where quality matters more than cost.
+
+### Claude Opus 4.6/4.7
+
+Especially strong for:
 
 - content
 - design
@@ -45,6 +56,18 @@ Use for:
 - landing pages and creative direction
 - nuanced strategy writing
 - high-quality synthesis
+- architecture and system design review
+
+### GPT-5.5
+
+Especially strong for:
+
+- hard debugging
+- security
+- authentication/authorization
+- weak-test repos
+- deployment logic
+- high-stakes coding decisions
 
 ### DeepSeek
 
@@ -91,7 +114,10 @@ Use for:
 - cloud coding-agent runs
 - commercial builder-swarm demo
 - PR-generating coding tasks
+- spinning up coding teams under a structured harness
 - repos where Cursor's indexing, cloud VM, hooks, skills, and UI visibility help
+
+Cursor SDK can be the execution backend for coding teams while GPT-5.5 and Claude Opus 4.6/4.7 provide architecture/review judgment. Use Symphony as a harness pattern/reference when it helps with isolated workspaces, task decomposition, proof-of-work, test gates, and PR handoffs. Do not require Symphony as a runtime dependency unless it clearly beats a simpler Cursor SDK + repo `WORKFLOW.md` setup.
 
 ### Hermes subagents
 

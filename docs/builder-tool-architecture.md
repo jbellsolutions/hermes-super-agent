@@ -93,8 +93,11 @@ Role: harness pattern for coding work.
 Owns conceptually:
 
 - work item → isolated workspace → coding agent → tests/proof → PR/review
+- task decomposition
+- proof-of-work requirements
+- review handoffs between frontier models and cheaper workers
 
-Not a default runtime yet.
+Not a default runtime yet. Prefer the simplest effective harness: Cursor SDK + repo `WORKFLOW.md` may be enough. Adopt Symphony as an implementation/reference only if it adds measurable orchestration value beyond the simpler setup.
 
 ### Cursor SDK
 
@@ -166,8 +169,13 @@ routing_policy:
   default_coding_backend: codex
   commercial_cloud_backend: cursor_sdk
   cheap_model_backend: deepseek
-  architecture_debug_security_backend: gpt-5.5
-  content_design_backend: opus-4.7
+  frontier_architecture_review:
+    - gpt-5.5
+    - claude-opus-4.6-or-4.7
+  high_risk_debug_security_auth_tests:
+    - gpt-5.5
+    - claude-opus-4.6-or-4.7
+  content_design_brand_voice: claude-opus-4.6-or-4.7
   visual_fallback: browser_use_or_agent_zero
   enterprise_cloud_computer: orgo_optional
 ```
@@ -175,9 +183,10 @@ routing_policy:
 ## Cost/intelligence policy
 
 - Use DeepSeek/cheap models for mechanical, test-protected tasks.
-- Use GPT-5.5/frontier models for architecture, hard debugging, security, infra, auth, weak-test repos, and high-risk coding.
-- Use Claude Opus 4.7 for content, design, brand voice, and nuanced creative/business writing.
+- Use GPT-5.5 and Claude Opus 4.6/4.7 together for architecture, hard debugging, security, infra, auth, unit tests, weak-test repos, and high-risk deployment coding.
+- Use Claude Opus 4.6/4.7 especially for content, design, brand voice, nuanced creative/business writing, and architecture review.
 - Use Cursor SDK for its harness/runtime. Do not default to Cursor Composer unless it proves best for a specific task.
+- Use Symphony as a guide for harness design if useful; do not add it as a required dependency if Cursor SDK + `WORKFLOW.md` is simpler and sufficient.
 - Let harness proof, not model vibes, determine promotion.
 
 ## Tool access policy

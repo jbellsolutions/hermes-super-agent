@@ -29,13 +29,13 @@
 
 Three paths. Pick one. **You don't need to read the rest of this README to launch.**
 
-### Path A — Claude Code/Codex drives the install (recommended)
+### Path A — Hermes-first walkthrough via Claude Code/Codex (recommended)
 
 Drop this in any Claude Code or Codex session:
 
-> *"Set up Super Agent for me. Repo: https://github.com/jbellsolutions/hermes-super-agent. Interview me in plain English, ask only for the keys needed for my chosen tier, and verify everything before you say it is ready."*
+> *"Set up a Hermes Super Agent for me. Repo: https://github.com/jbellsolutions/hermes-super-agent. Start by checking whether Hermes Agent is installed. If Hermes is missing, install it from the official Hermes installer. Then interview me in plain English, ask only for the keys needed for my chosen tier, connect the shared Obsidian/Notion brain if available, and verify everything before you say it is ready."*
 
-Claude Code/Codex will read the setup instructions and the [`agent-os` skill](./.claude/skills/agent-os/SKILL.md), detect it's a fresh repo, and walk through every step in plain English — business context, tier, keys, channels, deploy target, and verification. ~15 minutes if your keys are ready.
+Claude Code/Codex will read the setup instructions, [`docs/hermes-first-install-walkthrough.md`](./docs/hermes-first-install-walkthrough.md), and the [`agent-os` skill](./.claude/skills/agent-os/SKILL.md), detect whether Hermes exists on the machine, install/configure it if needed, then walk through every Super Agent step in plain English — business context, tier, keys, channels, shared brain, deploy target, tools, and verification. This is the preferred first test path for ***REMOVED***' computer and the commercial setup experience.
 
 ### Path B — One-command wizard
 
@@ -220,8 +220,9 @@ New operator/runtime intake notes:
 - [`docs/coo-***REMOVED***-rebuild.md`](./docs/coo-***REMOVED***-rebuild.md) — rebuild plan for the business-only Single Brain COO using Super Agent, Paperclip, and the existing COO assets.
 - [`docs/cursor-sdk-intake.md`](./docs/cursor-sdk-intake.md) — Cursor TypeScript SDK intake as an optional builder-swarm backend.
 - [`docs/builder-tool-architecture.md`](./docs/builder-tool-architecture.md) — coherent tool composition model for Hermes, Paperclip, Symphony, Cursor SDK, Codex, OpenClaw, Composio, and browser/computer tools.
+- [`docs/hermes-first-install-walkthrough.md`](./docs/hermes-first-install-walkthrough.md) — Hermes-first setup path for fresh computers, including ***REMOVED***/customer installs, model setup, shared brain sync, tiered tools, and verification.
 - [`docs/routing-intelligence-contract.md`](./docs/routing-intelligence-contract.md) — model/backend/tool routing policy so agents know what to call, when, and with which scoped permissions.
-- [`docs/vault-sync-contract.md`](./docs/vault-sync-contract.md) — mandatory Obsidian + Notion sync contract for conversations, actions, decisions, health reports, and agent activity.
+- [`docs/vault-sync-contract.md`](./docs/vault-sync-contract.md) — mandatory bidirectional Obsidian + Notion sync contract for conversations, actions, decisions, health reports, agent activity, and shared-context retrieval.
 - [`templates/WORKFLOW.md`](./templates/WORKFLOW.md) — copyable coding-agent workflow contract for commercial/customer repos.
 - [`runbooks/deployment-access.md`](./runbooks/deployment-access.md) — safe Railway/DigitalOcean access and read-only inventory workflow.
 - [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) — exact Agent Zero install and verification path that worked locally.
@@ -233,15 +234,16 @@ New operator/runtime intake notes:
 
 ## Reading order if you're new
 
-1. [`STORY.md`](./STORY.md) — why this exists. ~5 min.
-2. This README. ~3 min.
-3. [`LAUNCH.md`](./LAUNCH.md) — get it running. ~5 min.
-4. [`ARCHITECTURE.md`](./ARCHITECTURE.md) — the system shape, the four self-pillars in detail, the routing rules. ~10 min.
-5. [`ETHOS.md`](./ETHOS.md) + [`ECOSYSTEM-PLAYBOOK.md`](./ECOSYSTEM-PLAYBOOK.md) — the discipline that keeps the pathology from coming back. ~5 min.
-6. [`docs/commercial-packaging.md`](./docs/commercial-packaging.md) + [`docs/portfolio-agent-architecture.md`](./docs/portfolio-agent-architecture.md) — sellable tiers and multi-agent structure. ~10 min.
-7. [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) + [`runbooks/a0-connector.md`](./runbooks/a0-connector.md) — reproduce the local Agent Zero/A0/Codex bridge. ~10 min.
-8. [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md) + [`docs/steipete-tool-intake.md`](./docs/steipete-tool-intake.md) — expansion decisions. ~10 min.
-9. [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md) — what ships in which session. ~5 min.
+1. [`docs/hermes-first-install-walkthrough.md`](./docs/hermes-first-install-walkthrough.md) — fresh-machine Hermes install and Super Agent setup path. Use this first for ***REMOVED***/customer installs. ~10 min.
+2. [`STORY.md`](./STORY.md) — why this exists. ~5 min.
+3. This README. ~3 min.
+4. [`LAUNCH.md`](./LAUNCH.md) — get it running. ~5 min.
+5. [`ARCHITECTURE.md`](./ARCHITECTURE.md) — the system shape, the four self-pillars in detail, the routing rules. ~10 min.
+6. [`ETHOS.md`](./ETHOS.md) + [`ECOSYSTEM-PLAYBOOK.md`](./ECOSYSTEM-PLAYBOOK.md) — the discipline that keeps the pathology from coming back. ~5 min.
+7. [`docs/commercial-packaging.md`](./docs/commercial-packaging.md) + [`docs/portfolio-agent-architecture.md`](./docs/portfolio-agent-architecture.md) — sellable tiers and multi-agent structure. ~10 min.
+8. [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) + [`runbooks/a0-connector.md`](./runbooks/a0-connector.md) — reproduce the local Agent Zero/A0/Codex bridge. ~10 min.
+9. [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md) + [`docs/steipete-tool-intake.md`](./docs/steipete-tool-intake.md) — expansion decisions. ~10 min.
+10. [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md) — what ships in which session. ~5 min.
 
 ## License
 
