@@ -26,6 +26,10 @@ All notable changes to agent-os.
 - Preserved prior Hermes/Codex/Agent Zero/A0 setup documentation under `docs/local-stack/`.
 - Added `super-agent` CLI alias while keeping `agent-os` compatibility.
 
+## Setup backlog
+
+- Added `docs/setup-backlog.md` to track remaining tool, skill, runtime, and integration setup.
+
 ## Safe daily updates
 
 - Added `docs/update-policy.md` with the rule that new tools must update the repo.
