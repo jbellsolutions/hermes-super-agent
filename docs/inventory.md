@@ -1,6 +1,6 @@
 # Inventory
 
-_Last updated: 2026-05-01_
+_Last updated: 2026-05-02_
 
 ## Executive summary
 
@@ -80,6 +80,7 @@ Reported by `/api/plugins/_a0_connector/v1/capabilities`:
 - Container: `agent-zero`
 - Data directory: `/Users/home/agent-zero/agent-zero/usr`
 - Env file: `/Users/home/agent-zero/agent-zero/usr/.env`
+- Reproduction runbook: `runbooks/agent-zero.md`
 
 ### A0 Connector
 
@@ -89,6 +90,7 @@ Reported by `/api/plugins/_a0_connector/v1/capabilities`:
 - plist: `/Users/home/Library/LaunchAgents/com.justin.a0-connector.plist`
 - stdout log: `/Users/home/Library/Logs/a0-connector.log`
 - stderr log: `/Users/home/Library/Logs/a0-connector.err.log`
+- Reproduction runbook: `runbooks/a0-connector.md`
 
 ### Codex
 
@@ -121,3 +123,26 @@ codex-cli 0.125.0
 ```text
 HTTP 200
 ```
+
+## Expansion docs added
+
+- `runbooks/agent-zero.md` now contains the exact reproducible Agent Zero setup path: Colima/Docker install, non-interactive container run, OpenRouter key wiring, HTTP/UI verification, and A0 handoff.
+- `runbooks/a0-connector.md` now contains the exact A0 setup path: installer, tmux session, Read&Write/code-exec toggles, launchd persistence, Codex wrapper, and remote Codex verification.
+- `docs/cloud-computer-options.md` documents the conditional Orgo AI/managed-cloud-computer decision for VPS and commercial deployments.
+- `docs/steipete-tool-intake.md` documents prioritized Peter/steipete tools for future Super Agent integration.
+
+## Optional future tool candidates
+
+Tier 1 candidates from Peter/steipete intake:
+
+- Peekaboo
+- macos-automator-mcp
+- gogcli
+- wacli
+- claude-code-mcp
+- agent-rules
+- mcporter
+
+Optional premium runtime candidate:
+
+- Orgo AI or equivalent managed cloud computer, only for VPS/customer deployments requiring isolated visual desktops or persistent GUI browser workspaces.
