@@ -26,3 +26,9 @@ All notable changes to agent-os.
 - Preserved prior Hermes/Codex/Agent Zero/A0 setup documentation under `docs/local-stack/`.
 - Added `super-agent` CLI alias while keeping `agent-os` compatibility.
 
+## Safe daily updates
+
+- Added `docs/update-policy.md` with the rule that new tools must update the repo.
+- Changed nightly upgrades to open a reviewable PR only after updater streams, Ruff, and smoke/unit tests pass.
+- Kept the upgrade posture conservative: stable and consistent beats newest.
+
