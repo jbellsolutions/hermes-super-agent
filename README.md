@@ -220,6 +220,8 @@ New operator/runtime intake notes:
 - [`docs/coo-***REMOVED***-rebuild.md`](./docs/coo-***REMOVED***-rebuild.md) — rebuild plan for the business-only Single Brain COO using Super Agent, Paperclip, and the existing COO assets.
 - [`docs/cursor-sdk-intake.md`](./docs/cursor-sdk-intake.md) — Cursor TypeScript SDK intake as an optional builder-swarm backend.
 - [`docs/builder-tool-architecture.md`](./docs/builder-tool-architecture.md) — coherent tool composition model for Hermes, Paperclip, Symphony, Cursor SDK, Codex, OpenClaw, Composio, and browser/computer tools.
+- [`docs/routing-intelligence-contract.md`](./docs/routing-intelligence-contract.md) — model/backend/tool routing policy so agents know what to call, when, and with which scoped permissions.
+- [`docs/vault-sync-contract.md`](./docs/vault-sync-contract.md) — mandatory Obsidian + Notion sync contract for conversations, actions, decisions, health reports, and agent activity.
 - [`templates/WORKFLOW.md`](./templates/WORKFLOW.md) — copyable coding-agent workflow contract for commercial/customer repos.
 - [`runbooks/deployment-access.md`](./runbooks/deployment-access.md) — safe Railway/DigitalOcean access and read-only inventory workflow.
 - [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) — exact Agent Zero install and verification path that worked locally.

@@ -79,3 +79,9 @@ All notable changes to agent-os.
 - Added `vault/projects/***REMOVED***.md` after read-only DigitalOcean inspection; the droplet exists and is active, but SSH/public HTTP access is currently blocked.
 - Deepened `vault/projects/***REMOVED***.md` with Paperclip health/API inventory, discovered endpoint families, and private/authenticated-board behavior.
 - Added `docs/cursor-sdk-intake.md` and `docs/builder-tool-architecture.md` to position Cursor SDK as an optional builder-swarm backend behind the same Symphony-style `WORKFLOW.md` harness, alongside Codex, Claude Code, OpenClaw, Hermes subagents, Composio/MCP connectors, and browser/computer tools.
+
+## Vault sync and routing intelligence
+
+- Added `docs/vault-sync-contract.md` making Obsidian + Notion sync mandatory for conversations, actions, decisions, health reports, and agent activity.
+- Added `docs/routing-intelligence-contract.md` defining when to use GPT-5.5, Opus 4.7, DeepSeek, Cursor SDK, Codex, Claude Code, Hermes subagents, browser/computer backends, and scoped tool bundles.
+- Updated the Single Brain COO plan with Justin's decisions: merge COO Agent + Single Brain sources, separate COO Hermes profile/VPS, own Telegram chat/bot if needed, initial Paperclip companies, and 7-day smoke test before retiring legacy `***REMOVED***`.
