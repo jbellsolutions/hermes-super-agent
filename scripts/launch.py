@@ -46,9 +46,9 @@ def red(s: str) -> str:
 
 def banner() -> None:
     print()
-    print(cyan("agent-os — launch wizard"))
+    print(cyan("Super Agent — launch wizard"))
     print(cyan("─" * 40))
-    print("One agent. One state. Every channel.")
+    print("Commercial-grade agent setup. One operator, many specialist agents when needed.")
     print()
 
 
@@ -163,6 +163,40 @@ def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]
             default=env.get("HERMES_DEFAULT_MODEL", "claude-opus-4-7"),
         )
 
+    if not env.get("SUPER_AGENT_TIER") or reset:
+        tier = prompt_choice(
+            "Commercial setup tier:",
+            ["operator", "pro-operator", "enterprise"],
+            default_idx=0,
+        )
+        env["SUPER_AGENT_TIER"] = tier
+
+    print()
+    print(cyan("Business onboarding"))
+    if not env.get("BUSINESS_NAME") or reset:
+        env["BUSINESS_NAME"] = prompt(
+            "Business/project name this agent is being set up for",
+            default=env.get("BUSINESS_NAME", "internal-super-agent"),
+        )
+    if not env.get("BUSINESS_TYPE") or reset:
+        env["BUSINESS_TYPE"] = prompt(
+            "Business type / offer (example: COO dashboard, SDR agency, paperclip business)",
+            default=env.get("BUSINESS_TYPE", "operator command center"),
+        )
+    if not env.get("FIRST_WORKFLOWS") or reset:
+        env["FIRST_WORKFLOWS"] = prompt(
+            "First 3 workflows the agent should own (comma-separated)",
+            default=env.get("FIRST_WORKFLOWS", "daily status, deployment inventory, repo updates"),
+        )
+    if not env.get("HUMAN_APPROVAL_REQUIRED") or reset:
+        env["HUMAN_APPROVAL_REQUIRED"] = prompt(
+            "Actions requiring human approval",
+            default=env.get(
+                "HUMAN_APPROVAL_REQUIRED",
+                "production deploys, payments, destructive infra changes, outbound sending",
+            ),
+        )
+
     if minimal:
         return env
 
@@ -224,12 +258,25 @@ def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]
         ("E2B_API_KEY", "E2B sandboxed code execution (free tier at e2b.dev)"),
         ("EXA_API_KEY", "Exa neural search (free tier at exa.ai)"),
         ("OPENROUTER_API_KEY", "OpenRouter for non-Anthropic / non-OpenAI models"),
+        ("RAILWAY_TOKEN", "Railway deployment discovery/deploys"),
+        ("DIGITALOCEAN_ACCESS_TOKEN", "DigitalOcean droplet/app discovery"),
     ]
     for k, desc in optional:
         if env.get(k) and not reset:
             continue
         if prompt_yn(f"  Configure {k} ({desc})?", default=False):
             env[k] = prompt(f"    {k}", secret=True)
+
+    if env.get("SUPER_AGENT_TIER") == "enterprise":
+        print()
+        print(cyan("Enterprise-only managed cloud computer"))
+        print("Orgo AI or similar is optional. Skip unless this customer/workspace needs an isolated visible desktop.")
+        if prompt_yn("  Enable optional Orgo/managed-cloud-computer placeholder?", default=False):
+            env["ORGO_ENABLED"] = "true"
+            if not env.get("ORGO_API_KEY") or reset:
+                env["ORGO_API_KEY"] = prompt("    ORGO_API_KEY", secret=True)
+        else:
+            env["ORGO_ENABLED"] = "false"
 
     return env
 
@@ -297,6 +344,9 @@ def step_summary(env: dict[str, str], deploy: str) -> None:
     print(cyan("─" * 40))
     print()
     print(f"  operator:        {env.get('AGENT_OS_OWNER', '?')}")
+    print(f"  tier:            {env.get('SUPER_AGENT_TIER', 'operator')}")
+    print(f"  business:        {env.get('BUSINESS_NAME', '?')} — {env.get('BUSINESS_TYPE', '?')}")
+    print(f"  workflows:       {env.get('FIRST_WORKFLOWS', '?')}")
     print(f"  default model:   {env.get('HERMES_DEFAULT_MODEL', '?')}")
     print(f"  deploy target:   {deploy}")
     channels_on = []
@@ -323,6 +373,7 @@ def step_summary(env: dict[str, str], deploy: str) -> None:
     print(f"  {green('uv run agent-os manifest')} — refresh the system graph")
     print(f"  {green('uv run agent-os explain')}  — query the graph in plain English")
     print()
+    print("Read docs/commercial-packaging.md for tier rules and docs/portfolio-agent-architecture.md for specialist-agent expansion.")
     print("Stage 2+ of docs/EXECUTION-PLAN.md is where the stubbed runtimes get real wiring.")
     print()
 

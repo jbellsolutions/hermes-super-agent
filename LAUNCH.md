@@ -1,4 +1,4 @@
-# Launch agent-os
+# Launch Super Agent
 
 > *Drop the link. Walk through it. Get rolling.*
 
@@ -6,23 +6,26 @@ This is the conversational launch flow. Three paths — pick the one that matche
 
 | Path | Who it's for | How |
 |---|---|---|
-| **A — Claude Code (recommended)** | You already use Claude Code | Drop the repo URL into a Claude Code session. The `/agent-os setup` skill drives the rest in plain English. |
+| **A — Claude Code/Codex (recommended)** | You already use an AI coding agent | Drop the repo URL into Claude Code or Codex. The setup instructions drive the rest in plain English. |
 | **B — One-command bootstrap** | You want a single shell script | `./scripts/launch.py` walks you through every prompt. |
 | **C — Self-driving (Hermes does it)** | You want the agent to set itself up | Bootstrap with minimum keys, then ask Hermes "set yourself up." It uses OpenClaw + Computer Use to fill in the rest. |
 
 ---
 
-## Path A — Claude Code (recommended)
+## Path A — Claude Code or Codex (recommended)
 
-Drop this in a Claude Code session, anywhere:
+Drop this in a Claude Code or Codex session, anywhere:
 
-> *"Set up agent-os for me. Repo: https://github.com/jbellsolutions/agent-os"*
+> *"Set up Super Agent for me. Repo: https://github.com/jbellsolutions/hermes-super-agent. Interview me in plain English, ask only for the keys needed for my chosen tier, and verify everything before you say it is ready."*
 
 Claude Code will:
 
 1. **Clone the repo** with submodules.
 2. **Read `.claude/skills/agent-os/SKILL.md`** — the entry-point skill that orients itself to the system.
 3. **Walk you through `LAUNCH.md`** (this file) interactively, asking about:
+   - Which product tier they want: Operator, Pro Operator, or Enterprise.
+   - What business/project/offer the agent is being set up for.
+   - What first workflows the agent should own.
    - Which channels you want active first (Slack only? Slack + Telegram? Web voice from day one?)
    - Which model to point Hermes at (Claude Opus, Sonnet, an OpenRouter model, your own endpoint)
    - Which deploy target (Railway, Docker, Fly, or local-only for now)
@@ -37,6 +40,8 @@ Claude Code will:
 
 Estimated time end-to-end: **15 minutes** if your keys are ready, **30–45 minutes** if you're collecting them as you go.
 
+Commercial tier rule: Operator is the default. Pro Operator offers Agent Zero/A0 and the Tier 1 tool pack when prerequisites are met. Enterprise adds customer/project isolation, Railway/DigitalOcean/VPS discovery, and optional Orgo-style managed cloud computers. Orgo is never a default dependency.
+
 ---
 
 ## Path B — One-command bootstrap
@@ -44,14 +49,18 @@ Estimated time end-to-end: **15 minutes** if your keys are ready, **30–45 minu
 If you don't want to use Claude Code for the setup itself:
 
 ```bash
-git clone --recurse-submodules https://github.com/jbellsolutions/agent-os.git
-cd agent-os
+git clone --recurse-submodules https://github.com/jbellsolutions/hermes-super-agent.git
+cd hermes-super-agent
 ./scripts/launch.py
 ```
 
 `scripts/launch.py` is a Python wizard. It prompts for:
 
 - **Operator name** (becomes your canonical identity in `vault/conversations/`)
+- **Commercial tier** (`operator`, `pro-operator`, or `enterprise`)
+- **Business/project name and business type**
+- **First workflows** the agent should own
+- **Human-approval rules** for risky actions
 - **Default model** for Hermes
 - **Channels to enable** (Slack, Telegram, web text, web voice — pick any combination)
 - **API keys** (you can skip any and the relevant runtime stays disabled)
@@ -69,8 +78,8 @@ The wizard is idempotent — re-run it any time to change settings.
 This is the most interesting path. You give Hermes the absolute minimum and let it use its own runtimes to set itself up.
 
 ```bash
-git clone --recurse-submodules https://github.com/jbellsolutions/agent-os.git
-cd agent-os
+git clone --recurse-submodules https://github.com/jbellsolutions/hermes-super-agent.git
+cd hermes-super-agent
 ./scripts/launch.py --minimal   # Only asks for ANTHROPIC_API_KEY + your name
 uv run agent-os boot
 ```
@@ -98,8 +107,10 @@ This is the dogfood test of the architecture. If Hermes can stand up the rest of
 ## What you need before launch
 
 ### Always required
-- **Anthropic API key** — for Hermes' default model (Claude Opus 4.7).
+- **Provider key for your default model** — Anthropic/OpenAI/OpenRouter/etc.
 - **Operator name** — the canonical identity that ties Slack/Telegram/web/voice to one conversation log.
+- **Tier** — Operator, Pro Operator, or Enterprise.
+- **Business/project context** — name, offer/business type, first workflows, and approval rules.
 
 ### Per-channel (pick at least one)
 - **Slack** — `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_SIGNING_SECRET`. [Create a Slack app](https://api.slack.com/apps).
@@ -112,6 +123,9 @@ This is the dogfood test of the architecture. If Hermes can stand up the rest of
 - **E2B** — `E2B_API_KEY` ([free tier](https://e2b.dev)).
 - **Exa** — `EXA_API_KEY` ([free tier](https://exa.ai)).
 - **OpenRouter** — `OPENROUTER_API_KEY` if you want non-Anthropic / non-OpenAI models.
+- **Railway** — `RAILWAY_TOKEN` only when discovering/deploying Railway apps.
+- **DigitalOcean** — `DIGITALOCEAN_ACCESS_TOKEN` only when discovering/managing droplets/apps.
+- **Orgo AI** — `ORGO_API_KEY` only for Enterprise deployments that need an isolated visible cloud computer.
 
 ### Observability (optional, free if self-hosted)
 - **Langfuse** — runs in your Docker Compose stack at `localhost:3000`. No external account needed.
@@ -170,6 +184,10 @@ You wake up. The system has improved itself by a tiny bit. New community skills 
 **"Can I disable the upgrader?"** Set `UPGRADER_CRON=` (empty) in `.env`. Then submodules stay pinned. You lose the daily-evolution moat.
 
 **"Can I run multiple agent-os instances?"** Yes — but they should NOT share a vault. Each instance owns its own conversation logs and heartbeats. If you want shared memory across instances, that's a multi-tenant feature and lives in `examples/multi-tenant/` (not yet built).
+
+**"Should one Hermes agent run all my businesses?"** No. Use the hub-and-spoke model in `docs/portfolio-agent-architecture.md`: one primary Hermes Super Agent as portfolio operator, plus isolated specialist agents/workspaces for serious businesses, clients, or Paperclip companies.
+
+**"Are the steipete Tier 1 tools default?"** They are default recommended candidates for Pro Operator, not mandatory dependencies. The installer should offer them one at a time, install only relevant tools, and smoke-test each before promotion.
 
 **"How do I add a new vertical app?"** `examples/<your-vertical>/` directory + a `manifest.yaml` declaring its agents, tools, data sources, outputs, and consumers. The manifest aggregator picks it up on the next run; the system graph adds it; `/explain` knows about it.
 

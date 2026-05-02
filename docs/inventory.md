@@ -126,6 +126,9 @@ HTTP 200
 
 ## Expansion docs added
 
+- `docs/commercial-packaging.md` defines Operator, Pro Operator, and Enterprise tiers.
+- `docs/portfolio-agent-architecture.md` defines the hub-and-spoke model: one primary Hermes Super Agent plus isolated specialist project/business/customer agents.
+- `runbooks/deployment-access.md` defines safe read-only Railway/DigitalOcean discovery.
 - `runbooks/agent-zero.md` now contains the exact reproducible Agent Zero setup path: Colima/Docker install, non-interactive container run, OpenRouter key wiring, HTTP/UI verification, and A0 handoff.
 - `runbooks/a0-connector.md` now contains the exact A0 setup path: installer, tmux session, Read&Write/code-exec toggles, launchd persistence, Codex wrapper, and remote Codex verification.
 - `docs/cloud-computer-options.md` documents the conditional Orgo AI/managed-cloud-computer decision for VPS and commercial deployments.
@@ -146,3 +149,9 @@ Tier 1 candidates from Peter/steipete intake:
 Optional premium runtime candidate:
 
 - Orgo AI or equivalent managed cloud computer, only for VPS/customer deployments requiring isolated visual desktops or persistent GUI browser workspaces.
+
+## Related business-agent repos to inventory next
+
+- `https://github.com/jbellsolutions/coo-agent` — AI COO / operations dashboard concept; likely becomes the operations-control-room template.
+- `https://github.com/jbellsolutions/agent-company` — multi-agent company hierarchy; likely becomes the agent-team hierarchy template.
+- `https://github.com/paperclipai/paperclip` — open-source orchestration/dashboard for zero-human companies; likely becomes the dashboard/control-plane layer for agent-run businesses.
