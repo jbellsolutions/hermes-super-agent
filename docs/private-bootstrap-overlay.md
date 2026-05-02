@@ -55,7 +55,7 @@ The safer pattern is:
 
 ## Owner/private flow
 
-For Justin's internal agents, the private overlay can make a new agent feel nearly instant:
+For Justin's internal agents on the same trusted machine, the private overlay can make a new agent feel nearly instant:
 
 ```bash
 git clone https://github.com/jbellsolutions/hermes-super-agent-private.git
@@ -74,6 +74,37 @@ The private script should:
 7. Ask only for unique per-agent secrets, usually Telegram bot token/chat.
 8. Run `hermes --profile <name> doctor`.
 9. Write a setup summary to Obsidian/Notion.
+
+## Remote/VPS bootstrap problem
+
+When the target agent is on a VPS or another computer, there are two separate bootstrap needs:
+
+1. The machine must obtain the private bootstrap scripts/bundles.
+2. The machine must obtain enough decrypt or secret-manager access to materialize its runtime env.
+
+A private GitHub repo alone does not solve this because a brand-new VPS cannot clone a private repo without GitHub auth.
+
+Recommended modes:
+
+### Mode A — controller-push over SSH
+
+Best for owner-controlled VPSs where Primary Hermes already has SSH access.
+
+The parent machine copies the private overlay and encrypted bundles to the VPS, installs missing dependencies, and creates the remote Hermes profile. The VPS does not need GitHub auth just to start.
+
+Tradeoff: if the age identity is copied to the VPS, that VPS can decrypt the shared bundle. Use only for trusted VPSs or scoped bundles.
+
+### Mode B — per-machine age recipient
+
+Best when remote machines should not receive the main decrypt identity.
+
+The VPS generates its own age identity and sends only the public recipient back to the trusted machine. The private bundle is re-encrypted for that recipient. The VPS still needs a fetch path: deploy key, temporary PAT, controller-push tarball, or secret-manager bootstrap.
+
+### Mode C — company secret manager
+
+Best commercial/customer path.
+
+The installer asks the company admin once for secret-store access, then role agents receive scoped credentials through policy. The public repo should support this path without ever storing customer secrets.
 
 ## What should be shared across private agents?
 
@@ -159,6 +190,17 @@ Connect company secret store once.
 Create role templates.
 Spin up new agents in minutes.
 Agents receive the access they need without seeing raw master credentials.
+```
+
+For VPS/remote agents:
+
+```text
+Primary Hermes has SSH or deploy access.
+Admin chooses agent role/template.
+Bootstrapper installs Hermes remotely.
+Bootstrapper injects scoped secrets through encrypted bundle or secret manager.
+Agent starts with shared Obsidian/Notion sync.
+Only unique per-agent setup remains, such as Telegram bot/chat.
 ```
 
 For an employee/role agent:

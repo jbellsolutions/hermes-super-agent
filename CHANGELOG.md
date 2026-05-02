@@ -99,3 +99,4 @@ All notable changes to agent-os.
 - Added `docs/private-bootstrap-overlay.md` to document the public/product-safe pattern for a separate private encrypted bootstrap repo.
 - Documented how internal owner agents can inherit shared encrypted env/tool/skill access while keeping unique per-agent credentials such as Telegram bot tokens separate.
 - Documented the commercial version: company-owned secret broker, role-scoped access, audit logs, and no raw master credentials exposed to ordinary role agents.
+- Extended the private overlay guidance for remote/VPS agents: controller-push over SSH, per-machine age recipients, deploy keys/temporary PATs, and commercial secret-manager bootstrap.
