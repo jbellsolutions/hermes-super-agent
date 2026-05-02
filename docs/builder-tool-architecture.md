@@ -166,7 +166,8 @@ routing_policy:
   default_coding_backend: codex
   commercial_cloud_backend: cursor_sdk
   cheap_model_backend: deepseek
-  frontier_model_backend: gpt-5.5
+  architecture_debug_security_backend: gpt-5.5
+  content_design_backend: opus-4.7
   visual_fallback: browser_use_or_agent_zero
   enterprise_cloud_computer: orgo_optional
 ```
@@ -174,9 +175,23 @@ routing_policy:
 ## Cost/intelligence policy
 
 - Use DeepSeek/cheap models for mechanical, test-protected tasks.
-- Use GPT-5.5/frontier models for architecture, security, infra, auth, weak-test repos, and high-risk tasks.
-- Use Cursor Composer models when Cursor's coding harness and price/performance are strong.
+- Use GPT-5.5/frontier models for architecture, hard debugging, security, infra, auth, weak-test repos, and high-risk coding.
+- Use Claude Opus 4.7 for content, design, brand voice, and nuanced creative/business writing.
+- Use Cursor SDK for its harness/runtime. Do not default to Cursor Composer unless it proves best for a specific task.
 - Let harness proof, not model vibes, determine promotion.
+
+## Tool access policy
+
+Not every agent gets every tool.
+
+- Primary Hermes can route to most tools/backends because it is the technical control plane.
+- Specialist agents get scoped bundles matched to their role.
+- Builder workers get repo/test/PR tools, not broad business or customer-data access.
+- The Single Brain COO gets business tools and dashboards, not destructive infrastructure powers by default.
+- Deployment health specialists get read-only infra tools unless explicitly elevated.
+- Browser/computer backends are invoked only when the task requires them.
+
+See `docs/routing-intelligence-contract.md` for the detailed routing and tool-bundle policy.
 
 ## Commercial packaging
 

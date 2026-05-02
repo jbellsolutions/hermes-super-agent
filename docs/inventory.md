@@ -137,6 +137,8 @@ HTTP 200
 - `docs/coo-single-brain-rebuild.md` defines the rebuild path for the business-only Single Brain COO.
 - `docs/cursor-sdk-intake.md` evaluates Cursor's TypeScript SDK as an optional builder-swarm backend.
 - `docs/builder-tool-architecture.md` organizes Cursor SDK, Symphony, Codex, OpenClaw, Composio, Paperclip, and Hermes into coherent tool layers.
+- `docs/routing-intelligence-contract.md` defines model/backend/tool-bundle routing, including GPT-5.5, Opus 4.7, DeepSeek, Cursor SDK, Codex, browser/computer backends, and scoped tool access.
+- `docs/vault-sync-contract.md` defines the mandatory Obsidian + Notion sync requirement for conversations, actions, decisions, and agent activity.
 - `templates/WORKFLOW.md` is the copyable repo-level workflow contract for Codex/Claude/Hermes coding workers.
 - `vault/projects/` starts project-level maps for key deployment candidates.
 - `runbooks/agent-zero.md` now contains the exact reproducible Agent Zero setup path: Colima/Docker install, non-interactive container run, OpenRouter key wiring, HTTP/UI verification, and A0 handoff.

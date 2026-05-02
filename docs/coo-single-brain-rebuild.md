@@ -225,12 +225,24 @@ Only after reporting is reliable:
 - COO can recommend pausing/killing offers.
 - COO can execute approved recurring actions.
 
-## Open questions for Justin
+## Decisions from Justin
 
-These do not block documentation, but they should be answered before live rebuild/deploy:
+- Create a merge: use the COO Agent repo and the Single Brain repo/assets if found; pick the best parts and make the resulting Single Brain COO the source of truth.
+- Run the COO separately from Primary Hermes, likely as its own Hermes profile/agent on a VPS.
+- Give the COO its own Telegram chat/bot if needed, while keeping it part of the overall Super Agent hierarchy.
+- Keep the legacy Railway `coo-platform` alive until the new COO passes a 7-day smoke test, then it can be shut down/archive-cleaned.
+- Every COO, Paperclip company, and project-agent action should sync to Obsidian and Notion.
 
-1. Should the refreshed source repo stay `jbellsolutions/coo-agent`, or should we create a new repo like `single-brain-coo`?
-2. Should the first COO chat run as a separate Hermes profile, a separate Telegram bot/chat, or both?
-3. What are the first 3 offers/companies the COO should manage in Paperclip?
-4. Which business tools are mandatory on day one: Slack, Gmail, Calendar, GoHighLevel, Notion, ClickUp, Airtable, Google Sheets?
-5. Should the legacy Railway `coo-platform` be archived only after the new COO passes a 7-day smoke test?
+## Initial Paperclip companies / offers
+
+1. SDR Fleet / Agent Company — agents as an SDR company.
+2. Expert Offer — from AI Integrators.
+3. Sovereign Offer — from AI Integrators.
+4. Zions — separate bounded project/agent, ideally isolated but synced into the shared macro vault.
+
+## Remaining open questions before live rebuild/deploy
+
+1. Locate/confirm the Single Brain source repo if one exists.
+2. Confirm mandatory day-one business tools: Slack, Gmail, Calendar, GoHighLevel, Notion, ClickUp, Airtable, Google Sheets.
+3. Obtain/restore SSH access for `single-brain`, or decide to deploy a clean replacement VPS.
+4. Obtain/create Telegram bot token for the COO profile if the COO gets its own Telegram bot.
