@@ -17,8 +17,13 @@ Read-only deployment inventory for Super Agent portfolio discovery. Secret value
 ### DigitalOcean
 
 - CLI: installed (`doctl 1.155.0`)
-- Auth: pending token / `doctl auth init`
-- Inventory status: not collected yet
+- Auth: token stored in `~/.hermes/.env`; read-only inventory commands run successfully by passing the token from env
+- Account: `jbellsolutions@gmail.com`
+- Team: `My Team`
+- Droplet limit: `15`
+- Month-to-date usage: `$5.04`
+- Account balance: `$0.00`
+- Inventory status: read-only droplet/app/database/kubernetes/SSH-key/project/balance list collected
 
 ## Railway projects
 
@@ -51,7 +56,7 @@ Railway returned 37 projects in the `jbellsolutions's Projects` workspace.
 - `agentstack-hermes`
   - Services: `paperclip-server`, `Postgres`, `hermes-worker`, `Postgres-ek7H`, `hermes-api`, `hermes-scheduler`
   - Environments: `production`
-  - Notes: strongest candidate for current Paperclip/Hermes always-on agent stack.
+  - Notes: strongest Railway candidate for current Paperclip/Hermes always-on agent stack.
 
 - `ai-guy-flywheel`
   - Services: `redis`, `browser-runner`, `worker`, `dashboard`
@@ -181,29 +186,136 @@ Railway returned 37 projects in the `jbellsolutions's Projects` workspace.
 - `claude-content-factory-dashboard` — no services.
 - `claude-content-factory-dashboard` — no services.
 
+## DigitalOcean inventory
+
+DigitalOcean returned 8 active droplets, 0 App Platform apps, 0 managed databases, 0 Kubernetes clusters, 4 SSH keys, and 1 project.
+
+### Droplets
+
+- `ubuntu-s-2vcpu-4gb-nyc3-01`
+  - ID: `555758742`
+  - Status: `active`
+  - Region: `nyc3`
+  - Size: `s-2vcpu-4gb`
+  - Public IP: `138.197.43.196`
+  - Tags: none
+  - Notes: generic name; needs SSH inspection/mapping.
+
+- `LinkedinLeadGen`
+  - ID: `557271278`
+  - Status: `active`
+  - Region: `nyc1`
+  - Size: `s-1vcpu-1gb`
+  - Public IP: `157.230.83.196`
+  - Tags: none
+  - Notes: likely lead-gen worker; candidate specialist/business service.
+
+- `kevin-leads`
+  - ID: `557997238`
+  - Status: `active`
+  - Region: `nyc1`
+  - Size: `s-1vcpu-2gb`
+  - Public IP: `157.230.95.186`
+  - Tags: `kevin-leads`
+  - Notes: likely customer/project-specific lead-gen box; isolate before touching.
+
+- `cold-email-agent`
+  - ID: `558001471`
+  - Status: `active`
+  - Region: `nyc1`
+  - Size: `s-1vcpu-1gb`
+  - Public IP: `134.122.17.43`
+  - Tags: none
+  - Notes: likely outbound/cold-email worker; high approval sensitivity.
+
+- `yt-editor-pipeline`
+  - ID: `561041593`
+  - Status: `active`
+  - Region: `nyc1`
+  - Size: `s-1vcpu-2gb`
+  - Public IP: `142.93.54.26`
+  - Tags: none
+  - Notes: content/video pipeline candidate.
+
+- `paperclip-ops`
+  - ID: `561064984`
+  - Status: `active`
+  - Region: `nyc1`
+  - Size: `s-2vcpu-4gb`
+  - Public IP: `167.172.131.251`
+  - Tags: `paperclip`, `operations`
+  - Notes: strongest DigitalOcean candidate for Paperclip operations/control-plane work.
+
+- `removenews-ai-web`
+  - ID: `562828031`
+  - Status: `active`
+  - Region: `nyc3`
+  - Size: `s-1vcpu-2gb`
+  - Public IP: `142.93.64.250`
+  - Tags: none
+  - Notes: web app/service candidate; map to repo/domain.
+
+- `single-brain`
+  - ID: `567676939`
+  - Status: `active`
+  - Region: `nyc3`
+  - Size: `s-2vcpu-4gb-intel`
+  - Public IP: `104.236.11.200`
+  - Tags: `single-brain`
+  - Notes: likely relevant to central-agent/single-brain experiments; inspect carefully.
+
+### DigitalOcean App Platform
+
+- No apps returned.
+
+### DigitalOcean managed databases
+
+- No managed databases returned.
+
+### DigitalOcean Kubernetes
+
+- No Kubernetes clusters returned.
+
+### DigitalOcean SSH keys
+
+- `cold-email-agent`
+- `Claude Cowork Telegram Bot`
+- `AI Lead Gen Mac 1`
+- `Mac 2 SSH 1 Trading View Agent`
+
+Fingerprints are available from `doctl compute ssh-key list` but omitted from this summary unless needed for SSH mapping.
+
+### DigitalOcean projects
+
+- `first-project`
+  - Purpose: blank
+  - Updated: `2026-02-04T16:18:23Z`
+
 ## First conclusions
 
-1. Railway is already carrying a lot of always-on experiments and dashboards.
-2. `agentstack-hermes`, `coo-platform`, `notion-pm-managed-agent-fleet`, and `ai-guy-flywheel` are the first places to inspect for the Super Agent / Paperclip / COO vision.
-3. Several duplicates and generated-name services likely need cleanup or classification.
-4. DigitalOcean must be authenticated next to complete the infrastructure map.
+1. Railway is carrying dashboards, app services, and several agent experiments.
+2. DigitalOcean is carrying persistent worker/server droplets, including likely lead-gen, cold-email, content, Paperclip, and central-brain experiments.
+3. `agentstack-hermes` on Railway and `paperclip-ops` on DigitalOcean are the two most important Paperclip/Super-Agent infrastructure candidates.
+4. `coo-platform` on Railway may be worth testing, but should not become the main command center until it proves it can reliably report, execute, and respect approval gates.
+5. `cold-email-agent` and lead-gen droplets must be treated with outbound-action approval gates.
+6. Several duplicate/generated-name Railway projects likely need classification before cleanup.
 
 ## Next safe read-only steps
 
-1. Authenticate DigitalOcean with `doctl`.
-2. Run read-only DigitalOcean inventory:
-   - `doctl account get`
-   - `doctl compute droplet list`
-   - `doctl apps list`
-   - `doctl databases list`
-   - `doctl kubernetes cluster list`
-   - `doctl compute ssh-key list`
-   - `doctl balance get`
-3. Link Railway projects to GitHub repos and local project folders.
-4. Create `vault/projects/<project>.md` for:
+1. SSH-read-only inspect the key droplets without changing services:
+   - `paperclip-ops`
+   - `single-brain`
+   - `cold-email-agent`
+   - `LinkedinLeadGen`
+2. Link Railway projects and DigitalOcean droplets to GitHub repos/local folders.
+3. Create `vault/projects/<project>.md` entries for:
    - `agentstack-hermes`
+   - `paperclip-ops`
    - `coo-platform`
-   - `notion-pm-managed-agent-fleet`
-   - `ai-guy-flywheel`
-   - `job-scraper-leadgen-automation`
-5. Decide which one becomes the first specialist-agent workspace.
+   - `single-brain`
+   - `cold-email-agent`
+4. Decide whether the first specialist agent is:
+   - COO/business-only agent, or
+   - Paperclip operations specialist, or
+   - deployment inventory/health specialist.
+5. Do not delete, restart, redeploy, or mutate anything until Justin approves exact scope.

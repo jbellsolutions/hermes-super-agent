@@ -129,6 +129,10 @@ HTTP 200
 - `docs/commercial-packaging.md` defines Operator, Pro Operator, and Enterprise tiers.
 - `docs/portfolio-agent-architecture.md` defines the hub-and-spoke model: one primary Hermes Super Agent plus isolated specialist project/business/customer agents.
 - `runbooks/deployment-access.md` defines safe read-only Railway/DigitalOcean discovery.
+- `docs/deployments-inventory.md` now includes Railway and DigitalOcean read-only inventory.
+- `docs/portfolio-roadmap.md` defines the near-term Paperclip/COO/specialist-agent sequence.
+- `docs/symphony-intake.md` captures the OpenAI Symphony/harness-engineering evaluation for coding-agent orchestration.
+- `vault/projects/` starts project-level maps for key deployment candidates.
 - `runbooks/agent-zero.md` now contains the exact reproducible Agent Zero setup path: Colima/Docker install, non-interactive container run, OpenRouter key wiring, HTTP/UI verification, and A0 handoff.
 - `runbooks/a0-connector.md` now contains the exact A0 setup path: installer, tmux session, Read&Write/code-exec toggles, launchd persistence, Codex wrapper, and remote Codex verification.
 - `docs/cloud-computer-options.md` documents the conditional Orgo AI/managed-cloud-computer decision for VPS and commercial deployments.
