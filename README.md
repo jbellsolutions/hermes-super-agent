@@ -19,7 +19,7 @@
 
 > **One agent. One state. Every channel. Daily-evolving.**
 >
-> Hermes drives. OpenClaw + browser-use + Aider + Codex + Claude Code + Anthropic Computer Use + Claude Managed Agents + LiveKit + E2B + Exa are its tool belt. AGI-1 is the quality flywheel. The vault is the single source of truth. The upgrader pulls every dependency upstream every night. Drop a file in Slack, voice-chat the answer on the web — same agent, same memory.
+> Hermes drives. Agent Zero + A0 provide a visual/autonomous host bridge when needed. OpenClaw + browser-use + Aider + Codex + Claude Code + Anthropic Computer Use + Claude Managed Agents + LiveKit + E2B + Exa are its tool belt. AGI-1 is the quality flywheel. The vault is the single source of truth. The upgrader pulls every dependency upstream every night. Drop a file in Slack, voice-chat the answer on the web — same agent, same memory.
 
 [**Read the founding story →**](./STORY.md) — *how 14 broken frameworks became one that actually works.*
 
@@ -71,6 +71,7 @@ Then tell Hermes: *"Set yourself up. I want Slack + Telegram + web voice. Keys a
 | **Structured browser** | [browser-use](https://github.com/browser-use/browser-use) — 50K★ AI-agent-grade browser automation. |
 | **Coding (interactive)** | Claude Code subagents — direct, in-repo. |
 | **Coding (background)** | OpenAI Codex CLI + [Aider](https://github.com/Aider-AI/aider) — multi-provider hedge so a single outage doesn't stop the press. |
+| **Visual autonomous workspace** | [Agent Zero](https://www.agent-zero.ai/) + A0 Connector — Dockerized web UI with host Mac bridge and Codex access. See [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) and [`runbooks/a0-connector.md`](./runbooks/a0-connector.md). |
 | **Raw desktop** | Anthropic Computer Use SDK. |
 | **Long-running cloud** | Anthropic Claude Managed Agents. |
 | **Sandboxed code** | E2B — clean VM per run. |
@@ -81,6 +82,7 @@ Then tell Hermes: *"Set yourself up. I want Slack + Telegram + web voice. Keys a
 | **Memory** | Markdown vault → Supabase mirror. Single-state across every channel. |
 | **Introspection** | Manifest layer + MCP server + `/explain` skill — finally answers "how do you all tie together?" |
 | **Security wrapper** | NemoClaw vendored and parked until NVIDIA marks GA — flip the env var the day they do. |
+| **Optional cloud computer** | Orgo AI or equivalent managed machine only when a VPS/customer deployment needs an isolated visible desktop. See [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md). |
 
 The differentiator isn't adopting Hermes + OpenClaw — anyone can do that. The differentiator is running them tied together with **daily auto-updates** and a **quality flywheel** and a **single-state accessibility layer** that makes Slack, Telegram, web text, and web voice feel like one agent. See [STORY.md](./STORY.md) for the why.
 
@@ -106,9 +108,10 @@ src/agent_os/
 ├── orchestrator/    # Hermes wiring (boot, identities, vault-memory adapter, job router)
 ├── runtimes/        # specialist tool belt — Hermes routes here per job tags
 │   ├── openclaw/    │   ├── browser_use/
-│   ├── computer_use/│   ├── claude_subagents/
-│   ├── codex_cli/   │   ├── aider/
-│   ├── claude_managed/  ├── e2b/
+│   ├── agent_zero/  │   ├── computer_use/
+│   ├── claude_subagents/ ├── codex_cli/
+│   ├── aider/       │   ├── claude_managed/
+│   ├── e2b/
 │   ├── exa/         │   ├── livekit/
 │   └── terminal/
 ├── manifest/        # introspection — graph aggregator, MCP server, /explain backend
@@ -194,6 +197,13 @@ The 14 old framework repos remain live and untouched per Justin's call. They wer
 
 Full ethos: [`ETHOS.md`](./ETHOS.md). 5-question filter for adopting new tools: [`ECOSYSTEM-PLAYBOOK.md`](./ECOSYSTEM-PLAYBOOK.md). Migration map for the 14 old framework repos: [`MIGRATION-MAP.md`](./MIGRATION-MAP.md).
 
+New operator/runtime intake notes:
+
+- [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) — exact Agent Zero install and verification path that worked locally.
+- [`runbooks/a0-connector.md`](./runbooks/a0-connector.md) — exact A0 host-bridge setup, launchd persistence, and Codex exposure.
+- [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md) — when a cloud computer like Orgo AI is valuable vs unnecessary cost.
+- [`docs/steipete-tool-intake.md`](./docs/steipete-tool-intake.md) — prioritized intake of Peter/steipete tools for Super Agent.
+
 ---
 
 ## Reading order if you're new
@@ -203,7 +213,9 @@ Full ethos: [`ETHOS.md`](./ETHOS.md). 5-question filter for adopting new tools: 
 3. [`LAUNCH.md`](./LAUNCH.md) — get it running. ~5 min.
 4. [`ARCHITECTURE.md`](./ARCHITECTURE.md) — the system shape, the four self-pillars in detail, the routing rules. ~10 min.
 5. [`ETHOS.md`](./ETHOS.md) + [`ECOSYSTEM-PLAYBOOK.md`](./ECOSYSTEM-PLAYBOOK.md) — the discipline that keeps the pathology from coming back. ~5 min.
-6. [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md) — what ships in which session. ~5 min.
+6. [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) + [`runbooks/a0-connector.md`](./runbooks/a0-connector.md) — reproduce the local Agent Zero/A0/Codex bridge. ~10 min.
+7. [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md) + [`docs/steipete-tool-intake.md`](./docs/steipete-tool-intake.md) — expansion decisions. ~10 min.
+8. [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md) — what ships in which session. ~5 min.
 
 ## License
 

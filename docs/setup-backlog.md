@@ -67,6 +67,30 @@ Add a scoped token to `~/.hermes/.env` when needed. Do not store it in this repo
 
 ## Priority 2 — high-value integrations
 
+### Peter/steipete tool intake
+
+Prioritized intake is documented in `docs/steipete-tool-intake.md`.
+
+Add first, one at a time with smoke tests:
+
+- Peekaboo for macOS screenshots/visual awareness.
+- macos-automator-mcp for AppleScript/JXA app automation.
+- gogcli for Google Workspace CLI workflows.
+- wacli for WhatsApp CLI workflows.
+- claude-code-mcp for Claude Code as an MCP specialist.
+- agent-rules as curated standards/skill seed material.
+- mcporter for MCP packaging/ergonomics.
+
+Do not bulk-install the whole list. Each tool needs install docs, permission notes, and a health check.
+
+### Optional cloud computer / Orgo AI
+
+Decision doc: `docs/cloud-computer-options.md`.
+
+Current recommendation: do not make Orgo AI a default dependency. Add it conditionally for VPS/customer deployments that need an isolated visible desktop, persistent browser GUI, or premium demo workspace.
+
+Before implementation, collect Orgo API/auth docs, cost model, teardown controls, and security boundaries. Then add as an optional runtime under `src/agent_os/runtimes/orgo/`.
+
 ### Linear
 
 Useful for project/task tracking if Justin wants agent-managed issues.
