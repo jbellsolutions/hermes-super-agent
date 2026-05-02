@@ -18,7 +18,23 @@ test -f .env && test -d .venv && echo "bootstrapped" || echo "fresh"
 
 ## Launch Mode (fresh repo, drop-the-link flow)
 
-The user just dropped this repo's URL into your session. You are the conversational installer. Your job: walk them through `LAUNCH.md` Path A in plain English. Don't dump documentation at them — converse.
+The user just dropped this repo's URL into your session. You are the conversational installer. Your job: walk them through `LAUNCH.md` Path A and `docs/hermes-first-install-walkthrough.md` in plain English. Don't dump documentation at them — converse.
+
+Before repo bootstrapping, check whether Hermes Agent itself is installed:
+
+```bash
+command -v hermes || true
+hermes --version || true
+hermes doctor || true
+```
+
+If Hermes is missing, install it first with the official installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+```
+
+Then run or guide `hermes setup` before continuing the Super Agent repo setup.
 
 ### Step 1 — Confirm scope
 
@@ -27,12 +43,13 @@ Ask the user, in one short message, the minimum setup questions:
 1. *Which commercial tier?* Operator / Pro Operator / Enterprise.
 2. *What business/project/offer is this for?* Include first 3 workflows the agent should own.
 3. *Which channels do they want active first?* Slack? Telegram? Web text? Web voice? Any combination.
-4. *Which model should Hermes default to?* Default suggestion: `claude-opus-4-7` unless they want OpenAI/OpenRouter.
+4. *Which model setup should Hermes use?* Default suggestion: connect both GPT-5.5 and Claude Opus 4.6/4.7 for architecture/debug/security/auth/unit-test/deployment-code review, plus a cheaper worker model like DeepSeek when available.
 5. *Where do they want to deploy?* Local-only / Railway / DigitalOcean VPS / Docker Compose / Fly.io.
+6. *Where is the shared brain?* Obsidian vault path and Notion integration/database IDs, if available.
 
 Example phrasing:
 
-> *"I'll walk you through Super Agent setup like a commercial onboarding — should take 15–30 minutes depending on keys. Quick setup questions: (1) tier: Operator, Pro Operator, or Enterprise? (2) what business/project is this for and what first 3 workflows should the agent own? (3) channels: Slack, Telegram, web chat, voice, or a mix? (4) default model/provider? (5) deploy target: local, Railway, DigitalOcean/VPS, Docker Compose, or Fly?"*
+> *"I'll walk you through Super Agent setup like a commercial onboarding — should take 15–30 minutes depending on keys. Quick setup questions: (1) tier: Operator, Pro Operator, or Enterprise? (2) what business/project is this for and what first 3 workflows should the agent own? (3) channels: Slack, Telegram, web chat, voice, or a mix? (4) model setup: GPT-5.5 + Claude Opus 4.6/4.7 together for architecture/debug/security/auth/tests/deployment logic, plus cheaper workers? (5) deploy target: local, Railway, DigitalOcean/VPS, Docker Compose, or Fly? (6) Obsidian vault path and Notion workspace/database map?"*
 
 Use `AskUserQuestion` if you have it; otherwise plain prose.
 
@@ -40,7 +57,9 @@ Use `AskUserQuestion` if you have it; otherwise plain prose.
 
 Based on their channel choices, ask for ONLY the keys actually needed. Don't ask for everything in `.env.example` if they only picked Slack. Reference `.env.example` for the canonical list.
 
-Required regardless of channel: `ANTHROPIC_API_KEY` (or whichever provider their default model needs).
+Required regardless of channel: at least one model/provider key. Preferred commercial setup is both GPT-5.5-capable OpenAI/OpenRouter access and Claude Opus 4.6/4.7-capable Anthropic/OpenRouter access, plus an optional cheaper worker model such as DeepSeek.
+
+Shared brain fields: `OBSIDIAN_VAULT_PATH`, `NOTION_API_KEY`, and Notion database IDs for conversations, actions, decisions, agents, companies/offers, deployments, approvals, and costs when available. Notion is mandatory for the final operating system, but if credentials are not available during setup, mark Notion sync as pending rather than blocking the whole install.
 
 Business setup fields: `SUPER_AGENT_TIER`, `BUSINESS_NAME`, `BUSINESS_TYPE`, `FIRST_WORKFLOWS`, `HUMAN_APPROVAL_REQUIRED`.
 

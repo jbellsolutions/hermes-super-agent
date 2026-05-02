@@ -151,16 +151,34 @@ def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]
 
     if not env.get("ANTHROPIC_API_KEY") or reset:
         env["ANTHROPIC_API_KEY"] = prompt(
-            "ANTHROPIC_API_KEY (required — Hermes' default model)",
+            "ANTHROPIC_API_KEY (Claude Opus 4.6/4.7 for content/design + architecture review)",
             default=env.get("ANTHROPIC_API_KEY", ""),
             required=True,
             secret=True,
         )
 
+    if not env.get("OPENAI_API_KEY") or reset:
+        if prompt_yn("Configure OPENAI_API_KEY now? (GPT-5.5/Codex recommended for dual-frontier architecture + coding)", default=True):
+            env["OPENAI_API_KEY"] = prompt(
+                "OPENAI_API_KEY",
+                default=env.get("OPENAI_API_KEY", ""),
+                secret=True,
+            )
+
     if not env.get("HERMES_DEFAULT_MODEL") or reset:
         env["HERMES_DEFAULT_MODEL"] = prompt(
             "Default model for Hermes",
             default=env.get("HERMES_DEFAULT_MODEL", "claude-opus-4-7"),
+        )
+    if not env.get("HERMES_ARCHITECTURE_MODELS") or reset:
+        env["HERMES_ARCHITECTURE_MODELS"] = prompt(
+            "Architecture/debug/security/auth/tests model team",
+            default=env.get("HERMES_ARCHITECTURE_MODELS", "gpt-5.5,claude-opus-4-7"),
+        )
+    if not env.get("HERMES_WORKER_MODEL") or reset:
+        env["HERMES_WORKER_MODEL"] = prompt(
+            "Lower-cost worker model",
+            default=env.get("HERMES_WORKER_MODEL", "deepseek"),
         )
 
     if not env.get("SUPER_AGENT_TIER") or reset:
@@ -196,6 +214,32 @@ def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]
                 "production deploys, payments, destructive infra changes, outbound sending",
             ),
         )
+
+    print()
+    print(cyan("Shared brain sync"))
+    print("Obsidian + Notion are the shared read/write brain. Configure what you have now; mark Notion pending if needed.")
+    if not env.get("OBSIDIAN_VAULT_PATH") or reset:
+        env["OBSIDIAN_VAULT_PATH"] = prompt(
+            "Obsidian vault path",
+            default=env.get("OBSIDIAN_VAULT_PATH", "~/Documents/Obsidian Vault"),
+        )
+    if not env.get("SHARED_BRAIN_SYNC_MODE") or reset:
+        env["SHARED_BRAIN_SYNC_MODE"] = "bidirectional"
+    if not env.get("NOTION_API_KEY") or reset:
+        if prompt_yn("  Configure Notion API key/database IDs now?", default=False):
+            env["NOTION_API_KEY"] = prompt("  NOTION_API_KEY", secret=True)
+            for k in (
+                "NOTION_CONVERSATIONS_DB",
+                "NOTION_ACTIONS_DB",
+                "NOTION_DECISIONS_DB",
+                "NOTION_AGENTS_DB",
+                "NOTION_COMPANIES_DB",
+                "NOTION_DEPLOYMENTS_DB",
+                "NOTION_APPROVALS_DB",
+                "NOTION_COSTS_DB",
+            ):
+                if not env.get(k) or reset:
+                    env[k] = prompt(f"  {k}", default=env.get(k, ""))
 
     if minimal:
         return env
@@ -254,7 +298,8 @@ def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]
     print(cyan("Optional specialist-runtime keys"))
     print("(skip any — the runtime stays disabled if its key is blank)")
     optional = [
-        ("OPENAI_API_KEY", "Codex CLI runtime"),
+        ("OPENAI_API_KEY", "Codex CLI runtime / GPT-5.5 dual-frontier reviewer"),
+        ("CURSOR_API_KEY", "Cursor SDK builder-swarm backend"),
         ("E2B_API_KEY", "E2B sandboxed code execution (free tier at e2b.dev)"),
         ("EXA_API_KEY", "Exa neural search (free tier at exa.ai)"),
         ("OPENROUTER_API_KEY", "OpenRouter for non-Anthropic / non-OpenAI models"),

@@ -12,31 +12,33 @@ This is the conversational launch flow. Three paths — pick the one that matche
 
 ---
 
-## Path A — Claude Code or Codex (recommended)
+## Path A — Hermes-first Claude Code or Codex setup (recommended)
 
 Drop this in a Claude Code or Codex session, anywhere:
 
-> *"Set up Super Agent for me. Repo: https://github.com/jbellsolutions/hermes-super-agent. Interview me in plain English, ask only for the keys needed for my chosen tier, and verify everything before you say it is ready."*
+> *"Set up a Hermes Super Agent for me. Repo: https://github.com/jbellsolutions/hermes-super-agent. Start by checking whether Hermes Agent is installed. If Hermes is missing, install it from the official Hermes installer. Then interview me in plain English, ask only for the keys needed for my chosen tier, connect the shared Obsidian/Notion brain if available, and verify everything before you say it is ready."*
 
 Claude Code will:
 
-1. **Clone the repo** with submodules.
-2. **Read `.claude/skills/agent-os/SKILL.md`** — the entry-point skill that orients itself to the system.
-3. **Walk you through `LAUNCH.md`** (this file) interactively, asking about:
+1. **Check for Hermes first** — `command -v hermes`, `hermes --version`, `hermes doctor`.
+2. **Install Hermes if missing** using the official Nous Research installer.
+3. **Run/guide `hermes setup`** to configure provider/model, terminal, memory, tools, and gateway.
+4. **Clone the repo** with submodules.
+5. **Read [`docs/hermes-first-install-walkthrough.md`](./docs/hermes-first-install-walkthrough.md)** and `.claude/skills/agent-os/SKILL.md`.
+6. **Walk you through `LAUNCH.md`** interactively, asking about:
    - Which product tier they want: Operator, Pro Operator, or Enterprise.
    - What business/project/offer the agent is being set up for.
    - What first workflows the agent should own.
-   - Which channels you want active first (Slack only? Slack + Telegram? Web voice from day one?)
-   - Which model to point Hermes at (Claude Opus, Sonnet, an OpenRouter model, your own endpoint)
-   - Which deploy target (Railway, Docker, Fly, or local-only for now)
-   - Which keys you have ready vs need to grab
-4. **Stage your `.env`** with the keys you provided.
-5. **Run `./scripts/bootstrap.sh`** — installs `uv`, syncs Python, installs pnpm deps.
-6. **Run `uv run pytest`** — confirms 23 smoke tests pass.
-7. **Run `uv run agent-os manifest`** — builds the system graph. Confirms `vault/graph/system.yaml` was written.
-8. **Boot Hermes** — `uv run agent-os boot`. Confirms it joins your Slack workspace and posts a heartbeat.
-9. **Verify the single-state guarantee** — sends a test message via Slack, asks you to send the same question via Telegram, confirms both reach the same conversation log in `vault/conversations/`.
-10. **Hand you the keys.** Briefs you on which stages are real-implemented vs stubbed (per `docs/EXECUTION-PLAN.md`) and offers to drive the next stage with you.
+   - Which channels you want active first: CLI, Telegram, Slack, web/API, or voice.
+   - Which frontier models to connect first: GPT-5.5 and/or Claude Opus 4.6/4.7 for architecture/debug/security work, plus cheaper workers like DeepSeek when appropriate.
+   - Which deploy target: local-only, Railway, Docker/VPS, Fly, DigitalOcean, or customer-isolated Enterprise.
+   - Where the shared Obsidian vault lives and whether Notion credentials/database IDs are available.
+   - Which keys you have ready vs need to grab.
+7. **Stage your `.env`** with only the keys you provided. Never print secrets.
+8. **Run `./scripts/bootstrap.sh`** if present/needed — installs `uv`, syncs Python, installs pnpm deps.
+9. **Run tests** — prefer `PYTHONPATH=src uv run pytest -q` until packaging is normalized.
+10. **Verify the shared-brain loop** — write a setup summary to Obsidian, write/update Notion if configured, then retrieve that context in a fresh prompt.
+11. **Hand you the proof.** Briefs you on what is live, what is pending, and which tools were intentionally not installed.
 
 Estimated time end-to-end: **15 minutes** if your keys are ready, **30–45 minutes** if you're collecting them as you go.
 
@@ -107,10 +109,12 @@ This is the dogfood test of the architecture. If Hermes can stand up the rest of
 ## What you need before launch
 
 ### Always required
+- **Hermes Agent installed and verified** — `hermes --version` and `hermes doctor` should pass. If missing, install Hermes first with the official Nous Research installer.
 - **Provider key for your default model** — Anthropic/OpenAI/OpenRouter/etc.
 - **Operator name** — the canonical identity that ties Slack/Telegram/web/voice to one conversation log.
 - **Tier** — Operator, Pro Operator, or Enterprise.
 - **Business/project context** — name, offer/business type, first workflows, and approval rules.
+- **Shared brain path** — Obsidian vault path; Notion integration/database IDs when available.
 
 ### Per-channel (pick at least one)
 - **Slack** — `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_SIGNING_SECRET`. [Create a Slack app](https://api.slack.com/apps).
