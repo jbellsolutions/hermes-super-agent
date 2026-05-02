@@ -1,0 +1,9 @@
+component: agent-os.manifest
+type: core
+description: Introspection layer — graph aggregator, MCP server, /explain backend.
+depends_on: {}
+outputs:
+  - type: graph_yaml
+    consumer: vault.graph
+  - type: mcp_resources
+    consumer: claude_code

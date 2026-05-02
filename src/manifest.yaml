@@ -1,0 +1,10 @@
+component: super-agent
+type: core
+description: Agent OS plus Hermes, Codex, Agent Zero, A0, specialist runtimes, Vault, manifest, upgrader, and channels.
+depends_on:
+  base: jbellsolutions/agent-os
+  local_runtime:
+    - hermes
+    - codex_cli
+    - agent_zero
+    - a0_connector

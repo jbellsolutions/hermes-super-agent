@@ -1,0 +1,17 @@
+{
+  "name": "agent-os-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TypeScript workspaces for the agent-os web app and operator dashboard.",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.12.0"
+}

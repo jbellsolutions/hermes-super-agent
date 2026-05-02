@@ -1,0 +1,10 @@
+component: runtime.terminal
+type: specialist-runtime
+description: "Plain shell scripts and cron-style jobs."
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+agents: []
+data_sources: []
+outputs:
+  - type: vault_run_artifact
+    consumer: vault.runs

@@ -1,0 +1,19 @@
+app = "agent-os"
+primary_region = "ord"
+
+[build]
+  dockerfile = "../docker/Dockerfile"
+
+[env]
+  HERMES_DEFAULT_MODEL = "claude-opus-4-7"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = false
+  min_machines_running = 1
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 2
+  memory_mb = 2048

@@ -1,0 +1,14 @@
+component: coo-control-room
+type: vertical-app
+description: Always-on COO control room — Hermes-as-COO with Slack-first ops view.
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+  agent-os.channels.slack: any
+agents:
+  - name: alex
+    role: Chief Operating Officer
+    tools: [vault, manifest_mcp]
+data_sources: [vault.daily, vault.upgrades, vault.heartbeats]
+outputs:
+  - type: slack_brief
+    consumer: slack

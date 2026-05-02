@@ -1,0 +1,14 @@
+component: agent-os.upgrader
+type: core
+description: Auto-update daemon. 10 nightly streams. Smoke before promote. Logs to vault/upgrades/.
+depends_on: {}
+outputs:
+  - type: upgrade_log
+    consumer: vault.upgrades
+upstream_signals:
+  - vendor.hermes-agent
+  - vendor.openclaw
+  - vendor.browser-use
+  - vendor.aider
+  - vendor.agi-1
+  - vendor.awesome-hermes-agent

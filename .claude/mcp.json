@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "agent-os-manifest": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "agent_os.manifest.mcp_server"],
+      "env": { "AGENT_OS_ROOT": "${workspaceFolder}" }
+    }
+  }
+}

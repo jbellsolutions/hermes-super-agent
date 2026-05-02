@@ -1,0 +1,18 @@
+component: content-engine
+type: vertical-app
+description: Content engine (consumer of agent-os) — LinkedIn + speaking + multi-channel content.
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+  agent-os.runtimes.claude_subagents: any
+  agent-os.runtimes.browser_use: any
+agents:
+  - name: post_writer
+    role: draft LinkedIn posts
+    tools: [vault]
+  - name: scheduler
+    role: schedule posts via Buffer
+    tools: [buffer_mcp, vault]
+data_sources: [vault.skills, supabase.content]
+outputs:
+  - type: linkedin_post
+    consumer: linkedin

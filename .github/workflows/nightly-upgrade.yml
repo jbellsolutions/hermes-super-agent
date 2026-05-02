@@ -1,0 +1,30 @@
+name: nightly-upgrade
+
+on:
+  schedule:
+    - cron: "0 7 * * *"  # 02:00 ET / 07:00 UTC
+  workflow_dispatch:
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync
+      - name: Run nightly upgrader
+        env:
+          UPGRADER_ENABLE_NEMOCLAW: "false"
+        run: uv run python -m agent_os.upgrader.daemon
+      - name: Commit any vault/upgrades/ logs
+        run: |
+          git config user.email "agent-os@bot"
+          git config user.name "agent-os-upgrader"
+          git add vault/upgrades/ vault/.gitkeep || true
+          git diff --staged --quiet || git commit -m "nightly upgrade $(date -u +%Y-%m-%d)"
+          git push || true

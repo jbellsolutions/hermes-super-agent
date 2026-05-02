@@ -1,0 +1,11 @@
+component: agent-os.quality
+type: quality-skill
+description: Invocations of vendor/agi-1 — audit, council, autoresearch.
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+data_sources: [vault.runs, vault.daily]
+outputs:
+  - type: score_artifact
+    consumer: vault.daily
+  - type: prompt_variation
+    consumer: vault.skills

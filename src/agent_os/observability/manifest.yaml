@@ -1,0 +1,8 @@
+component: agent-os.observability
+type: core
+description: Tracing + cross-agent metrics. Langfuse + optional NVIDIA NeMo Agent Toolkit.
+depends_on: {}
+data_sources: [agent-os.runtimes, agent-os.orchestrator]
+outputs:
+  - type: trace
+    consumer: langfuse

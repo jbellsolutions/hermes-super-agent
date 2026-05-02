@@ -1,0 +1,62 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-extras
+      - name: Lint
+        run: uv run ruff check
+      - name: Type check
+        run: uv run mypy --ignore-missing-imports packages/ src/
+        continue-on-error: true
+      - name: Smoke imports
+        run: |
+          uv run python -c "import agent_os.orchestrator, agent_os.runtimes, agent_os.manifest, agent_os.quality, agent_os.upgrader, agent_os.channels, agent_os.observability"
+      - name: Pytest
+        run: uv run pytest -q
+
+  manifest-graph:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync
+      - name: Build manifest graph
+        run: uv run python -m agent_os.manifest.aggregator
+
+  js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - run: pnpm install --frozen-lockfile
+        continue-on-error: true
+      - run: pnpm -r build
+        continue-on-error: true
+
+  upgrader-cron:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync
+      - name: Run nightly upgrader
+        run: uv run python -m agent_os.upgrader.daemon

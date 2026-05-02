@@ -1,0 +1,10 @@
+component: runtime.livekit
+type: specialist-runtime
+description: "Voice/realtime via LiveKit Agents framework. Channel-side wiring."
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+agents: []
+data_sources: []
+outputs:
+  - type: vault_run_artifact
+    consumer: vault.runs
