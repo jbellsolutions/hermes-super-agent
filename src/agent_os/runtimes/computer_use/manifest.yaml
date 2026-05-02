@@ -1,0 +1,10 @@
+component: runtime.computer_use
+type: specialist-runtime
+description: "Raw OS-level desktop + browser via Anthropic Computer Use SDK."
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+agents: []
+data_sources: []
+outputs:
+  - type: vault_run_artifact
+    consumer: vault.runs

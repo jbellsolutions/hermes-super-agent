@@ -1,0 +1,20 @@
+name: agent_zero
+kind: visual_autonomous_runtime
+status: local-integrated
+owner: super-agent
+entrypoints:
+  ui: http://127.0.0.1:5080
+  docker_container: agent-zero
+  a0_tmux_session: a0
+  a0_launchd_label: com.justin.a0-connector
+capabilities:
+  - browser-visible autonomous agent UI
+  - host filesystem bridge through A0
+  - host command execution through A0
+  - Codex wrapper access at /Users/home/.local/bin/codex
+security:
+  network_binding: localhost-only
+  secrets_policy: never commit credentials; document as [REDACTED]
+notes:
+  - Runtime is documented for Justin's local Mac setup.
+  - Agent Zero data lives outside the repo at /Users/home/agent-zero/agent-zero/usr.

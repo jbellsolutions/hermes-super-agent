@@ -1,87 +1,210 @@
-# Hermes Super Agent
+# Super Agent
 
-A living documentation repo for Justin's local super-agent stack: **Hermes + Agent Zero + A0 Connector + Codex + Docker/Colima**.
+> **Agent OS + Hermes + Codex + Agent Zero.**
+>
+> Super Agent is Justin's Agent OS distribution: the `jbellsolutions/agent-os` foundation plus the local stack we have running now — Hermes as command center, Codex as the coding engine, Agent Zero as the visual/autonomous UI, and A0 as the host bridge.
+>
+> Upstream base: [`jbellsolutions/agent-os`](https://github.com/jbellsolutions/agent-os). This repo is the Super Agent fork/version where we wire in Codex, Agent Zero, A0, local runbooks, and experiments.
 
-This repo exists to track what is installed, what works, what breaks, operational runbooks, experiment notes, and the evolving gameplan as we build toward a highly capable local AI operating environment.
+## What changed from Agent OS
 
-## Current stack
+- Agent OS is now the **base operating system** of this repo, not a vendored side folder.
+- Super Agent adds the local Hermes/Codex/Agent Zero/A0 operating model.
+- The previous setup docs were preserved under [`docs/local-stack/`](./docs/local-stack/).
+- Codex stays a first-class coding runtime.
+- Agent Zero + A0 are added as a first-class visual/autonomous runtime layer.
+- Local health checks and runbooks remain part of the repo so we document what works as we build.
 
-- **Hermes Agent**: Telegram-accessible command center/orchestrator.
-- **OpenAI Codex CLI**: coding agent for repo work, reviews, and refactors.
-- **Agent Zero**: local browser UI autonomous agent running in Docker.
-- **A0 CLI Connector**: bridge from Agent Zero to the host Mac filesystem/shell.
-- **Colima + Docker**: local container runtime.
-- **OpenRouter**: model provider used by Agent Zero.
+---
 
-## Key local URLs and paths
+> **One agent. One state. Every channel. Daily-evolving.**
+>
+> Hermes drives. OpenClaw + browser-use + Aider + Codex + Claude Code + Anthropic Computer Use + Claude Managed Agents + LiveKit + E2B + Exa are its tool belt. AGI-1 is the quality flywheel. The vault is the single source of truth. The upgrader pulls every dependency upstream every night. Drop a file in Slack, voice-chat the answer on the web — same agent, same memory.
 
-- Agent Zero UI: <http://127.0.0.1:5080>
-- Agent Zero container: `agent-zero`
-- Agent Zero data: `/Users/home/agent-zero/agent-zero/usr`
-- A0 connector tmux session: `a0`
-- A0 connector launchd label: `com.justin.a0-connector`
-- Codex wrapper for A0/Agent Zero: `/Users/home/.local/bin/codex`
-- This repo: `/Users/home/Desktop/Hermes Super Agent`
+[**Read the founding story →**](./STORY.md) — *how 14 broken frameworks became one that actually works.*
 
-## Repository structure
+---
 
-```text
-.
-├── README.md
-├── docs/
-│   ├── inventory.md
-│   ├── setup-log.md
-│   ├── architecture.md
-│   └── roadmap.md
-├── runbooks/
-│   ├── agent-zero.md
-│   ├── a0-connector.md
-│   ├── codex.md
-│   ├── hermes.md
-│   └── disk-cleanup.md
-├── decisions/
-│   └── 0001-local-agent-stack.md
-├── templates/
-│   ├── experiment-log.md
-│   ├── project-registry.md
-│   └── agent-task-brief.md
-├── scripts/
-│   └── health-check.sh
-└── logs/
-    └── .gitkeep
-```
+## Drop the link, get rolling
 
-## Operating model
+Three paths. Pick one. **You don't need to read the rest of this README to launch.**
 
-1. **Hermes is mission control** from Telegram.
-2. **Codex handles serious coding tasks** inside git repos/worktrees.
-3. **Agent Zero handles visual/autonomous workflows** and experiments.
-4. **A0 Connector lets Agent Zero operate on the host Mac**.
-5. **Docker/Colima runs local services** like Agent Zero and future infrastructure.
+### Path A — Claude Code drives the install (recommended)
 
+Drop this in any Claude Code session:
 
-## Agent OS imported
+> *"Set up agent-os for me. Repo: https://github.com/jbellsolutions/hermes-super-agent"*
 
-We imported Builder Methods Agent OS as a spec/standards workflow layer. See:
+Claude Code will run the [`agent-os` skill](./.claude/skills/agent-os/SKILL.md) which detects it's a fresh repo and walks you through every step in plain English — keys, channels, deploy target. ~15 minutes if your keys are ready.
 
-- `docs/agent-os-integration.md`
-- `.claude/commands/agent-os/`
-- `agent-os/standards/`
-- `third_party/agent-os/`
-
-Use Agent OS patterns to discover standards, inject standards, shape specs, and plan products before sending implementation work to Codex or Agent Zero.
-
-## Maintenance habit
-
-Whenever we change the setup, add a tool, discover a failure mode, or find a strong workflow:
-
-1. Update the relevant runbook.
-2. Add a dated entry to `docs/setup-log.md`.
-3. Add any architectural implication to `docs/architecture.md`.
-4. Commit the changes.
-
-## Quick health check
+### Path B — One-command wizard
 
 ```bash
-./scripts/health-check.sh
+git clone --recurse-submodules https://github.com/jbellsolutions/hermes-super-agent.git
+cd hermes-super-agent
+./scripts/launch.py
 ```
+
+Conversational Python wizard. Asks for keys, picks a deploy target, runs `uv sync` + `pnpm install`, runs the 23 smoke tests, builds the manifest graph, hands you a 5-line summary.
+
+### Path C — Self-driving setup (Hermes drives)
+
+```bash
+git clone --recurse-submodules https://github.com/jbellsolutions/hermes-super-agent.git
+cd hermes-super-agent
+./scripts/launch.py --minimal      # only asks for ANTHROPIC_API_KEY + your name
+uv run agent-os boot
+```
+
+Then tell Hermes: *"Set yourself up. I want Slack + Telegram + web voice. Keys are in 1Password under 'agent-os/*'. Deploy to Railway when ready."* Hermes uses Computer Use to fetch the keys, OpenClaw to verify them, Claude Code subagents to write the configs, then deploys. *(Currently scaffolded; full self-setup loop lights up after stages 3–10 of `docs/EXECUTION-PLAN.md`.)*
+
+[**Full launch guide →**](./LAUNCH.md)
+
+---
+
+## What you're getting
+
+| | |
+|---|---|
+| **Persistent orchestrator** | [Hermes](https://github.com/NousResearch/hermes-agent) — 64K★ MIT-licensed, persistent memory across sessions, native skill saving, multi-platform Slack/Telegram/Discord/WhatsApp/CLI, bring-any-model. |
+| **Autonomous execution** | [OpenClaw](https://github.com/openclaw/openclaw) — 302K★, the fastest-growing OSS project ever. Shell, file, browser grind. |
+| **Structured browser** | [browser-use](https://github.com/browser-use/browser-use) — 50K★ AI-agent-grade browser automation. |
+| **Coding (interactive)** | Claude Code subagents — direct, in-repo. |
+| **Coding (background)** | OpenAI Codex CLI + [Aider](https://github.com/Aider-AI/aider) — multi-provider hedge so a single outage doesn't stop the press. |
+| **Raw desktop** | Anthropic Computer Use SDK. |
+| **Long-running cloud** | Anthropic Claude Managed Agents. |
+| **Sandboxed code** | E2B — clean VM per run. |
+| **Search** | Exa neural search for "find me 10 articles about X" without spinning up a browser. |
+| **Voice + realtime** | LiveKit + OpenAI Realtime API or Gemini Realtime API. |
+| **Quality flywheel** | Your own [agi-1](https://github.com/jbellsolutions/agi-1) — vendored, auto-updated nightly to itself. `/agi-audit`, `/agi-council`, `/agi-research`. |
+| **Observability** | Self-hosted Langfuse + optional NVIDIA NeMo Agent Toolkit — free, no surprise costs. |
+| **Memory** | Markdown vault → Supabase mirror. Single-state across every channel. |
+| **Introspection** | Manifest layer + MCP server + `/explain` skill — finally answers "how do you all tie together?" |
+| **Security wrapper** | NemoClaw vendored and parked until NVIDIA marks GA — flip the env var the day they do. |
+
+The differentiator isn't adopting Hermes + OpenClaw — anyone can do that. The differentiator is running them tied together with **daily auto-updates** and a **quality flywheel** and a **single-state accessibility layer** that makes Slack, Telegram, web text, and web voice feel like one agent. See [STORY.md](./STORY.md) for the why.
+
+---
+
+## The four "self-" pillars
+
+| Pillar | Mechanism |
+|---|---|
+| **Self-healing** | Hermes heartbeat detects (heartbeats, validators, cron, API health, cost). Signature-match against `vault/genome/incidents.yaml`. Apply genome fix or 3-agent diagnostic council. Verify. Auto-promote recurring fixes. |
+| **Self-learning** | Every run writes binary assertions to `vault/runs/`. Nightly rollup detects plateau/regression. `/agi-research` evolves prompts via 5-variation tournament; promotes winner if it beats incumbent by ≥5pp. |
+| **Self-growing** | Upgrader pulls Hermes / OpenClaw / browser-use / Aider / Codex / agi-1 / awesome-hermes-agent nightly. New capabilities appear automatically. New MCP servers auto-discovered. |
+| **Self-skills** | Hermes natively saves successful approaches as reusable skills. agi-1 promotes high-confidence skills cross-project via the genome. |
+
+Concrete state machines for each in [`ARCHITECTURE.md`](./ARCHITECTURE.md). Not vibes.
+
+---
+
+## Repo map
+
+```
+src/agent_os/
+├── orchestrator/    # Hermes wiring (boot, identities, vault-memory adapter, job router)
+├── runtimes/        # specialist tool belt — Hermes routes here per job tags
+│   ├── openclaw/    │   ├── browser_use/
+│   ├── computer_use/│   ├── claude_subagents/
+│   ├── codex_cli/   │   ├── aider/
+│   ├── claude_managed/  ├── e2b/
+│   ├── exa/         │   ├── livekit/
+│   └── terminal/
+├── manifest/        # introspection — graph aggregator, MCP server, /explain backend
+├── quality/         # agi-1 invocations — audit, council, autoresearch
+├── upgrader/        # nightly auto-update daemon (10 streams)
+├── channels/        # slack / telegram / web / voice — single-state guarantee
+└── observability/   # Langfuse + optional NVIDIA NeMo Agent Toolkit
+
+vendor/              # auto-updated upstream OSS — DO NOT EDIT
+├── hermes-agent/    │   ├── openclaw/         │   ├── nemoclaw/  (parked)
+├── browser-use/     │   ├── aider/            │   ├── awesome-hermes-agent/
+└── agi-1/
+
+vault/               # markdown source of truth → Supabase mirror
+├── conversations/   # cross-channel logs (single-state)
+├── runs/            # structured run artifacts
+├── incidents/       # self-healing record
+├── upgrades/        # nightly upgrade log
+├── skills/          # active + community-staged + templates
+├── genome/          # cross-project promoted patterns
+└── graph/           # generated by manifest aggregator
+
+packages/webapp/     # Next.js — streaming chat + voice mode
+packages/dashboard/  # Next.js — operator UI
+
+examples/            # vertical apps that consume agent-os
+├── sdr-fleet/
+├── content-engine/
+└── coo-control-room/
+
+.claude/skills/      # /agent-os, /explain, /route, /heal, /agi-audit, /agi-research, /manifest
+.claude/mcp.json     # registers the manifest MCP server locally
+
+deploy/              # Railway / Docker Compose / Fly.io templates
+```
+
+---
+
+## Daily life
+
+Three things happen automatically every day, no human in the loop:
+
+1. **02:00** — the upgrader runs. Pulls Hermes / OpenClaw / browser-use / Aider / Codex / agi-1 / awesome-hermes-agent. Smokes each. Promotes the green ones. Quarantines the red ones with a Slack alert. Logs to `vault/upgrades/<date>.yaml`.
+2. **02:30** — `/agi-audit` runs against the day's outputs. Scores `vault/runs/`. Flags regressions. Writes `vault/daily/<date>.md`.
+3. **Every 5 minutes** — the self-healing loop ticks. Polls heartbeats, validators, cron, API health, cost guardrails. Auto-fixes known patterns; spawns a council for unknown ones.
+
+You wake up. The system has improved itself a little. Yesterday's fixes are in the genome. Costs are under budget or you got a Slack alert at 80%. Repeat.
+
+---
+
+## Status — verified at scaffold time
+
+```
+✓ uv sync                         # all packages install cleanly
+✓ uv run pytest -q                # 23 passed
+✓ uv run agent-os route --tags ...# router returns correct runtime per tag
+✓ uv run agent-os manifest        # 20 nodes, 57 edges built
+✓ git submodule status            # 7 submodules pinned
+```
+
+What's stubbed (per [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md)):
+
+- **Stage 2** — real Hermes boot
+- **Stage 3** — real OpenClaw `invoke()`, then the other 10 specialists
+- **Stage 4** — real AGI-1 invocations
+- **Stage 5** — real upgrader smoke checks
+- **Stage 6** — real manifest MCP server
+- **Stages 7–9** — Slack/Telegram/web/voice channel wiring
+- **Stage 10** — deploy templates verified end-to-end
+- **Stage 11+** — vertical-app onboarding
+
+The 14 old framework repos remain live and untouched per Justin's call. They were the pattern that this repo exists to break.
+
+---
+
+## The hard rules
+
+- **Never edit `vendor/`.** It breaks the upgrader. Open an upstream PR or wrap in `src/agent_os/runtimes/`.
+- **Never start another framework wrapper.** New ideas go into a runtime adapter, a Hermes skill, or upstream.
+- **Single-state guarantee.** Every channel writes through `vault_memory` — no per-channel state.
+- **Smoke tests are non-negotiable for the upgrader.** A bad upstream commit silently promoted is the failure mode that takes the system down.
+- **Default to Hermes.** Specialist runtimes are exceptions, not defaults.
+
+Full ethos: [`ETHOS.md`](./ETHOS.md). 5-question filter for adopting new tools: [`ECOSYSTEM-PLAYBOOK.md`](./ECOSYSTEM-PLAYBOOK.md). Migration map for the 14 old framework repos: [`MIGRATION-MAP.md`](./MIGRATION-MAP.md).
+
+---
+
+## Reading order if you're new
+
+1. [`STORY.md`](./STORY.md) — why this exists. ~5 min.
+2. This README. ~3 min.
+3. [`LAUNCH.md`](./LAUNCH.md) — get it running. ~5 min.
+4. [`ARCHITECTURE.md`](./ARCHITECTURE.md) — the system shape, the four self-pillars in detail, the routing rules. ~10 min.
+5. [`ETHOS.md`](./ETHOS.md) + [`ECOSYSTEM-PLAYBOOK.md`](./ECOSYSTEM-PLAYBOOK.md) — the discipline that keeps the pathology from coming back. ~5 min.
+6. [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md) — what ships in which session. ~5 min.
+
+## License
+
+MIT.

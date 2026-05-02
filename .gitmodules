@@ -1,0 +1,21 @@
+[submodule "vendor/hermes-agent"]
+	path = vendor/hermes-agent
+	url = https://github.com/NousResearch/hermes-agent
+[submodule "vendor/openclaw"]
+	path = vendor/openclaw
+	url = https://github.com/openclaw/openclaw
+[submodule "vendor/browser-use"]
+	path = vendor/browser-use
+	url = https://github.com/browser-use/browser-use
+[submodule "vendor/aider"]
+	path = vendor/aider
+	url = https://github.com/Aider-AI/aider
+[submodule "vendor/awesome-hermes-agent"]
+	path = vendor/awesome-hermes-agent
+	url = https://github.com/0xNyk/awesome-hermes-agent
+[submodule "vendor/agi-1"]
+	path = vendor/agi-1
+	url = https://github.com/jbellsolutions/agi-1
+[submodule "vendor/nemoclaw"]
+	path = vendor/nemoclaw
+	url = https://github.com/NVIDIA/NemoClaw

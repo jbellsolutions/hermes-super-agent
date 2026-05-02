@@ -1,0 +1,11 @@
+component: agent-os.channels
+type: channel
+description: Slack / Telegram / Web text / Web voice — single-state guarantee.
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+data_sources: [vault.conversations]
+outputs:
+  - type: conversation_log
+    consumer: vault.conversations
+  - type: file_upload
+    consumer: vault.uploads

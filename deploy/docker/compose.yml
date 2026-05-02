@@ -1,0 +1,55 @@
+services:
+  orchestrator:
+    build: { context: ../.., dockerfile: deploy/docker/Dockerfile }
+    env_file: ../../.env
+    volumes:
+      - ../../vault:/app/vault
+    restart: unless-stopped
+
+  upgrader:
+    build: { context: ../.., dockerfile: deploy/docker/Dockerfile }
+    env_file: ../../.env
+    command: ["sh", "-c", "while true; do uv run python -m agent_os.upgrader.daemon; sleep 86400; done"]
+    volumes:
+      - ../../vault:/app/vault
+    restart: unless-stopped
+
+  webapp:
+    image: node:20-slim
+    working_dir: /app
+    command: ["sh", "-c", "corepack enable && pnpm install && pnpm -F @agent-os/webapp dev"]
+    volumes:
+      - ../..:/app
+    ports: ["3002:3002"]
+    env_file: ../../.env
+
+  dashboard:
+    image: node:20-slim
+    working_dir: /app
+    command: ["sh", "-c", "corepack enable && pnpm install && pnpm -F @agent-os/dashboard dev"]
+    volumes:
+      - ../..:/app
+    ports: ["3001:3001"]
+    env_file: ../../.env
+
+  langfuse:
+    image: langfuse/langfuse:latest
+    ports: ["3000:3000"]
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/langfuse
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=changeme
+      - SALT=changeme
+    depends_on: [db]
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=langfuse
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

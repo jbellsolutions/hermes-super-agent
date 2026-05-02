@@ -1,0 +1,10 @@
+component: runtime.exa
+type: specialist-runtime
+description: "Neural web search API for quick article lookups."
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+agents: []
+data_sources: []
+outputs:
+  - type: vault_run_artifact
+    consumer: vault.runs

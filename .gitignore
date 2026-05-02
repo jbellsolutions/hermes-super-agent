@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# uv
+.uv/
+
+# Node
+node_modules/
+.next/
+out/
+.turbo/
+.pnpm-store/
+*.tsbuildinfo
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Vault — most contents are committed (markdown), but exclude binary uploads + generated graph
+vault/uploads/*
+!vault/uploads/.gitkeep
+vault/graph/system.yaml
+
+# Heartbeats and runtime state
+vault/heartbeats/*
+!vault/heartbeats/.gitkeep
+vault/runs/*
+!vault/runs/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Local Supabase mirror
+supabase/.local
+
+# CI artifacts
+coverage/
+htmlcov/
+.coverage

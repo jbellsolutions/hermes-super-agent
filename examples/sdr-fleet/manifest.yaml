@@ -1,0 +1,22 @@
+component: sdr-fleet
+type: vertical-app
+description: SDR fleet (consumer of agent-os) — prospecting, qualifying, outbound.
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+  agent-os.runtimes.openclaw: any
+  agent-os.runtimes.exa: any
+agents:
+  - name: prospector
+    role: find leads in Apollo
+    tools: [apollo_mcp, vault]
+    cost_budget_daily_usd: 5
+  - name: outbound_writer
+    role: draft personalized cold emails
+    tools: [smartlead_mcp, vault]
+data_sources: [apollo, smartlead, supabase.crm]
+outputs:
+  - type: email_send
+    consumer: smartlead
+  - type: vault_log
+    consumer: vault.runs
+downstream_consumers: [coo-control-room]
