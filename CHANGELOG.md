@@ -72,3 +72,10 @@ All notable changes to agent-os.
 - Added `docs/deployment-health-specialist.md` for the first observe/report specialist-agent pilot.
 - Added `docs/builder-swarm-harness.md` and `templates/WORKFLOW.md` to capture Symphony-style coding-agent harness engineering without adopting Symphony as a mandatory runtime.
 - Updated project maps with read-only findings: `***REMOVED***` health check is live, `***REMOVED***` is serving Hermes API and Paperclip UI, and `***REMOVED***` SSH is blocked by missing accepted key.
+
+## Single Brain COO rebuild and Cursor SDK intake
+
+- Added `docs/coo-***REMOVED***-rebuild.md` to define the rebuild path for the business-only Single Brain COO: Justin keeps Primary Hermes as the everything-builder/hub, while the COO becomes the operational cofounder controlling Paperclip company teams later.
+- Added `vault/projects/***REMOVED***.md` after read-only DigitalOcean inspection; the droplet exists and is active, but SSH/public HTTP access is currently blocked.
+- Deepened `vault/projects/***REMOVED***.md` with Paperclip health/API inventory, discovered endpoint families, and private/authenticated-board behavior.
+- Added `docs/cursor-sdk-intake.md` and `docs/builder-tool-architecture.md` to position Cursor SDK as an optional builder-swarm backend behind the same Symphony-style `WORKFLOW.md` harness, alongside Codex, Claude Code, OpenClaw, Hermes subagents, Composio/MCP connectors, and browser/computer tools.

@@ -217,6 +217,9 @@ New operator/runtime intake notes:
 - [`docs/symphony-intake.md`](./docs/symphony-intake.md) — OpenAI Symphony/harness-engineering evaluation for coding-agent orchestration.
 - [`docs/builder-swarm-harness.md`](./docs/builder-swarm-harness.md) — lightweight Symphony-style builder swarm contract without making Symphony a default dependency.
 - [`docs/deployment-health-specialist.md`](./docs/deployment-health-specialist.md) — first specialist-agent pilot: observe/report health, costs, ownership, and broken deployments.
+- [`docs/coo-***REMOVED***-rebuild.md`](./docs/coo-***REMOVED***-rebuild.md) — rebuild plan for the business-only Single Brain COO using Super Agent, Paperclip, and the existing COO assets.
+- [`docs/cursor-sdk-intake.md`](./docs/cursor-sdk-intake.md) — Cursor TypeScript SDK intake as an optional builder-swarm backend.
+- [`docs/builder-tool-architecture.md`](./docs/builder-tool-architecture.md) — coherent tool composition model for Hermes, Paperclip, Symphony, Cursor SDK, Codex, OpenClaw, Composio, and browser/computer tools.
 - [`templates/WORKFLOW.md`](./templates/WORKFLOW.md) — copyable coding-agent workflow contract for commercial/customer repos.
 - [`runbooks/deployment-access.md`](./runbooks/deployment-access.md) — safe Railway/DigitalOcean access and read-only inventory workflow.
 - [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) — exact Agent Zero install and verification path that worked locally.
