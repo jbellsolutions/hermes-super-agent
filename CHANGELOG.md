@@ -93,3 +93,9 @@ All notable changes to agent-os.
 - Strengthened `docs/vault-sync-contract.md` from write-only logging to bidirectional shared-context retrieval: agents must write to and pull from Obsidian/Notion before answering cross-agent, cross-business, contact, offer, project, or deployment questions.
 - Updated routing/tool architecture so GPT-5.5 and Claude Opus 4.6/4.7 work together on architecture, debugging, security, auth, unit tests, and high-stakes deployment coding; Claude remains especially strong for content, design, and brand voice.
 - Clarified Cursor SDK as the preferred coding-team/harness runtime candidate, with Symphony used as an optional harness reference rather than a mandatory dependency when `WORKFLOW.md` plus Cursor SDK is sufficient.
+
+## Private bootstrap overlay and secret-broker product pattern
+
+- Added `docs/private-bootstrap-overlay.md` to document the public/product-safe pattern for a separate private encrypted bootstrap repo.
+- Documented how internal owner agents can inherit shared encrypted env/tool/skill access while keeping unique per-agent credentials such as Telegram bot tokens separate.
+- Documented the commercial version: company-owned secret broker, role-scoped access, audit logs, and no raw master credentials exposed to ordinary role agents.

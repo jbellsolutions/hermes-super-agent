@@ -138,6 +138,7 @@ HTTP 200
 - `docs/cursor-sdk-intake.md` evaluates Cursor's TypeScript SDK as an optional builder-swarm backend.
 - `docs/builder-tool-architecture.md` organizes Cursor SDK, Symphony, Codex, OpenClaw, Composio, Paperclip, and Hermes into coherent tool layers.
 - `docs/hermes-first-install-walkthrough.md` defines the fresh-computer Hermes-first setup path for Zions/customer installs.
+- `docs/private-bootstrap-overlay.md` defines the public/product-safe private overlay pattern for encrypted owner/company secret bundles and rapid internal specialist-agent creation.
 - `docs/routing-intelligence-contract.md` defines model/backend/tool-bundle routing, including dual GPT-5.5 + Claude Opus 4.6/4.7 review for architecture/debug/security/auth/unit-test/deployment-code work, DeepSeek for legwork, Cursor SDK for coding-team harnessing, and scoped tool access.
 - `docs/vault-sync-contract.md` defines the mandatory bidirectional Obsidian + Notion sync/read requirement for conversations, actions, decisions, agent activity, contacts, offers, project state, and shared-context retrieval.
 - `templates/WORKFLOW.md` is the copyable repo-level workflow contract for Codex/Claude/Hermes coding workers.

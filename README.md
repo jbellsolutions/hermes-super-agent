@@ -221,6 +221,7 @@ New operator/runtime intake notes:
 - [`docs/cursor-sdk-intake.md`](./docs/cursor-sdk-intake.md) — Cursor TypeScript SDK intake as an optional builder-swarm backend.
 - [`docs/builder-tool-architecture.md`](./docs/builder-tool-architecture.md) — coherent tool composition model for Hermes, Paperclip, Symphony, Cursor SDK, Codex, OpenClaw, Composio, and browser/computer tools.
 - [`docs/hermes-first-install-walkthrough.md`](./docs/hermes-first-install-walkthrough.md) — Hermes-first setup path for fresh computers, including Zions/customer installs, model setup, shared brain sync, tiered tools, and verification.
+- [`docs/private-bootstrap-overlay.md`](./docs/private-bootstrap-overlay.md) — public/product-safe pattern for a separate private encrypted bootstrap repo that can spin up internal agents without re-entering shared credentials.
 - [`docs/routing-intelligence-contract.md`](./docs/routing-intelligence-contract.md) — model/backend/tool routing policy so agents know what to call, when, and with which scoped permissions.
 - [`docs/vault-sync-contract.md`](./docs/vault-sync-contract.md) — mandatory bidirectional Obsidian + Notion sync contract for conversations, actions, decisions, health reports, agent activity, and shared-context retrieval.
 - [`templates/WORKFLOW.md`](./templates/WORKFLOW.md) — copyable coding-agent workflow contract for commercial/customer repos.
