@@ -58,3 +58,10 @@ All notable changes to agent-os.
 - Connected Railway CLI as `jbellsolutions` and captured a redacted read-only inventory in `docs/deployments-inventory.md`.
 - Installed DigitalOcean CLI (`doctl`) and documented DigitalOcean auth as pending token/`doctl auth init`.
 - Added `docs/specialist-agent-operations.md` describing how one primary Hermes chat can observe, rebuke/nudge, assign work to, and eventually control isolated specialist agents.
+
+## DigitalOcean inventory, Paperclip roadmap, and Symphony intake
+
+- Authenticated DigitalOcean using a token stored outside the repo and captured a redacted read-only inventory in `docs/deployments-inventory.md`.
+- Added `docs/portfolio-roadmap.md` with the recommended sequence: primary Hermes as hub, business-only COO specialist later, Paperclip as a pluggable dashboard/control-plane candidate, and read-only infrastructure mapping first.
+- Added `docs/symphony-intake.md` evaluating OpenAI Symphony as a coding-agent orchestration pattern, not a default dependency yet.
+- Added initial `vault/projects/` maps for `***REMOVED***`, `***REMOVED***`, and `***REMOVED***`.

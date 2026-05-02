@@ -213,6 +213,8 @@ New operator/runtime intake notes:
 - [`docs/portfolio-agent-architecture.md`](./docs/portfolio-agent-architecture.md) — hub-and-spoke model for one primary Hermes plus specialist business agents.
 - [`docs/specialist-agent-operations.md`](./docs/specialist-agent-operations.md) — how specialist agents report to and receive tasks from the primary Hermes agent.
 - [`docs/deployments-inventory.md`](./docs/deployments-inventory.md) — redacted Railway/DigitalOcean inventory as discovered.
+- [`docs/portfolio-roadmap.md`](./docs/portfolio-roadmap.md) — near-term roadmap for Paperclip, COO specialist, deployment mapping, and specialist-agent sequencing.
+- [`docs/symphony-intake.md`](./docs/symphony-intake.md) — OpenAI Symphony/harness-engineering evaluation for coding-agent orchestration.
 - [`runbooks/deployment-access.md`](./runbooks/deployment-access.md) — safe Railway/DigitalOcean access and read-only inventory workflow.
 - [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) — exact Agent Zero install and verification path that worked locally.
 - [`runbooks/a0-connector.md`](./runbooks/a0-connector.md) — exact A0 host-bridge setup, launchd persistence, and Codex exposure.
