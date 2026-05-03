@@ -113,3 +113,11 @@ All notable changes to agent-os.
 - Added `--skip-hermes-install` for operators who intentionally want to install Hermes manually first.
 - Added unit coverage for both paths: missing-Hermes installer invocation and installed-Hermes skip behavior.
 - Updated README, `LAUNCH.md`, `docs/hermes-first-install-walkthrough.md`, and `scripts/bootstrap.sh` so the wizard no longer looks like it completed while leaving Hermes absent.
+
+## Launch wizard configures Hermes provider and Telegram
+
+- Made OpenRouter the default first-class provider path in `scripts/launch.py` while still allowing Anthropic or OpenAI.
+- Added Hermes config/env sync: the wizard writes provider keys and Telegram values into Hermes' own env file from `hermes config env-path`, then sets `model.provider` and `model.default` via `hermes config set`.
+- Added `TELEGRAM_ALLOWED_USERS`, `TELEGRAM_HOME_CHANNEL`, and `HERMES_PROVIDER` placeholders to `.env.example`.
+- Added `--skip-hermes-config` for operators who want to run the stock `hermes setup` manually.
+- Updated README, `LAUNCH.md`, and the Hermes-first walkthrough to clarify that the Super Agent wizard performs the essential Hermes quickstart itself; stock `hermes setup` is now optional/advanced.

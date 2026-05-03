@@ -63,13 +63,15 @@ cd hermes-super-agent
 - **Business/project name and business type**
 - **First workflows** the agent should own
 - **Human-approval rules** for risky actions
-- **Default model** for Hermes
+- **Default provider/model** for Hermes — OpenRouter is the default first-class path
+- **OpenRouter/Anthropic/OpenAI key** for the chosen provider
+- **Telegram bot token + allowed user ID** when you want Telegram access
 - **Channels to enable** (Slack, Telegram, web text, web voice — pick any combination)
-- **API keys** (you can skip any and the relevant runtime stays disabled)
+- **API keys** (you can skip optional ones and the relevant runtime stays disabled)
 - **Deploy target** (Railway, Docker Compose, Fly, or local-only)
 - **Voice realtime provider** (OpenAI Realtime / Gemini Realtime / disabled)
 
-It starts with a Hermes Agent preflight. If `hermes` is missing, the wizard installs Hermes from the official Nous Research installer first, then continues the Super Agent walkthrough. After that it writes your `.env`, runs `uv sync` and `pnpm install`, runs the smoke tests, and tells you to launch real Hermes with `hermes` / `hermes doctor`. `uv run agent-os boot` is currently a Stage 2 scaffold diagnostic, not the live Hermes launcher.
+It starts with a Hermes Agent preflight. If `hermes` is missing, the wizard installs Hermes from the official Nous Research installer first. Then the Super Agent wizard performs the essential Hermes quickstart configuration itself: provider/model, provider key, and Telegram env values when provided. After that it writes your repo `.env`, syncs Hermes' own env/config, runs `uv sync` and `pnpm install`, runs smoke tests, and tells you to launch real Hermes with `hermes` / `hermes doctor`. `uv run agent-os boot` is currently a Stage 2 scaffold diagnostic, not the live Hermes launcher.
 
 The wizard is idempotent — re-run it any time to change settings.
 
@@ -82,7 +84,7 @@ This is the most interesting path. You give Hermes the absolute minimum and let 
 ```bash
 git clone --recurse-submodules https://github.com/jbellsolutions/hermes-super-agent.git
 cd hermes-super-agent
-./scripts/launch.py --minimal   # asks for model key + operator setup
+./scripts/launch.py --minimal   # asks for provider key, operator, and Telegram quick access
 hermes doctor                   # verify actual Hermes install
 hermes                          # start real Hermes CLI chat
 ```
@@ -111,7 +113,8 @@ This is the dogfood test of the architecture. If Hermes can stand up the rest of
 
 ### Always required
 - **Hermes Agent install path** — if `hermes` is already installed, `hermes --version` and `hermes doctor` should pass. If missing, `./scripts/launch.py` installs it first from the official Nous Research installer, then continues the wizard.
-- **Provider key for your default model** — Anthropic/OpenAI/OpenRouter/etc.
+- **Provider key for your default model** — OpenRouter is the default first-class path; Anthropic/OpenAI are also supported.
+- **Telegram access values if wanted** — `TELEGRAM_BOT_TOKEN` from BotFather plus numeric `TELEGRAM_ALLOWED_USERS`.
 - **Operator name** — the canonical identity that ties Slack/Telegram/web/voice to one conversation log.
 - **Tier** — Operator, Pro Operator, or Enterprise.
 - **Business/project context** — name, offer/business type, first workflows, and approval rules.

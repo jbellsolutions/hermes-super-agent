@@ -189,6 +189,89 @@ def write_env(env: dict[str, str]) -> None:
     print(green(f"  wrote {ENV_FILE.relative_to(ROOT)}"))
 
 
+def merge_env_file(path: Path, updates: dict[str, str]) -> None:
+    """Merge non-empty KEY=VALUE entries into an env file without printing secrets."""
+    existing: dict[str, str] = {}
+    order: list[str] = []
+    if path.exists():
+        for line in path.read_text().splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in stripped:
+                continue
+            key, value = stripped.split("=", 1)
+            key = key.strip()
+            existing[key] = value.strip()
+            order.append(key)
+
+    for key, value in updates.items():
+        if not value:
+            continue
+        if key not in existing:
+            order.append(key)
+        existing[key] = value
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(f"{key}={existing[key]}" for key in order) + "\n")
+    path.chmod(0o600)
+
+
+def hermes_env_path() -> Path | None:
+    result = subprocess.run(
+        ["hermes", "config", "env-path"], cwd=ROOT, text=True, capture_output=True
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+    return Path(result.stdout.strip())
+
+
+def step_hermes_config(env: dict[str, str], skip_config: bool) -> bool:
+    print()
+    print(cyan("Step 2 — configure Hermes itself"))
+    print()
+    if skip_config:
+        print(yellow("  --skip-hermes-config passed; not writing Hermes config/env"))
+        return True
+
+    env_path = hermes_env_path()
+    if env_path is None:
+        print(red("  could not locate Hermes env path; run `hermes setup` manually"))
+        return False
+
+    secret_updates = {
+        key: env.get(key, "")
+        for key in (
+            "OPENROUTER_API_KEY",
+            "ANTHROPIC_API_KEY",
+            "OPENAI_API_KEY",
+            "GEMINI_API_KEY",
+            "TELEGRAM_BOT_TOKEN",
+            "TELEGRAM_ALLOWED_USERS",
+            "TELEGRAM_HOME_CHANNEL",
+        )
+    }
+    merge_env_file(env_path, secret_updates)
+    print(green(f"  wrote Hermes env secrets to {env_path}"))
+
+    provider = env.get("HERMES_PROVIDER", "").strip()
+    model = env.get("HERMES_DEFAULT_MODEL", "").strip()
+    config_commands = []
+    if provider:
+        config_commands.append(["hermes", "config", "set", "model.provider", provider])
+    if model:
+        config_commands.append(["hermes", "config", "set", "model.default", model])
+
+    for command in config_commands:
+        result = subprocess.run(command, cwd=ROOT)
+        if result.returncode != 0:
+            print(red(f"  Hermes command failed: {' '.join(command[:4])}"))
+            return False
+
+    if env.get("TELEGRAM_BOT_TOKEN"):
+        print("  Telegram token synced. Run `hermes gateway setup` if you want service install.")
+    print(green("  Hermes provider/channel config synced"))
+    return True
+
+
 def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]:
     print()
     print(cyan("Step 1 — channels and keys"))
@@ -203,15 +286,28 @@ def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]
         )
         env["AGENT_OS_OWNER"] = operator
 
-    if not env.get("ANTHROPIC_API_KEY") or reset:
-        env["ANTHROPIC_API_KEY"] = prompt(
-            "ANTHROPIC_API_KEY (Claude Opus 4.6/4.7 for content/design + architecture review)",
-            default=env.get("ANTHROPIC_API_KEY", ""),
+    if not env.get("HERMES_PROVIDER") or reset:
+        provider = prompt_choice(
+            "Primary Hermes provider:",
+            ["openrouter", "anthropic", "openai"],
+            default_idx=0,
+        )
+        env["HERMES_PROVIDER"] = provider
+
+    provider_key = {
+        "openrouter": "OPENROUTER_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "openai": "OPENAI_API_KEY",
+    }.get(env.get("HERMES_PROVIDER", "openrouter"), "OPENROUTER_API_KEY")
+    if not env.get(provider_key) or reset:
+        env[provider_key] = prompt(
+            f"{provider_key} for Hermes {env.get('HERMES_PROVIDER', 'openrouter')}",
+            default=env.get(provider_key, ""),
             required=True,
             secret=True,
         )
 
-    if not env.get("OPENAI_API_KEY") or reset:
+    if env.get("HERMES_PROVIDER") != "openai" and (not env.get("OPENAI_API_KEY") or reset):
         if prompt_yn(
             "Configure OPENAI_API_KEY now? "
             "(GPT-5.5/Codex recommended for dual-frontier architecture + coding)",
@@ -226,7 +322,7 @@ def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]
     if not env.get("HERMES_DEFAULT_MODEL") or reset:
         env["HERMES_DEFAULT_MODEL"] = prompt(
             "Default model for Hermes",
-            default=env.get("HERMES_DEFAULT_MODEL", "claude-opus-4-7"),
+            default=env.get("HERMES_DEFAULT_MODEL", "openai/gpt-5.5"),
         )
     if not env.get("HERMES_ARCHITECTURE_MODELS") or reset:
         env["HERMES_ARCHITECTURE_MODELS"] = prompt(
@@ -302,6 +398,17 @@ def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]
                 if not env.get(k) or reset:
                     env[k] = prompt(f"  {k}", default=env.get(k, ""))
 
+    print()
+    print(cyan("Telegram quick access"))
+    if not env.get("TELEGRAM_BOT_TOKEN") or reset:
+        if prompt_yn("  Configure Telegram now?", default=True):
+            print(yellow("  Telegram — create a bot with @BotFather if needed"))
+            env["TELEGRAM_BOT_TOKEN"] = prompt("  TELEGRAM_BOT_TOKEN", secret=True)
+            env["TELEGRAM_ALLOWED_USERS"] = prompt(
+                "  TELEGRAM_ALLOWED_USERS (your numeric Telegram user ID)",
+                default=env.get("TELEGRAM_ALLOWED_USERS", ""),
+            )
+
     if minimal:
         return env
 
@@ -310,7 +417,7 @@ def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]
     print("Which channels do you want active first?")
     if prompt_yn("  Slack", default=True):
         channels.append("slack")
-    if prompt_yn("  Telegram", default=False):
+    if prompt_yn("  Telegram", default=bool(env.get("TELEGRAM_BOT_TOKEN"))):
         channels.append("telegram")
     if prompt_yn("  Web text chat (no extra keys)", default=True):
         channels.append("web")
@@ -329,6 +436,11 @@ def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]
         print(yellow("  Telegram — talk to @BotFather"))
         if not env.get("TELEGRAM_BOT_TOKEN") or reset:
             env["TELEGRAM_BOT_TOKEN"] = prompt("  TELEGRAM_BOT_TOKEN", secret=True)
+        if not env.get("TELEGRAM_ALLOWED_USERS") or reset:
+            env["TELEGRAM_ALLOWED_USERS"] = prompt(
+                "  TELEGRAM_ALLOWED_USERS (numeric user ID)",
+                default=env.get("TELEGRAM_ALLOWED_USERS", ""),
+            )
 
     if "voice" in channels:
         print()
@@ -498,13 +610,22 @@ def step_summary(env: dict[str, str], deploy: str) -> None:
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--minimal", action="store_true", help="only ANTHROPIC_API_KEY + operator")
+    p.add_argument(
+        "--minimal",
+        action="store_true",
+        help="only provider key, operator, shared brain, and Telegram quick access",
+    )
     p.add_argument(
         "--reset",
         action="store_true",
         help="re-prompt for all values, ignoring existing .env",
     )
     p.add_argument("--skip-install", action="store_true", help="skip uv sync / pnpm install")
+    p.add_argument(
+        "--skip-hermes-config",
+        action="store_true",
+        help="do not sync provider keys or Telegram settings into Hermes config/env",
+    )
     p.add_argument(
         "--skip-hermes-install",
         action="store_true",
@@ -518,6 +639,8 @@ def main() -> int:
     env = load_env()
     env = step_keys(env, minimal=args.minimal, reset=args.reset)
     write_env(env)
+    if not step_hermes_config(env, skip_config=args.skip_hermes_config):
+        return 1
     deploy = step_deploy() if not args.minimal else "local-only (just for now)"
 
     ok = step_bootstrap(skip_install=args.skip_install)

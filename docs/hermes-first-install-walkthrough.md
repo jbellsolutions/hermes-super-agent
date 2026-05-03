@@ -94,15 +94,23 @@ hermes doctor
 
 ## Step 2 — initial Hermes setup
 
-Run:
+You do not need to run the stock `hermes setup` quickstart first when using the Super Agent wizard. `./scripts/launch.py` performs the essential Hermes setup directly:
+
+- installs Hermes if missing
+- asks for primary provider/model, with OpenRouter as the default path
+- writes the provider key into Hermes' own env file
+- sets `model.provider` and `model.default` with `hermes config set`
+- asks for Telegram bot token + allowed user ID when Telegram is wanted
+- writes Telegram values into Hermes' own env file
+
+Run stock Hermes setup only when you want to revisit advanced Hermes options manually:
 
 ```bash
 hermes setup
 ```
 
-At minimum configure:
+Advanced/optional Hermes setup areas:
 
-- default model/provider
 - terminal backend
 - memory
 - enabled toolsets

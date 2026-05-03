@@ -45,14 +45,14 @@ cd hermes-super-agent
 ./scripts/launch.py
 ```
 
-Conversational Python wizard. It now starts with a Hermes Agent preflight: if `hermes` is missing, it installs Hermes from the official Nous Research installer before asking Super Agent questions. Then it asks for business context, tier, keys, approval rules, and deploy target; runs `uv sync` + `pnpm install`, runs the smoke tests, builds the manifest graph, and hands you a summary.
+Conversational Python wizard. It starts with a Hermes Agent preflight: if `hermes` is missing, it installs Hermes from the official Nous Research installer before asking Super Agent questions. Then it collects the primary Hermes provider/key — OpenRouter by default — optional Telegram bot token + allowed user ID, business context, tier, approval rules, and deploy target. It writes both the Super Agent `.env` and Hermes' own env/config, runs `uv sync` + `pnpm install`, runs smoke tests, builds the manifest graph, and hands you a summary.
 
 ### Path C — Self-driving setup (Hermes drives)
 
 ```bash
 git clone --recurse-submodules https://github.com/jbellsolutions/hermes-super-agent.git
 cd hermes-super-agent
-./scripts/launch.py --minimal      # asks for model key + operator setup
+./scripts/launch.py --minimal      # asks for provider key, operator, and Telegram quick access
 hermes doctor
 hermes
 ```
