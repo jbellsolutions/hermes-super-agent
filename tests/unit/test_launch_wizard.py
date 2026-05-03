@@ -71,3 +71,50 @@ def test_hermes_preflight_skips_installer_when_hermes_exists(monkeypatch):
     assert launch.step_hermes_preflight(skip_install=False) is True
     assert all("install.sh" not in " ".join(call[0]) for call in calls)
     assert calls[0][0] == ["hermes", "--version"]
+
+
+def test_configure_hermes_syncs_openrouter_and_telegram_without_printing_secrets(
+    monkeypatch, tmp_path, capsys
+):
+    launch = load_launch_module()
+    hermes_env = tmp_path / ".hermes" / ".env"
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+
+        class Result:
+            returncode = 0
+            stdout = ""
+            stderr = ""
+
+        if command == ["hermes", "config", "env-path"]:
+            Result.stdout = str(hermes_env)
+        return Result()
+
+    monkeypatch.setattr(launch.subprocess, "run", fake_run)
+
+    env = {
+        "HERMES_PROVIDER": "openrouter",
+        "HERMES_DEFAULT_MODEL": "openai/gpt-5.5",
+        "OPENROUTER_API_KEY": "or-secret",
+        "TELEGRAM_BOT_TOKEN": "tg-secret",
+        "TELEGRAM_ALLOWED_USERS": "12345",
+    }
+
+    assert launch.step_hermes_config(env, skip_config=False) is True
+
+    text = hermes_env.read_text()
+    assert "OPENROUTER_API_KEY=or-secret" in text
+    assert "TELEGRAM_BOT_TOKEN=tg-secret" in text
+    assert "TELEGRAM_ALLOWED_USERS=12345" in text
+    assert ["hermes", "config", "set", "model.provider", "openrouter"] in [
+        call[0] for call in calls
+    ]
+    assert ["hermes", "config", "set", "model.default", "openai/gpt-5.5"] in [
+        call[0] for call in calls
+    ]
+
+    output = capsys.readouterr().out
+    assert "or-secret" not in output
+    assert "tg-secret" not in output
