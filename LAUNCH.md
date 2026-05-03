@@ -69,7 +69,7 @@ cd hermes-super-agent
 - **Deploy target** (Railway, Docker Compose, Fly, or local-only)
 - **Voice realtime provider** (OpenAI Realtime / Gemini Realtime / disabled)
 
-It writes your `.env`, runs `uv sync` and `pnpm install`, runs the smoke tests, and then tells you to launch real Hermes with `hermes` / `hermes doctor`. `uv run agent-os boot` is currently a Stage 2 scaffold diagnostic, not the live Hermes launcher.
+It starts with a Hermes Agent preflight. If `hermes` is missing, the wizard installs Hermes from the official Nous Research installer first, then continues the Super Agent walkthrough. After that it writes your `.env`, runs `uv sync` and `pnpm install`, runs the smoke tests, and tells you to launch real Hermes with `hermes` / `hermes doctor`. `uv run agent-os boot` is currently a Stage 2 scaffold diagnostic, not the live Hermes launcher.
 
 The wizard is idempotent — re-run it any time to change settings.
 
@@ -110,7 +110,7 @@ This is the dogfood test of the architecture. If Hermes can stand up the rest of
 ## What you need before launch
 
 ### Always required
-- **Hermes Agent installed and verified** — `hermes --version` and `hermes doctor` should pass. If missing, install Hermes first with the official Nous Research installer.
+- **Hermes Agent install path** — if `hermes` is already installed, `hermes --version` and `hermes doctor` should pass. If missing, `./scripts/launch.py` installs it first from the official Nous Research installer, then continues the wizard.
 - **Provider key for your default model** — Anthropic/OpenAI/OpenRouter/etc.
 - **Operator name** — the canonical identity that ties Slack/Telegram/web/voice to one conversation log.
 - **Tier** — Operator, Pro Operator, or Enterprise.

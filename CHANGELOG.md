@@ -106,3 +106,10 @@ All notable changes to agent-os.
 - Clarified that `uv run agent-os boot` is a Stage 2 scaffold diagnostic, not the live Hermes launcher yet.
 - Updated `scripts/launch.py`, `LAUNCH.md`, README, and `docs/hermes-first-install-walkthrough.md` to direct fresh installs to run `hermes doctor` and `hermes` for the actual Hermes CLI.
 - Updated `src/agent_os/orchestrator/boot.py` so future `agent-os boot` output says `scaffold_not_error` and returns the correct next commands instead of looking like a failed install.
+
+## Launch wizard installs Hermes first
+
+- Added a Step 0 Hermes Agent preflight to `scripts/launch.py`: if `hermes` is missing, the wizard runs the official Nous Research installer before asking Super Agent onboarding questions.
+- Added `--skip-hermes-install` for operators who intentionally want to install Hermes manually first.
+- Added unit coverage for both paths: missing-Hermes installer invocation and installed-Hermes skip behavior.
+- Updated README, `LAUNCH.md`, `docs/hermes-first-install-walkthrough.md`, and `scripts/bootstrap.sh` so the wizard no longer looks like it completed while leaving Hermes absent.

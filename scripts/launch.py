@@ -5,13 +5,15 @@ Two modes:
     ./scripts/launch.py              full prompt walkthrough
     ./scripts/launch.py --minimal    only the absolute minimum (Path C: let Hermes finish)
 
+The wizard runs a Step 0 Hermes Agent preflight. If the `hermes` CLI is missing,
+it installs Hermes from the official Nous Research installer before continuing.
+
 Idempotent — re-run any time to change settings. Reads existing .env and only
 re-prompts for missing/blank values unless --reset is passed.
 """
 from __future__ import annotations
 
 import argparse
-import os
 import shutil
 import subprocess
 import sys
@@ -20,6 +22,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 ENV_FILE = ROOT / ".env"
 ENV_EXAMPLE = ROOT / ".env.example"
+HERMES_INSTALL_COMMAND = (
+    "curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh"
+    " | bash"
+)
 
 
 def color(text: str, code: str) -> str:
@@ -96,11 +102,59 @@ def prompt_choice(question: str, options: list[str], default_idx: int = 0) -> st
         return options[default_idx]
 
 
+def _run_hermes_version() -> subprocess.CompletedProcess[str]:
+    """Return `hermes --version`, using a login-ish shell if PATH was just updated."""
+    if shutil.which("hermes"):
+        return subprocess.run(["hermes", "--version"], cwd=ROOT, text=True, capture_output=True)
+    return subprocess.run(
+        ["bash", "-lc", "hermes --version"], cwd=ROOT, text=True, capture_output=True
+    )
+
+
+def step_hermes_preflight(skip_install: bool) -> bool:
+    print()
+    print(cyan("Step 0 — Hermes Agent preflight"))
+    print()
+
+    version = _run_hermes_version()
+    if version.returncode == 0:
+        print(green(f"  Hermes installed: {version.stdout.strip()}"))
+        return True
+
+    if skip_install:
+        print(yellow("  --skip-hermes-install passed; not installing Hermes Agent"))
+        print(yellow("  Install manually, then re-run: hermes doctor && hermes"))
+        return True
+
+    print(yellow("  Hermes Agent is missing. Installing Hermes first, then continuing the wizard."))
+    print(f"  running: {HERMES_INSTALL_COMMAND}")
+    install = subprocess.run(["bash", "-lc", HERMES_INSTALL_COMMAND], cwd=ROOT)
+    if install.returncode != 0:
+        print(red("  Hermes install failed — install manually, then re-run this wizard"))
+        print(f"  {HERMES_INSTALL_COMMAND}")
+        return False
+
+    version = _run_hermes_version()
+    if version.returncode != 0:
+        print(yellow("  Hermes installer finished, but this terminal cannot find `hermes` yet."))
+        print(yellow("  Open a new terminal or source your shell profile, then run:"))
+        print("    hermes doctor")
+        print("    ./scripts/launch.py")
+        return False
+
+    print(green(f"  Hermes installed: {version.stdout.strip()}"))
+    print(
+        "  Run `hermes setup` after this wizard if your Hermes model/provider is not "
+        "configured yet."
+    )
+    return True
+
+
 def load_env() -> dict[str, str]:
     if not ENV_FILE.exists():
         if ENV_EXAMPLE.exists():
             shutil.copy(ENV_EXAMPLE, ENV_FILE)
-            print(green(f"  created .env from .env.example"))
+            print(green("  created .env from .env.example"))
     out: dict[str, str] = {}
     if ENV_FILE.exists():
         for line in ENV_FILE.read_text().splitlines():
@@ -158,7 +212,11 @@ def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]
         )
 
     if not env.get("OPENAI_API_KEY") or reset:
-        if prompt_yn("Configure OPENAI_API_KEY now? (GPT-5.5/Codex recommended for dual-frontier architecture + coding)", default=True):
+        if prompt_yn(
+            "Configure OPENAI_API_KEY now? "
+            "(GPT-5.5/Codex recommended for dual-frontier architecture + coding)",
+            default=True,
+        ):
             env["OPENAI_API_KEY"] = prompt(
                 "OPENAI_API_KEY",
                 default=env.get("OPENAI_API_KEY", ""),
@@ -217,7 +275,10 @@ def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]
 
     print()
     print(cyan("Shared brain sync"))
-    print("Obsidian + Notion are the shared read/write brain. Configure what you have now; mark Notion pending if needed.")
+    print(
+        "Obsidian + Notion are the shared read/write brain. Configure what you have now; "
+        "mark Notion pending if needed."
+    )
     if not env.get("OBSIDIAN_VAULT_PATH") or reset:
         env["OBSIDIAN_VAULT_PATH"] = prompt(
             "Obsidian vault path",
@@ -315,7 +376,10 @@ def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]
     if env.get("SUPER_AGENT_TIER") == "enterprise":
         print()
         print(cyan("Enterprise-only managed cloud computer"))
-        print("Orgo AI or similar is optional. Skip unless this customer/workspace needs an isolated visible desktop.")
+        print(
+            "Orgo AI or similar is optional. Skip unless this customer/workspace needs an "
+            "isolated visible desktop."
+        )
         if prompt_yn("  Enable optional Orgo/managed-cloud-computer placeholder?", default=False):
             env["ORGO_ENABLED"] = "true"
             if not env.get("ORGO_API_KEY") or reset:
@@ -404,9 +468,9 @@ def step_summary(env: dict[str, str], deploy: str) -> None:
         channels_on.append("voice")
     print(f"  channels:        {', '.join(channels_on)}")
     if env.get("COMPOSIO_API_KEY"):
-        print(f"  composio:        enabled (250+ tools available to Hermes on demand)")
+        print("  composio:        enabled (250+ tools available to Hermes on demand)")
     else:
-        print(f"  composio:        disabled (re-run with --reset to add COMPOSIO_API_KEY)")
+        print("  composio:        disabled (re-run with --reset to add COMPOSIO_API_KEY)")
     print()
     print("Daily loops (run automatically once Hermes is booted):")
     print("  02:00  upgrader pulls Hermes/OpenClaw/browser-use/Aider/Codex/agi-1/community skills")
@@ -417,11 +481,17 @@ def step_summary(env: dict[str, str], deploy: str) -> None:
     print(f"  {green('hermes doctor')}          — verify the real Hermes install")
     print(f"  {green('hermes')}                 — start the real Hermes CLI chat")
     print(f"  {green('hermes gateway setup')}   — optional: configure Telegram/Slack")
-    print(f"  {green('uv run agent-os boot')}   — diagnostic only; Stage 2 scaffold, not the live Hermes launcher yet")
+    print(
+        f"  {green('uv run agent-os boot')}   — diagnostic only; Stage 2 scaffold, "
+        "not the live Hermes launcher yet"
+    )
     print(f"  {green('uv run agent-os manifest')} — refresh the Super Agent system graph")
     print(f"  {green('uv run agent-os explain')}  — query the graph in plain English")
     print()
-    print("Read docs/commercial-packaging.md for tier rules and docs/portfolio-agent-architecture.md for specialist-agent expansion.")
+    print(
+        "Read docs/commercial-packaging.md for tier rules and "
+        "docs/portfolio-agent-architecture.md for specialist-agent expansion."
+    )
     print("Stage 2+ of docs/EXECUTION-PLAN.md is where the stubbed runtimes get real wiring.")
     print()
 
@@ -429,11 +499,22 @@ def step_summary(env: dict[str, str], deploy: str) -> None:
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--minimal", action="store_true", help="only ANTHROPIC_API_KEY + operator")
-    p.add_argument("--reset", action="store_true", help="re-prompt for all values, ignoring existing .env")
+    p.add_argument(
+        "--reset",
+        action="store_true",
+        help="re-prompt for all values, ignoring existing .env",
+    )
     p.add_argument("--skip-install", action="store_true", help="skip uv sync / pnpm install")
+    p.add_argument(
+        "--skip-hermes-install",
+        action="store_true",
+        help="do not auto-install Hermes Agent if the hermes CLI is missing",
+    )
     args = p.parse_args()
 
     banner()
+    if not step_hermes_preflight(skip_install=args.skip_hermes_install):
+        return 1
     env = load_env()
     env = step_keys(env, minimal=args.minimal, reset=args.reset)
     write_env(env)

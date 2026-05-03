@@ -45,7 +45,7 @@ cd hermes-super-agent
 ./scripts/launch.py
 ```
 
-Conversational Python wizard. Asks for business context, tier, keys, approval rules, and deploy target; runs `uv sync` + `pnpm install`, runs the smoke tests, builds the manifest graph, and hands you a summary.
+Conversational Python wizard. It now starts with a Hermes Agent preflight: if `hermes` is missing, it installs Hermes from the official Nous Research installer before asking Super Agent questions. Then it asks for business context, tier, keys, approval rules, and deploy target; runs `uv sync` + `pnpm install`, runs the smoke tests, builds the manifest graph, and hands you a summary.
 
 ### Path C — Self-driving setup (Hermes drives)
 
