@@ -13,4 +13,4 @@ fi
 
 [[ -f .env ]] || cp .env.example .env
 
-echo "agent-os bootstrap complete. fill in .env then: uv run agent-os boot"
+echo "agent-os bootstrap complete. fill in .env, then run: hermes doctor && hermes"

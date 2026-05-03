@@ -62,24 +62,32 @@ Default approvals:
 - payment/outbound messages/customer data: explicit approval required
 - destructive infra changes: explicit approval required
 
-## Step 1 — install Hermes Agent if missing
+## Step 1 — Hermes Agent preflight
 
-Check:
+The launch wizard now does this automatically:
 
 ```bash
-command -v hermes || true
-hermes --version || true
+./scripts/launch.py
 ```
 
-If missing, install Hermes from the official installer:
+On startup, it checks for `hermes`. If missing, it installs Hermes from the official installer before continuing the Super Agent questions:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
 ```
 
-Then restart the shell if needed and verify:
+If the installer updates PATH but the current terminal cannot see `hermes` yet, open a new terminal or source your shell profile, then re-run:
 
 ```bash
+./scripts/launch.py
+```
+
+Manual check/install remains valid when you want to do Hermes first:
+
+```bash
+command -v hermes || true
+hermes --version || true
+curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
 hermes --version
 hermes doctor
 ```
@@ -122,6 +130,8 @@ If submodules fail, continue and document the failure; do not pretend the instal
 ```bash
 ./scripts/launch.py
 ```
+
+This command is safe on a fresh machine. The wizard starts with the Hermes preflight from Step 1: if the `hermes` CLI is missing, it installs Hermes first, verifies it can see `hermes --version`, then continues the Super Agent setup.
 
 The wizard should collect:
 
