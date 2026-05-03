@@ -100,3 +100,9 @@ All notable changes to agent-os.
 - Documented how internal owner agents can inherit shared encrypted env/tool/skill access while keeping unique per-agent credentials such as Telegram bot tokens separate.
 - Documented the commercial version: company-owned secret broker, role-scoped access, audit logs, and no raw master credentials exposed to ordinary role agents.
 - Extended the private overlay guidance for remote/VPS agents: controller-push over SSH, per-machine age recipients, deploy keys/temporary PATs, and commercial secret-manager bootstrap.
+
+## Zions install boot-command clarification
+
+- Clarified that `uv run agent-os boot` is a Stage 2 scaffold diagnostic, not the live Hermes launcher yet.
+- Updated `scripts/launch.py`, `LAUNCH.md`, README, and `docs/hermes-first-install-walkthrough.md` to direct fresh installs to run `hermes doctor` and `hermes` for the actual Hermes CLI.
+- Updated `src/agent_os/orchestrator/boot.py` so future `agent-os boot` output says `scaffold_not_error` and returns the correct next commands instead of looking like a failed install.

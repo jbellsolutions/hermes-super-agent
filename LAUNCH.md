@@ -69,7 +69,7 @@ cd hermes-super-agent
 - **Deploy target** (Railway, Docker Compose, Fly, or local-only)
 - **Voice realtime provider** (OpenAI Realtime / Gemini Realtime / disabled)
 
-It writes your `.env`, runs `uv sync` and `pnpm install`, runs the smoke tests, and starts Hermes.
+It writes your `.env`, runs `uv sync` and `pnpm install`, runs the smoke tests, and then tells you to launch real Hermes with `hermes` / `hermes doctor`. `uv run agent-os boot` is currently a Stage 2 scaffold diagnostic, not the live Hermes launcher.
 
 The wizard is idempotent — re-run it any time to change settings.
 
@@ -82,8 +82,9 @@ This is the most interesting path. You give Hermes the absolute minimum and let 
 ```bash
 git clone --recurse-submodules https://github.com/jbellsolutions/hermes-super-agent.git
 cd hermes-super-agent
-./scripts/launch.py --minimal   # Only asks for ANTHROPIC_API_KEY + your name
-uv run agent-os boot
+./scripts/launch.py --minimal   # asks for model key + operator setup
+hermes doctor                   # verify actual Hermes install
+hermes                          # start real Hermes CLI chat
 ```
 
 Then in your terminal (Hermes opens a CLI session by default with no keys configured):
@@ -141,7 +142,7 @@ This is the dogfood test of the architecture. If Hermes can stand up the rest of
 
 ## After launch
 
-Once Hermes is up, you have three operating skills available in any Claude Code session inside the repo:
+Once Hermes is installed and verified, you have three operating commands available in any Claude Code/Codex session inside the repo:
 
 - `/agent-os` — orient yourself. Run after entering a session to see what's running, what's stubbed, what to do next.
 - `/explain "..."` — query the system graph. *"What wrote my morning brief?"* *"How does the SDR fleet connect to the morning brief?"*
@@ -206,9 +207,11 @@ You wake up. The system has improved itself by a tiny bit. New community skills 
 When all three of these are green, you're running:
 
 ```bash
-uv run pytest -q                         # 23 passed
-uv run agent-os boot                     # joins Slack, posts heartbeat
-uv run agent-os manifest                 # 20+ nodes, 50+ edges
+hermes doctor                         # real Hermes health check
+hermes                                # real Hermes CLI starts
+uv run agent-os manifest              # Super Agent graph builds
 ```
+
+`uv run agent-os boot` is currently a scaffold diagnostic for Stage 2 wiring. If it prints `status: scaffold_not_error`, that is expected; use `hermes` to start the actual agent.
 
 When all five accessibility criteria pass — same conversation across Slack/Telegram/voice; cross-channel file context; streaming chat; sub-2s voice round-trip; one-command deploy — you're shipping.

@@ -10,7 +10,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="agent-os", description="agent-os control surface")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("boot", help="Boot Hermes orchestrator")
+    sub.add_parser("boot", help="Show Hermes boot status/guidance (Stage 2 scaffold; use `hermes` to start live CLI)")
     sub.add_parser("upgrade", help="Run nightly upgrader (all 10 streams)")
     sub.add_parser("manifest", help="Rebuild the system graph from manifest.yaml files")
     p_explain = sub.add_parser("explain", help="Walk the system graph in plain language")
