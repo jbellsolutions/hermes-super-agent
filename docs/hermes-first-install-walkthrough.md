@@ -233,7 +233,16 @@ Minimum verification:
 hermes doctor
 hermes tools list
 PYTHONPATH=src uv run pytest -q
+uv run agent-os manifest
 ```
+
+To start the actual agent CLI, run:
+
+```bash
+hermes
+```
+
+Important: `uv run agent-os boot` is currently a Stage 2 scaffold diagnostic. If it prints JSON with `status: scaffold_not_error`, that is expected and not a failed Hermes install. Use `hermes` to start the real Hermes agent until the Super Agent boot adapter is wired.
 
 If Telegram is enabled:
 

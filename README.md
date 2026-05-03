@@ -52,11 +52,12 @@ Conversational Python wizard. Asks for business context, tier, keys, approval ru
 ```bash
 git clone --recurse-submodules https://github.com/jbellsolutions/hermes-super-agent.git
 cd hermes-super-agent
-./scripts/launch.py --minimal      # only asks for ANTHROPIC_API_KEY + your name
-uv run agent-os boot
+./scripts/launch.py --minimal      # asks for model key + operator setup
+hermes doctor
+hermes
 ```
 
-Then tell Hermes: *"Set yourself up. I want Slack + Telegram + web voice. Keys are in 1Password under 'agent-os/*'. Deploy to Railway when ready."* Hermes uses Computer Use to fetch the keys, OpenClaw to verify them, Claude Code subagents to write the configs, then deploys. *(Currently scaffolded; full self-setup loop lights up after stages 3–10 of `docs/EXECUTION-PLAN.md`.)*
+Then tell Hermes: *"Set yourself up. I want Slack + Telegram + web voice. Keys are in 1Password under 'agent-os/*'. Deploy to Railway when ready."* Hermes uses its own tools and skills to finish configuration. `uv run agent-os boot` is currently a Stage 2 scaffold diagnostic, not the live Hermes launcher. *(Full self-setup loop lights up after stages 3–10 of `docs/EXECUTION-PLAN.md`.)*
 
 [**Full launch guide →**](./LAUNCH.md)
 
