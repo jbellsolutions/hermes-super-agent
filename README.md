@@ -69,6 +69,7 @@ Then tell Hermes: *"Set yourself up. I want Slack + Telegram + web voice. Keys a
 |---|---|
 | **Persistent orchestrator** | [Hermes](https://github.com/NousResearch/hermes-agent) — 64K★ MIT-licensed, persistent memory across sessions, native skill saving, multi-platform Slack/Telegram/Discord/WhatsApp/CLI, bring-any-model. |
 | **Autonomous execution** | [OpenClaw](https://github.com/openclaw/openclaw) — 302K★, the fastest-growing OSS project ever. Shell, file, browser grind. |
+| **Multi-agent deliverables + agent-builder** | [OpenSwarm](https://github.com/VRSEN/OpenSwarm) — vendored multi-agent deliverable production (slides, decks, research, charts, docs, images, video). Plus the **agent-builder agent**: tell Hermes "build me an SEO swarm" and the runtime forks the vendor, customizes via `claude_code` or `manual` customizer, validates, and registers a new fleet member with auto-routing. Per-swarm folder/port/.env/manifest. See [`vault/decisions/openswarm-runtime-adoption.md`](./vault/decisions/openswarm-runtime-adoption.md). |
 | **Structured browser** | [browser-use](https://github.com/browser-use/browser-use) — 50K★ AI-agent-grade browser automation. |
 | **Coding (interactive)** | Claude Code subagents — direct, in-repo. |
 | **Coding (background)** | OpenAI Codex CLI + [Aider](https://github.com/Aider-AI/aider) — multi-provider hedge so a single outage doesn't stop the press. |
@@ -118,11 +119,11 @@ Concrete state machines for each in [`ARCHITECTURE.md`](./ARCHITECTURE.md). Not 
 src/agent_os/
 ├── orchestrator/    # Hermes wiring (boot, identities, vault-memory adapter, job router)
 ├── runtimes/        # specialist tool belt — Hermes routes here per job tags
-│   ├── openclaw/    │   ├── browser_use/
-│   ├── agent_zero/  │   ├── computer_use/
-│   ├── claude_subagents/ ├── codex_cli/
-│   ├── aider/       │   ├── claude_managed/
-│   ├── e2b/
+│   ├── openclaw/    │   ├── openswarm/
+│   ├── browser_use/ │   ├── agent_zero/
+│   ├── computer_use/│   ├── claude_subagents/
+│   ├── codex_cli/   │   ├── aider/
+│   ├── claude_managed/ ├── e2b/
 │   ├── exa/         │   ├── livekit/
 │   └── terminal/
 ├── manifest/        # introspection — graph aggregator, MCP server, /explain backend
@@ -132,9 +133,9 @@ src/agent_os/
 └── observability/   # Langfuse + optional NVIDIA NeMo Agent Toolkit
 
 vendor/              # auto-updated upstream OSS — DO NOT EDIT
-├── hermes-agent/    │   ├── openclaw/         │   ├── nemoclaw/  (parked)
+├── hermes-agent/    │   ├── openclaw/         │   ├── openswarm/
 ├── browser-use/     │   ├── aider/            │   ├── awesome-hermes-agent/
-└── agi-1/
+├── agi-1/           │   └── nemoclaw/  (parked)
 
 vault/               # markdown source of truth → Supabase mirror
 ├── conversations/   # cross-channel logs (single-state)
@@ -165,7 +166,7 @@ deploy/              # Railway / Docker Compose / Fly.io templates
 
 Three things happen automatically every day, no human in the loop:
 
-1. **02:00** — the upgrader runs. Pulls Hermes / OpenClaw / browser-use / Aider / Codex / agi-1 / awesome-hermes-agent. Smokes each. Promotes the green ones. Quarantines the red ones with a Slack alert. Logs to `vault/upgrades/<date>.yaml`.
+1. **02:00** — the upgrader runs (11 streams). Pulls Hermes / OpenClaw / OpenSwarm / browser-use / Aider / Codex / agi-1 / awesome-hermes-agent. Smokes each (OpenSwarm's smoke replays each registered swarm's customization against the fresh vendor — catches "upstream change broke our build"). Promotes the green ones. Quarantines the red ones with a Slack alert. Logs to `vault/upgrades/<date>.yaml`.
 2. **02:30** — `/agi-audit` runs against the day's outputs. Scores `vault/runs/`. Flags regressions. Writes `vault/daily/<date>.md`.
 3. **Every 5 minutes** — the self-healing loop ticks. Polls heartbeats, validators, cron, API health, cost guardrails. Auto-fixes known patterns; spawns a council for unknown ones.
 
@@ -177,10 +178,10 @@ You wake up. The system has improved itself a little. Yesterday's fixes are in t
 
 ```
 ✓ uv sync                         # all packages install cleanly
-✓ uv run pytest -q                # 23 passed
+✓ uv run pytest -q                # 128 passed (OpenSwarm runtime + builder + ops + Slack)
 ✓ uv run agent-os route --tags ...# router returns correct runtime per tag
 ✓ uv run agent-os manifest        # 20 nodes, 57 edges built
-✓ git submodule status            # 7 submodules pinned
+✓ git submodule status            # 8 submodules pinned (added vendor/openswarm)
 ```
 
 What's stubbed (per [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md)):
@@ -195,6 +196,39 @@ What's stubbed (per [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md)):
 - **Stage 11+** — vertical-app onboarding
 
 The 14 old framework repos remain live and untouched per Justin's call. They were the pattern that this repo exists to break.
+
+---
+
+## OpenSwarm fleet — the agent-builder agent
+
+[OpenSwarm](https://github.com/VRSEN/OpenSwarm) is vendored at `vendor/openswarm` and wired in as the `runtime.openswarm` specialist. It's the only runtime that owns a *fleet* — Hermes can fork the vendor into N business-purpose-specific swarms (SEO, sales, ops, …), each with its own folder, port, `.env`, and manifest under `~/.agent-os/swarms/<name>/`. The fleet's registry, port allocator, and run logs all live under `~/.agent-os/swarms/registry.yaml` and `vault/runs/openswarm/`.
+
+What you actually type:
+
+```bash
+# Tag-based routing — Hermes auto-selects the runtime
+uv run agent-os route --tags build-swarm           # → openswarm
+uv run agent-os route --tags multi-deliverable     # → openswarm
+uv run agent-os route --tags slides+research+docs  # → openswarm
+
+# Direct invocation (Slack/Telegram/CLI all funnel through this)
+invoke({"op": "build", "name": "seo-swarm",
+        "description": "SEO research, competitor analysis, blog writing",
+        "customizer": "claude_code"})              # forks + customizes + validates
+invoke({"op": "run", "swarm": "seo-swarm", "prompt": "Write 3 BoFu posts on AI agents"})
+invoke({"op": "list"})                              # show fleet
+invoke({"op": "pipeline", "steps": [...]})          # cross-swarm sequential
+invoke({"op": "fan_out", "swarm": "default",
+        "prompts": [...]})                          # parallel variants
+
+# Slack slash commands (after gateway wiring)
+/build-swarm seo-swarm -- SEO research and blog writing
+/list-swarms
+```
+
+15 invoke ops total: `run`, `list`, `status`, `start`, `stop`, `restart`, `destroy`, `cleanup`, `cost`, `hibernate`, `snapshot`, `pipeline`, `fan_out`, `build`, `upgrade`. Three customizers (`noop` / `manual` / `claude_code`), three validators (`noop` / `health` / `smoke`). Atomic rollback on every failure path. Per-swarm budget guard with soft-warn at 80% and hard-block at 100%. Dashboard tile in `packages/dashboard/app/page.tsx` reads `vault/graph/openswarm.json`.
+
+Full design rationale, customizer/validator contracts, multi-instance correctness story, and verification checklist: [`vault/decisions/openswarm-runtime-adoption.md`](./vault/decisions/openswarm-runtime-adoption.md).
 
 ---
 
@@ -246,6 +280,7 @@ New operator/runtime intake notes:
 8. [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) + [`runbooks/a0-connector.md`](./runbooks/a0-connector.md) — reproduce the local Agent Zero/A0/Codex bridge. ~10 min.
 9. [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md) + [`docs/steipete-tool-intake.md`](./docs/steipete-tool-intake.md) — expansion decisions. ~10 min.
 10. [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md) — what ships in which session. ~5 min.
+11. [`vault/decisions/openswarm-runtime-adoption.md`](./vault/decisions/openswarm-runtime-adoption.md) — OpenSwarm runtime + agent-builder design rationale, multi-instance correctness, verification. ~10 min.
 
 ## License
 
