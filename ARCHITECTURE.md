@@ -23,17 +23,18 @@
    ┌───────────────────┐  ┌──────────────────┐         ┌────────────────────┐
    │ SPECIALIST RUNTIMES│  │ QUALITY (agi-1) │         │ MANIFEST + EXPLAIN │
    │ • OpenClaw         │  │ • /agi-audit    │         │ • graph aggregator │
-   │ • browser-use      │  │ • /agi-council  │         │ • MCP server       │
-   │ • Computer Use     │  │ • /agi-research │         │ • /explain skill   │
-   │ • Claude Code subs │  │ • genome        │         └────────────────────┘
-   │ • Codex CLI        │  └──────────────────┘
-   │ • Aider            │           │                            │
-   │ • Claude Managed   │           ▼                            ▼
-   │ • E2B sandboxes    │  ┌──────────────────────────────────────────────┐
-   │ • Exa search       │  │              VAULT (markdown + Supabase)      │
-   │ • LiveKit voice    │  │  conversations/ runs/ incidents/ skills/     │
-   │ • Terminal         │  │  genome/ upgrades/ heartbeats/ graph/        │
-   └───────────────────┘  └──────────────────────────────────────────────┘
+   │ • OpenSwarm fleet  │  │ • /agi-council  │         │ • MCP server       │
+   │ • browser-use      │  │ • /agi-research │         │ • /explain skill   │
+   │ • Computer Use     │  │ • genome        │         └────────────────────┘
+   │ • Claude Code subs │  └──────────────────┘
+   │ • Codex CLI        │           │                            │
+   │ • Aider            │           ▼                            ▼
+   │ • Claude Managed   │  ┌──────────────────────────────────────────────┐
+   │ • E2B sandboxes    │  │              VAULT (markdown + Supabase)      │
+   │ • Exa search       │  │  conversations/ runs/ incidents/ skills/     │
+   │ • LiveKit voice    │  │  genome/ upgrades/ heartbeats/ graph/        │
+   │ • Terminal         │  └──────────────────────────────────────────────┘
+   └───────────────────┘
                                     ▲
                                     │
                 ┌─────────────────────────────────────┐
@@ -47,6 +48,9 @@
 ```
 Job arrives at Hermes (Slack DM, schedule, sub-agent dispatch)
    │
+   ├─ tags["build-swarm","new-swarm"]            → OpenSwarm (builder — Phase B)
+   ├─ tags["multi-deliverable","slides+research+docs","investor-pitch"] → OpenSwarm fleet
+   ├─ tags["swarm","openswarm"] OR per-swarm skill match → OpenSwarm fleet (named swarm)
    ├─ tags["coding","interactive"] OR repo edit  → Claude Code subagents
    ├─ tags["coding","background"] OR ["codex"]   → Codex CLI
    ├─ tags["coding","git-incremental"]           → Aider

@@ -1,4 +1,4 @@
-"""Nightly cron entry point. Runs all 10 streams in sequence."""
+"""Nightly cron entry point. Runs all 11 streams in sequence."""
 from __future__ import annotations
 
 import datetime
@@ -17,6 +17,7 @@ from agent_os.upgrader.streams import (
     mcp_registry,
     nemoclaw,
     openclaw,
+    openswarm,
     vendor_health,
 )
 
@@ -25,6 +26,7 @@ VAULT_UPGRADES = Path(os.environ.get("VAULT_ROOT", "./vault")).resolve() / "upgr
 STREAMS = [
     ("hermes", hermes.run),
     ("openclaw", openclaw.run),
+    ("openswarm", openswarm.run),
     ("browser_use", browser_use.run),
     ("aider", aider.run),
     ("codex", codex.run),

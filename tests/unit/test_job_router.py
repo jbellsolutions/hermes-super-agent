@@ -56,3 +56,28 @@ def test_voice_to_livekit():
 
 def test_terminal():
     assert route(Job(prompt="cron", tags={"cron"})) == "terminal"
+
+
+def test_build_swarm_to_openswarm():
+    assert route(Job(prompt="build me an SEO swarm", tags={"build-swarm"})) == "openswarm"
+
+
+def test_multi_deliverable_to_openswarm():
+    assert route(
+        Job(prompt="investor pitch", tags={"multi-deliverable"})
+    ) == "openswarm"
+
+
+def test_investor_pitch_to_openswarm():
+    assert route(Job(prompt="pitch", tags={"investor-pitch"})) == "openswarm"
+
+
+def test_swarm_tag_to_openswarm():
+    assert route(Job(prompt="run swarm", tags={"swarm"})) == "openswarm"
+
+
+def test_openswarm_beats_coding_when_both_present():
+    # build-swarm should win over coding tags so the agent-builder runs
+    assert route(
+        Job(prompt="build a coding swarm", tags={"build-swarm", "coding", "interactive"})
+    ) == "openswarm"
