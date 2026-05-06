@@ -42,8 +42,8 @@ jobs:
         with:
           node-version: 20
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+        # version is driven by `packageManager` in package.json — passing
+        # `version:` here too triggers ERR_PNPM_BAD_PM_VERSION
       - run: pnpm install --frozen-lockfile
         continue-on-error: true
       - run: pnpm -r build
