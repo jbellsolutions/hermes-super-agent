@@ -19,3 +19,6 @@
 [submodule "vendor/nemoclaw"]
 	path = vendor/nemoclaw
 	url = https://github.com/NVIDIA/NemoClaw
+[submodule "vendor/openswarm"]
+	path = vendor/openswarm
+	url = https://github.com/VRSEN/OpenSwarm

@@ -1,0 +1,18 @@
+component: runtime.openswarm
+type: specialist-runtime
+description: "Multi-agent deliverable production (slides, research, decks, docs, charts) and the agent-builder agent. Manages a fleet of forked OpenSwarm instances per business purpose."
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+  agent-os.runtimes.claude_subagents: any
+agents: []
+data_sources: []
+outputs:
+  - type: vault_run_artifact
+    consumer: vault.runs
+  - type: vault_skill
+    consumer: vault.skills.active
+fleet:
+  registry: ~/.agent-os/swarms/registry.yaml
+  port_range: [8080, 8099]
+  default_swarm: default
+  default_agency: open-swarm

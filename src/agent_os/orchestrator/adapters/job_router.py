@@ -7,6 +7,7 @@ from typing import Literal
 RuntimeName = Literal[
     "hermes_self",       # default — Hermes handles it itself with sub-agents
     "openclaw",          # autonomous-grind, shell, file-ops
+    "openswarm",         # multi-agent deliverables (slides/decks/docs/charts) + builder
     "browser_use",       # structured browser
     "agent_zero",        # visual/autonomous browser UI + A0 host bridge
     "computer_use",      # raw desktop
@@ -36,6 +37,16 @@ def route(job: Job) -> RuntimeName:
     Tag rules below match ARCHITECTURE.md.
     """
     t = {tag.lower() for tag in job.tags}
+
+    # OpenSwarm: multi-agent deliverable production (slides+research+docs+charts)
+    # and the agent-builder ("build me a swarm for X"). Per-swarm semantic routing
+    # is layered on top via vault/skills/active/<swarm>-swarm.md.
+    if "build-swarm" in t or "new-swarm" in t:
+        return "openswarm"
+    if {"multi-deliverable", "slides+research+docs", "investor-pitch", "pitch-deck"} & t:
+        return "openswarm"
+    if "swarm" in t or "openswarm" in t:
+        return "openswarm"
 
     if "coding" in t and "interactive" in t:
         return "claude_subagents"
