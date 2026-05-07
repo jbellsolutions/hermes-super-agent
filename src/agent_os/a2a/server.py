@@ -94,7 +94,34 @@ def create_a2a_app(agent_id: str | None = None, base_url: str | None = None):  #
     _agent_id = agent_id or os.getenv("HERMES_AGENT_ID", "admiral")
     _card = build_card(agent_id=_agent_id, base_url=base_url)
 
-    app = FastAPI(title=f"A2A — {_agent_id}", version="1.0.0")
+    # Spawn the Telegram bot + AgentOps init when the app starts.
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def _lifespan(_app):
+        # Observability — auto-instrument LLM calls when AGENTOPS_API_KEY is set
+        try:
+            from agent_os.observability.agentops.client import init_agentops
+            init_agentops(agent_id=_agent_id, tags=["admiral", "a2a-server"])
+        except Exception as exc:
+            logger.debug("AgentOps init skipped: %s", exc)
+
+        # Telegram bot — long-polls if TELEGRAM_BOT_TOKEN is set, else no-op
+        bot_task = None
+        try:
+            from agent_os.channels.telegram.bot import run_bot
+            bot_task = asyncio.create_task(run_bot())
+            logger.info("Telegram bot task spawned")
+        except Exception as exc:
+            logger.warning("Telegram bot did not start: %s", exc)
+
+        try:
+            yield
+        finally:
+            if bot_task is not None:
+                bot_task.cancel()
+
+    app = FastAPI(title=f"A2A — {_agent_id}", version="1.0.0", lifespan=_lifespan)
 
     # ------------------------------------------------------------------
     # GET /agentCard

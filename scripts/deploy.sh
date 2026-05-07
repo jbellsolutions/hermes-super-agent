@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # deploy.sh — one-command Railway deploy of the Hermes fabric.
 #
-# Brings up: NATS → Temporal → Coordinator → Archon → Admiral
+# Brings up: NATS → Temporal → Coordinator → (Archon) → Admiral
 # Wires service URLs across them automatically.
 # Reads credentials from .env (run scripts/setup.sh first).
 #
@@ -9,7 +9,8 @@
 #
 # Usage:
 #   ./scripts/deploy.sh                # deploy everything
-#   ./scripts/deploy.sh --skip-archon  # skip optional services
+#   ./scripts/deploy.sh --skip-archon  # skip Archon
+#   ./scripts/deploy.sh --skip-admiral # skip Admiral
 #
 # Requires: railway CLI (auto-installed on macOS via brew if missing).
 set -euo pipefail
@@ -55,27 +56,27 @@ if ! command -v railway &>/dev/null; then
     fi
 fi
 
-# Login check
+# Login check (opens a browser if not logged in)
 if ! railway whoami &>/dev/null; then
-    echo "Not logged in. Running railway login..."
+    echo -e "${C}Opening browser for Railway login...${R}"
     railway login
 fi
 
-# Project link check
-if [ ! -f "$REPO_ROOT/.railway/config.json" ] && [ ! -f "$REPO_ROOT/railway.toml" ]; then
-    echo
-    echo -e "${C}First-time setup: linking this repo to a Railway project.${R}"
-    cd "$REPO_ROOT"
-    railway init
-fi
-
+# Project link check — prompt to init if not linked
 cd "$REPO_ROOT"
+if ! railway status --json 2>/dev/null | grep -q '"projectId"'; then
+    echo
+    echo -e "${C}Creating a new Railway project named 'hermes-fabric'...${R}"
+    railway init --name hermes-fabric
+fi
 
 # ---------- helpers ----------
 
-# Check if a railway service exists
+# Check if a railway service already exists in this project
 service_exists() {
-    railway service "$1" --json 2>/dev/null | grep -q '"id"' || return 1
+    local name="$1"
+    railway service list --json 2>/dev/null \
+        | grep -oE "\"name\"[[:space:]]*:[[:space:]]*\"$name\"" >/dev/null
 }
 
 # Add a service if it doesn't exist
@@ -85,52 +86,47 @@ add_service() {
         echo -e "  ${D}service '$name' already exists — reusing${R}"
     else
         echo -e "  ${G}+ adding service '$name'${R}"
-        railway add --service "$name" --no-interactive >/dev/null 2>&1 || railway add --service "$name"
+        railway add --service "$name" >/dev/null
     fi
 }
 
-# Set env vars on a service from a list of KEY=VALUE pairs (only sets non-empty)
+# Set env vars on a service. Only forwards keys with non-empty values.
 set_vars() {
     local service="$1"; shift
     local pairs=()
     for kv in "$@"; do
         local key="${kv%%=*}" val="${kv#*=}"
-        # Only set if value is non-empty
-        if [ -n "$val" ]; then
-            pairs+=("$key=$val")
-        fi
+        [ -n "$val" ] && pairs+=("$key=$val")
     done
     if [ ${#pairs[@]} -gt 0 ]; then
-        railway variables --service "$service" --set "${pairs[@]}" >/dev/null
+        # `railway variable set` accepts multiple KEY=VALUE positional args
+        railway variable set --service "$service" --skip-deploys "${pairs[@]}" >/dev/null
         echo -e "  ${D}set ${#pairs[@]} env vars${R}"
     fi
 }
 
-# Deploy a service from a sub-directory
+# Deploy a service from a sub-directory. Path "." means current dir (Admiral).
 deploy() {
     local name="$1" path="$2"
-    echo -e "${B}→ deploying $name${R}  ${D}(from $path)${R}"
+    echo -e "${B}→ deploying $name${R}  ${D}(from ${path})${R}"
     add_service "$name"
-    railway up --service "$name" --path "$path" --detach >/dev/null
+    if [ "$path" = "." ]; then
+        railway up --service "$name" --detach >/dev/null
+    else
+        # --path-as-root makes the sub-dir the build context root,
+        # so Railway finds Dockerfile at deploy/<name>/Dockerfile.
+        railway up "$path" --path-as-root --service "$name" --detach >/dev/null
+    fi
     echo -e "  ${G}✓ build started${R}"
 }
 
-# Get the public domain of a service
-get_domain() {
-    local name="$1"
-    railway domain --service "$name" --json 2>/dev/null \
-        | grep -o '"[^"]*\.up\.railway\.app"' | head -1 | tr -d '"' || true
-}
-
-# Generate a public domain if the service doesn't have one
+# Generate or fetch a public domain for a service. Returns the domain on stdout.
 ensure_domain() {
     local name="$1"
-    local domain; domain="$(get_domain "$name")"
-    if [ -z "$domain" ]; then
-        railway domain --service "$name" >/dev/null 2>&1 || true
-        domain="$(get_domain "$name")"
-    fi
-    echo "$domain"
+    # `railway domain --service NAME` either prints existing or generates new
+    railway domain --service "$name" 2>&1 \
+        | grep -oE '[a-zA-Z0-9-]+\.up\.railway\.app' \
+        | head -1
 }
 
 # ---------- 1. NATS ----------
@@ -208,6 +204,34 @@ if [ "$SKIP_ADMIRAL" = "false" ]; then
     echo -e "  ${G}HERMES_BASE_URL${R} = https://${ADMIRAL_DOMAIN}"
 fi
 
+# ---------- post-deploy health check ----------
+# Builds run in the background. Poll /health on the HTTP services until 200
+# (or timeout). NATS / Temporal aren't HTTP-checkable on their main ports —
+# we skip them here; if Coordinator and Admiral come up green, those work.
+echo
+echo -e "${B}Waiting for services to come online…${R}"
+echo -e "${D}First build takes ~5 min. Polling every 15s.${R}"
+
+wait_for_health() {
+    local label="$1" url="$2" timeout="${3:-600}"
+    local elapsed=0
+    printf "  %-12s " "$label"
+    while [ "$elapsed" -lt "$timeout" ]; do
+        if curl -sf -o /dev/null --max-time 5 "$url"; then
+            echo -e "${G}✓ ready${R}  ${D}($url)${R}"
+            return 0
+        fi
+        sleep 15
+        elapsed=$((elapsed + 15))
+        printf "."
+    done
+    echo -e "  ${Y}still building — check Railway dashboard${R}"
+    return 1
+}
+
+wait_for_health "Coordinator" "${COORDINATOR_URL_FOR_FABRIC}/health" 600 || true
+[ "$SKIP_ADMIRAL" = "false" ] && wait_for_health "Admiral" "https://${ADMIRAL_DOMAIN}/health" 600 || true
+
 # ---------- summary ----------
 echo
 echo -e "${G}${B}✓ deploy complete${R}"
@@ -219,8 +243,5 @@ echo -e "  ${C}Coordinator${R}  $COORDINATOR_URL_FOR_FABRIC"
 [ -n "$ARCHON_URL_FOR_FABRIC" ] && echo -e "  ${C}Archon${R}       $ARCHON_URL_FOR_FABRIC"
 [ "$SKIP_ADMIRAL" = "false" ] && echo -e "  ${C}Admiral${R}      https://${ADMIRAL_DOMAIN}"
 echo
-echo -e "${D}Builds run in the background. Watch progress at:${R}"
-echo -e "  ${C}https://railway.app/dashboard${R}"
-echo
-echo -e "${D}First build takes ~5 min. Subsequent deploys are ~1–2 min.${R}"
+echo -e "${D}Watch logs / restart at: ${C}https://railway.app/dashboard${R}"
 echo
