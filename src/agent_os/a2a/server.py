@@ -31,7 +31,19 @@ logger = logging.getLogger(__name__)
 # Task store — in-memory for now; swap for Redis/SQLite for multi-instance
 # ---------------------------------------------------------------------------
 
+# Hard cap on retained tasks. Python dicts are insertion-ordered, so when we
+# exceed the cap we evict the oldest. Override via A2A_MAX_TASKS env var.
+_MAX_TASKS = int(os.getenv("A2A_MAX_TASKS", "1000"))
 _tasks: dict[str, "A2ATask"] = {}
+
+
+def _store_task(task: "A2ATask") -> None:
+    """Insert a task and evict the oldest if we'd exceed _MAX_TASKS."""
+    _tasks[task.task_id] = task
+    while len(_tasks) > _MAX_TASKS:
+        # Pop oldest by insertion order
+        oldest_id = next(iter(_tasks))
+        _tasks.pop(oldest_id, None)
 
 
 class TaskStatus(str, Enum):
@@ -148,7 +160,7 @@ def create_a2a_app(agent_id: str | None = None, base_url: str | None = None):  #
 
         task_id = body.get("taskId") or str(uuid.uuid4())
         task = A2ATask(task_id=task_id, message=body)
-        _tasks[task_id] = task
+        _store_task(task)
 
         # Emit NATS event
         publish_event(f"agents.{_agent_id}.task.started", {
