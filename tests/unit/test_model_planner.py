@@ -23,7 +23,7 @@ def test_load_returns_models_dict(cfg):
     assert "models" in cfg
     assert "default_model" in cfg
     # All seven registered models present.
-    assert len(cfg["models"]) == 7
+    assert len(cfg["models"]) == 8
 
 
 def test_default_model_is_sonnet(cfg):
@@ -163,4 +163,4 @@ def test_mechanical_coding_can_pick_deepseek(cfg):
 def test_list_models_returns_dict(cfg):
     models = model_planner.list_models(cfg)
     assert isinstance(models, dict)
-    assert len(models) == 7
+    assert len(models) == 8

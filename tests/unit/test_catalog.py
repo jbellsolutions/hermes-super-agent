@@ -34,7 +34,7 @@ def test_skill_frontmatter_has_required_fields():
 
 def test_load_models_returns_seven():
     models = catalog.load_models()
-    assert len(models) == 7
+    assert len(models) == 8
     # Each must register pricing — guard against accidental schema regression.
     for name, m in models.items():
         assert "cost_per_mtok_in" in m, name
@@ -71,7 +71,7 @@ def test_build_catalog_shape():
     assert "bundles" in cat
     assert "models" in cat
     assert len(cat["tools"]) >= 15
-    assert len(cat["models"]) == 7
+    assert len(cat["models"]) == 8
 
 
 def test_build_catalog_assigns_bundles_to_tools():
