@@ -58,6 +58,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_run.add_argument("--meta", action="append", default=[], metavar="KEY=VALUE")
 
+    sub.add_parser(
+        "doctor",
+        help="Check your local config — env vars, reachability of Coordinator/NATS/etc.",
+    )
+
     p_spawn = sub.add_parser(
         "spawn",
         help="Spawn a Tier 1 specialist (Railway) or Tier 2 superagent (VPS).",
@@ -135,7 +140,80 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_run(args)
     elif args.cmd == "spawn":
         return _cmd_spawn(args)
+    elif args.cmd == "doctor":
+        return _cmd_doctor()
     return 0
+
+
+def _cmd_doctor() -> int:
+    """Diagnose local config. Returns 0 if all critical checks pass."""
+    import os
+
+    G = "\033[32m"; Y = "\033[33m"; R_ = "\033[31m"; D = "\033[2m"; END = "\033[0m"
+    ok = G + "✓" + END
+    warn = Y + "!" + END
+    bad = R_ + "✗" + END
+
+    failures = 0
+    print()
+    print("Hermes doctor — local config check")
+    print()
+
+    def check(label, condition, hint="", critical=True):
+        nonlocal failures
+        if condition:
+            print(f"  {ok} {label}")
+        else:
+            print(f"  {bad if critical else warn} {label}  {D}— {hint}{END}")
+            if critical:
+                failures += 1
+
+    # Env presence
+    keys = {
+        "ANTHROPIC_API_KEY": True,   # critical
+        "TELEGRAM_BOT_TOKEN": True,
+        "TELEGRAM_CHAT_ID": True,
+        "OPENAI_API_KEY": False,
+        "COORDINATOR_URL": False,
+        "NATS_URL": False,
+        "TEMPORAL_HOST": False,
+        "DO_API_TOKEN": False,
+        "RETELL_API_KEY": False,
+        "INSTANTLY_API_KEY": False,
+        "AGENTOPS_API_KEY": False,
+    }
+    for k, critical in keys.items():
+        val = os.getenv(k, "")
+        check(f"env {k}", bool(val), "set in .env", critical=critical)
+
+    # Reachability checks (only if URLs configured)
+    coord_url = os.getenv("COORDINATOR_URL", "")
+    if coord_url:
+        try:
+            import httpx
+            r = httpx.get(coord_url + "/health", timeout=5)
+            check(f"Coordinator /health → {r.status_code}", r.status_code == 200,
+                  f"Got {r.status_code}", critical=False)
+        except Exception as exc:
+            check("Coordinator reachable", False, str(exc)[:60], critical=False)
+
+    tg_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    if tg_token:
+        try:
+            import httpx
+            r = httpx.get(f"https://api.telegram.org/bot{tg_token}/getMe", timeout=5)
+            ok_tg = r.status_code == 200 and r.json().get("ok") is True
+            name = r.json().get("result", {}).get("username", "?") if ok_tg else "?"
+            check(f"Telegram bot @{name}", ok_tg, "bad token?", critical=False)
+        except Exception as exc:
+            check("Telegram API reachable", False, str(exc)[:60], critical=False)
+
+    print()
+    if failures == 0:
+        print(f"  {ok} all critical checks passed")
+        return 0
+    print(f"  {bad} {failures} critical check(s) failed — run scripts/setup.sh to fix")
+    return 1
 
 
 def _parse_meta(items: list[str]) -> dict[str, str]:
