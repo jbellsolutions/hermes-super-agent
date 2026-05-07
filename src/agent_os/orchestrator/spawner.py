@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import logging
 import os
+import tempfile
+import threading
 import time
 import uuid
 from datetime import datetime, timezone
@@ -32,6 +34,11 @@ from agent_os.orchestrator.adapters.job_router import Job
 from agent_os.bus.nats_publisher import publish_event
 
 logger = logging.getLogger(__name__)
+
+# Serialize all registry mutations within this process. Two simultaneous spawns
+# (e.g., from Telegram + A2A POST) would otherwise read the same yaml, both
+# append, and the second write would clobber the first.
+_REGISTRY_LOCK = threading.Lock()
 
 _ARCHON_URL = os.getenv("ARCHON_A2A_URL", "")
 _RAILWAY_TOKEN = os.getenv("RAILWAY_API_TOKEN", "")
@@ -296,40 +303,61 @@ def _register_agent(
     model: str = "claude-sonnet-4.7",
     notes: str = "",
 ) -> None:
-    """Append or update an agent entry in vault/projects/registry.yaml."""
+    """Append or update an agent entry in vault/projects/registry.yaml.
+
+    Concurrency: serialized via _REGISTRY_LOCK so two parallel spawns can't
+    interleave their read-modify-write cycles. Atomic rename guarantees a
+    reader (or a crashed writer) never sees a half-written file.
+    """
     registry_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "..", "..", "..", "vault", "projects", "registry.yaml")
     )
-    try:
-        with open(registry_path) as f:
-            registry = yaml.safe_load(f) or {}
-    except FileNotFoundError:
-        registry = {}
 
-    agents: list[dict] = registry.get("agents", [])
+    with _REGISTRY_LOCK:
+        try:
+            with open(registry_path) as f:
+                registry = yaml.safe_load(f) or {}
+        except FileNotFoundError:
+            registry = {}
 
-    # Remove stale entry if it exists
-    agents = [a for a in agents if a.get("id") != agent_id]
+        agents: list[dict] = registry.get("agents", [])
 
-    agents.append({
-        "id": agent_id,
-        "tier": tier,
-        "runtime": runtime,
-        "status": "active",
-        "a2a_endpoint": a2a_endpoint,
-        "nats_subject": f"agents.{agent_id}.*",
-        "vps_ip": vps_ip,
-        "railway_service": railway_service,
-        "model": model,
-        "tags": tags,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "created_by": "admiral",
-        "notes": notes,
-    })
+        # Remove stale entry if it exists
+        agents = [a for a in agents if a.get("id") != agent_id]
 
-    registry["agents"] = agents
-    with open(registry_path, "w") as f:
-        yaml.dump(registry, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        agents.append({
+            "id": agent_id,
+            "tier": tier,
+            "runtime": runtime,
+            "status": "active",
+            "a2a_endpoint": a2a_endpoint,
+            "nats_subject": f"agents.{agent_id}.*",
+            "vps_ip": vps_ip,
+            "railway_service": railway_service,
+            "model": model,
+            "tags": tags,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_by": "admiral",
+            "notes": notes,
+        })
+
+        registry["agents"] = agents
+
+        # Atomic write: tmp file in same dir → rename. POSIX rename is atomic.
+        registry_dir = os.path.dirname(registry_path)
+        os.makedirs(registry_dir, exist_ok=True)
+        fd, tmp_path = tempfile.mkstemp(prefix=".registry-", suffix=".tmp", dir=registry_dir)
+        try:
+            with os.fdopen(fd, "w") as f:
+                yaml.dump(registry, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+            os.replace(tmp_path, registry_path)
+        except Exception:
+            # Clean up tmp on failure so we don't accumulate orphans
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
 
     logger.info("Registry updated: agent_id=%s tier=%s", agent_id, tier)
 

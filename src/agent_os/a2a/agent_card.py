@@ -84,8 +84,8 @@ def build_card(
         AgentSkill(
             id="fan-out",
             name="Parallel Fan-Out",
-            description="Decompose a job into parallel sub-tasks handled by up to 300 agents via Kimi K2.6.",
-            tags=["fan-out", "swarm", "parallel", "kimi"],
+            description="Decompose a job into parallel sub-tasks handled by up to N agents via the deployed Coordinator service.",
+            tags=["fan-out", "swarm", "parallel", "coordinator"],
             examples=["Analyze 200 company websites in parallel"],
         ),
         AgentSkill(

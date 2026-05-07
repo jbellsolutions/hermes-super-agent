@@ -63,6 +63,13 @@ def main(argv: list[str] | None = None) -> int:
         help="Check your local config — env vars, reachability of Coordinator/NATS/etc.",
     )
 
+    p_tail = sub.add_parser(
+        "tail",
+        help="Stream live NATS fleet events to your terminal (Ctrl-C to stop).",
+    )
+    p_tail.add_argument("--subject", default="agents.>", help="NATS subject filter")
+    p_tail.add_argument("--filter", default="", help="Substring filter on event payload")
+
     p_spawn = sub.add_parser(
         "spawn",
         help="Spawn a Tier 1 specialist (Railway) or Tier 2 superagent (VPS).",
@@ -142,6 +149,46 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_spawn(args)
     elif args.cmd == "doctor":
         return _cmd_doctor()
+    elif args.cmd == "tail":
+        return _cmd_tail(args)
+    return 0
+
+
+def _cmd_tail(args) -> int:
+    """Stream NATS fleet events to the terminal until Ctrl-C."""
+    import asyncio
+    import os
+
+    if not os.getenv("NATS_URL"):
+        print("NATS_URL is not set in your environment. Run scripts/setup.sh or "
+              "export NATS_URL=nats://your-nats:4222 and try again.")
+        return 1
+
+    try:
+        from agent_os.bus.nats_subscriber import Subscriber
+    except Exception as exc:
+        print(f"Could not import NATS subscriber: {exc}")
+        return 1
+
+    subject = args.subject
+    payload_filter = (args.filter or "").lower()
+
+    print(f"Listening on {subject} (filter={payload_filter or 'none'}). Ctrl-C to stop.\n")
+
+    async def _on_event(event):
+        line = f"[{event.agent_id}] {event.event_type}  {event.payload}"
+        if payload_filter and payload_filter not in line.lower():
+            return
+        print(line, flush=True)
+
+    async def _drive():
+        sub = Subscriber(agent_id="cli-tail")
+        await sub.start(handler=_on_event)
+
+    try:
+        asyncio.run(_drive())
+    except KeyboardInterrupt:
+        print("\n(stopped)")
     return 0
 
 

@@ -29,6 +29,15 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_CONCURRENCY = int(os.getenv("COORDINATOR_MAX_CONCURRENCY", "50"))
 
+# Hard ceiling on sub-prompts per fan-out. A confused or hostile request like
+# `sub_prompts=("research X" * 10000)` would otherwise blow your LLM budget
+# and rate limits. Override via COORDINATOR_MAX_SUBTASKS for power users.
+_MAX_SUBTASKS = int(os.getenv("COORDINATOR_MAX_SUBTASKS", "300"))
+
+
+class TooManySubtasks(ValueError):
+    pass
+
 
 @dataclass
 class Task:
@@ -91,7 +100,16 @@ async def run_task(task_id: str) -> None:
 
     try:
         sub_prompts = _resolve_sub_prompts(task)
-        concurrency = int(task.metadata.get("concurrency") or _DEFAULT_CONCURRENCY)
+        if len(sub_prompts) > _MAX_SUBTASKS:
+            raise TooManySubtasks(
+                f"{len(sub_prompts)} sub-prompts exceeds COORDINATOR_MAX_SUBTASKS={_MAX_SUBTASKS}. "
+                f"Lower the count or raise the env limit if you mean it."
+            )
+        # Cap concurrency at min(metadata, default, total subtasks). No point
+        # spawning 50 workers for 5 sub-prompts, and no point letting metadata
+        # request 1000 concurrent calls (would hit rate limits).
+        requested_conc = int(task.metadata.get("concurrency") or _DEFAULT_CONCURRENCY)
+        concurrency = max(1, min(requested_conc, _DEFAULT_CONCURRENCY, len(sub_prompts)))
         sem = asyncio.Semaphore(concurrency)
 
         async def _one(idx: int, sub: str) -> dict[str, Any]:
