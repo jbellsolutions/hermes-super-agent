@@ -126,8 +126,12 @@ log "  Claude Code, Codex, and Aider all read API keys from env, no OAuth needed
 # ---------------------------------------------------------------------------
 log "Starting Hermes agent in tmux session '$AGENT_ID'..."
 tmux kill-session -t "$AGENT_ID" 2>/dev/null || true
+# Serve the A2A FastAPI app on the configured port. This is the same entrypoint
+# the Admiral container uses; it auto-starts the Telegram bot and NATS alert
+# forwarder via FastAPI lifespan when their env vars are set.
+A2A_PORT="{{ a2a_port | default(8080) }}"
 tmux new-session -d -s "$AGENT_ID" \
-    "cd $INSTALL_DIR && uv run hermes 2>&1 | tee $INSTALL_DIR/hermes.log"
+    "cd $INSTALL_DIR && uv run uvicorn agent_os.a2a.server:app --host 0.0.0.0 --port $A2A_PORT 2>&1 | tee $INSTALL_DIR/hermes.log"
 
 # ---------------------------------------------------------------------------
 # 11. Health check

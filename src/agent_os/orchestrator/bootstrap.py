@@ -271,7 +271,7 @@ cat > /opt/hermes/AGENT.md << 'EOF'
 {escaped}
 EOF
 tmux kill-session -t {agent_id} 2>/dev/null || true
-tmux new-session -d -s {agent_id} 'cd /opt/hermes && uv run hermes 2>&1 | tee /opt/hermes/hermes.log'
+tmux new-session -d -s {agent_id} 'cd /opt/hermes && uv run uvicorn agent_os.a2a.server:app --host 0.0.0.0 --port {_A2A_PORT} 2>&1 | tee /opt/hermes/hermes.log'
 """
 
 

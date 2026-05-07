@@ -101,21 +101,65 @@ class Publisher:
 # Sync fire-and-forget convenience (safe from sync code paths)
 # ------------------------------------------------------------------
 
+# Circuit breaker — when NATS is unreachable, don't spawn a doomed task per event.
+# 3 consecutive failures opens the circuit for 60s. After cool-down we try once;
+# on success it closes, on failure it stays open another 60s.
+_BREAKER_FAILURE_THRESHOLD = 3
+_BREAKER_OPEN_SECONDS = 60.0
+_breaker_failures = 0
+_breaker_open_until = 0.0
+
+
+def _breaker_open() -> bool:
+    return time.time() < _breaker_open_until
+
+
+def _breaker_record_success() -> None:
+    global _breaker_failures, _breaker_open_until
+    _breaker_failures = 0
+    _breaker_open_until = 0.0
+
+
+def _breaker_record_failure() -> None:
+    global _breaker_failures, _breaker_open_until
+    _breaker_failures += 1
+    if _breaker_failures >= _BREAKER_FAILURE_THRESHOLD:
+        _breaker_open_until = time.time() + _BREAKER_OPEN_SECONDS
+        logger.warning(
+            "NATS circuit breaker opened — suppressing publish_event for %ss "
+            "after %d consecutive failures.",
+            _BREAKER_OPEN_SECONDS, _breaker_failures,
+        )
+
+
 def publish_event(subject: str, payload: dict[str, Any]) -> None:
     """Sync wrapper — creates a transient event loop if needed.
 
-    Safe to call from synchronous code (e.g., job_router.route()).
-    Does nothing if NATS_URL is not configured.
+    Safe to call from synchronous code (e.g., job_router.route()). Does nothing
+    if NATS_URL is not configured. Honors a process-local circuit breaker so a
+    NATS outage doesn't pile up doomed tasks.
     """
     if not _nats_available():
         return
+    if _breaker_open():
+        return
 
     async def _send() -> None:
-        async with Publisher() as pub:
-            await pub.publish(subject, payload)
+        try:
+            async with Publisher() as pub:
+                if pub._nc is None:
+                    _breaker_record_failure()
+                    return
+                await pub.publish(subject, payload)
+                _breaker_record_success()
+        except Exception:
+            _breaker_record_failure()
 
     try:
         loop = asyncio.get_running_loop()
         loop.create_task(_send())
     except RuntimeError:
-        asyncio.run(_send())
+        try:
+            asyncio.run(_send())
+        except Exception:
+            _breaker_record_failure()

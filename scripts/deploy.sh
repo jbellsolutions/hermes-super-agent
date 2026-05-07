@@ -15,6 +15,25 @@
 # Requires: railway CLI (auto-installed on macOS via brew if missing).
 set -euo pipefail
 
+# Friendly trap: if any step fails, print recovery guidance instead of just
+# dying with a bash error code. The script is idempotent, so re-running
+# picks up where it left off.
+_deploy_failed_at="(unknown step)"
+_on_error() {
+    local code=$?
+    [ "$code" -eq 0 ] && return
+    echo
+    echo -e "\033[1;31m✗ deploy failed${_deploy_failed_at:+ during: $_deploy_failed_at}\033[0m"
+    echo
+    echo "What to do next:"
+    echo "  1. Check what failed in the output above (or at https://railway.app/dashboard)"
+    echo "  2. Fix the underlying issue (missing env var? bad credential? quota hit?)"
+    echo "  3. Re-run ./scripts/deploy.sh — already-deployed services are reused, not recreated"
+    echo
+    exit "$code"
+}
+trap _on_error EXIT
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$REPO_ROOT/.env"
 
@@ -150,6 +169,7 @@ ensure_domain() {
 }
 
 # ---------- 1. NATS ----------
+_deploy_failed_at="NATS"
 echo
 echo -e "${B}━━━ 1/5  NATS (event bus) ━━━${R}"
 deploy nats deploy/nats
@@ -158,6 +178,7 @@ NATS_URL_FOR_FABRIC="nats://${NATS_DOMAIN}:4222"
 echo -e "  ${G}NATS_URL${R} = $NATS_URL_FOR_FABRIC"
 
 # ---------- 2. Temporal ----------
+_deploy_failed_at="Temporal"
 echo
 echo -e "${B}━━━ 2/5  Temporal (durable workflows) ━━━${R}"
 deploy temporal deploy/temporal
@@ -166,6 +187,7 @@ TEMPORAL_HOST_FOR_FABRIC="${TEMPORAL_DOMAIN}:7233"
 echo -e "  ${G}TEMPORAL_HOST${R} = $TEMPORAL_HOST_FOR_FABRIC"
 
 # ---------- 3. Coordinator ----------
+_deploy_failed_at="Coordinator"
 echo
 echo -e "${B}━━━ 3/5  Coordinator (fan-out engine) ━━━${R}"
 deploy coordinator deploy/coordinator
@@ -186,6 +208,7 @@ echo -e "  ${G}COORDINATOR_URL${R} = $COORDINATOR_URL_FOR_FABRIC"
 # ---------- 4. Archon (optional) ----------
 ARCHON_URL_FOR_FABRIC=""
 if [ "$SKIP_ARCHON" = "false" ]; then
+    _deploy_failed_at="Archon"
     echo
     echo -e "${B}━━━ 4/5  Archon agent builder (optional, stub mode) ━━━${R}"
     deploy archon deploy/archon
@@ -196,6 +219,7 @@ fi
 
 # ---------- 5. Admiral ----------
 if [ "$SKIP_ADMIRAL" = "false" ]; then
+    _deploy_failed_at="Admiral"
     echo
     echo -e "${B}━━━ 5/5  Admiral (the brain) ━━━${R}"
     deploy admiral .
@@ -223,6 +247,9 @@ if [ "$SKIP_ADMIRAL" = "false" ]; then
     ADMIRAL_DOMAIN="$(ensure_domain admiral)"
     echo -e "  ${G}HERMES_BASE_URL${R} = https://${ADMIRAL_DOMAIN}"
 fi
+
+# All deploys kicked off — clear the failure annotation
+_deploy_failed_at=""
 
 # ---------- post-deploy health check ----------
 # Builds run in the background. Poll /health on the HTTP services until 200

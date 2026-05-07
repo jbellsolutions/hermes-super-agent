@@ -1,7 +1,7 @@
 """Temporal durable workflows for the Hermes fleet fabric.
 
 Workflows wrap multi-step operations that must survive process crashes:
-  - FanOutWorkflow: wraps OpenSwarm / Kimi K2.6 fan-out as durable activities
+  - FanOutWorkflow: wraps coordinator/OpenSwarm fan-out as durable activities
 """
 from agent_os.workflows.fan_out import FanOutWorkflow, FanOutJob, FanOutResult
 

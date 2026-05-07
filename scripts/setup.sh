@@ -21,8 +21,29 @@ B="\033[1m"; G="\033[32m"; Y="\033[33m"; C="\033[36m"; D="\033[2m"; R="\033[0m"
 
 echo
 echo -e "${B}Hermes Fabric — interactive setup${R}"
-echo -e "${D}Walks you through every credential the fleet needs.${R}"
-echo -e "${D}Press Enter to skip / keep existing.${R}"
+echo
+echo "About to walk through ~6 sections of credentials:"
+echo "  1/6  LLM API keys (Anthropic required)"
+echo "  2/6  Telegram bot (required to talk to Hermes)"
+echo "  3/6  DigitalOcean (optional — for spawning Tier 2 VPSes)"
+echo "  4/6  Outbound channels (optional — Retell phone, Instantly email)"
+echo "  5/6  Tier 1 spawning (optional — Railway API for Archon-built specialists)"
+echo "  6/6  Observability (optional — AgentOps dashboard)"
+echo
+echo -e "${D}Press Enter at any prompt to skip or keep an existing value.${R}"
+echo -e "${D}Re-run this script any time to update keys.${R}"
+echo
+read -r -p "Press Enter to begin (Ctrl+C to abort)..."
+
+# Light preflight — warn (don't error) on missing tools so the user can fix later
+warn_missing() {
+    local cmd="$1" hint="$2"
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo -e "${Y}note:${R} '$cmd' not found on PATH — ${D}$hint${R}"
+    fi
+}
+warn_missing git "needed to run agent-os locally"
+warn_missing uv  "install with: curl -LsSf https://astral.sh/uv/install.sh | sh"
 echo
 
 # Seed .env from .env.example if missing
