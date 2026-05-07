@@ -108,3 +108,49 @@ def plan_for(job: Job, *, identity: str = "primary_hermes"):
     """
     from agent_os.orchestrator.tool_planner import plan
     return plan(job, identity=identity)
+
+
+async def dispatch(job: Job):
+    """Route job → correct runtime module → call run(job).
+
+    All fabric runtimes (kimi_coordinator, retell_channel, vps_spawn,
+    a2a_delegate) expose `async def run(job)`. Legacy runtimes that only
+    have a sync `invoke(job)` are wrapped with asyncio.to_thread.
+    """
+    import asyncio
+    runtime = route(job)
+
+    _ASYNC_RUNTIMES = {
+        "kimi_coordinator": "agent_os.runtimes.kimi_coordinator.invoke",
+        "retell_channel":   "agent_os.runtimes.retell_channel.invoke",
+        "vps_spawn":        "agent_os.runtimes.vps_spawn.invoke",
+        "a2a_delegate":     "agent_os.runtimes.a2a_delegate.invoke",
+    }
+    _SYNC_RUNTIMES = {
+        "openclaw":        "agent_os.runtimes.openclaw.invoke",
+        "openswarm":       "agent_os.runtimes.openswarm.invoke",
+        "browser_use":     "agent_os.runtimes.browser_use.invoke",
+        "agent_zero":      "agent_os.runtimes.agent_zero.invoke",
+        "computer_use":    "agent_os.runtimes.computer_use.invoke",
+        "claude_subagents":"agent_os.runtimes.claude_subagents.invoke",
+        "codex_cli":       "agent_os.runtimes.codex_cli.invoke",
+        "aider":           "agent_os.runtimes.aider.invoke",
+        "claude_managed":  "agent_os.runtimes.claude_managed.invoke",
+        "e2b":             "agent_os.runtimes.e2b.invoke",
+        "exa":             "agent_os.runtimes.exa.invoke",
+        "livekit":         "agent_os.runtimes.livekit.invoke",
+        "terminal":        "agent_os.runtimes.terminal.invoke",
+        "hermes_self":     "agent_os.runtimes.hermes_self.invoke",
+    }
+
+    if runtime in _ASYNC_RUNTIMES:
+        import importlib
+        mod = importlib.import_module(_ASYNC_RUNTIMES[runtime])
+        return await mod.run(job)
+
+    if runtime in _SYNC_RUNTIMES:
+        import importlib
+        mod = importlib.import_module(_SYNC_RUNTIMES[runtime])
+        return await asyncio.to_thread(mod.invoke, job)
+
+    raise ValueError(f"Unknown runtime: {runtime}")
