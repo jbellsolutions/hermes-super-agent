@@ -19,6 +19,11 @@ RuntimeName = Literal[
     "exa",               # neural search
     "livekit",           # voice/realtime (channel-handled)
     "terminal",          # plain cron-style scripts
+    # Fabric runtimes — external A2A endpoints and VPS provisioner
+    "a2a_delegate",      # delegate entire job to an external A2A agent endpoint
+    "vps_spawn",         # provision a new Tier 2 superagent on a dedicated VPS
+    "kimi_coordinator",  # fan-out to Kimi K2.6 300-agent swarm via Moonshot API
+    "retell_channel",    # outbound phone via Retell AI
 ]
 
 
@@ -37,6 +42,23 @@ def route(job: Job) -> RuntimeName:
     Tag rules below match ARCHITECTURE.md.
     """
     t = {tag.lower() for tag in job.tags}
+
+    # Fabric runtimes — checked first; these handle cross-agent orchestration.
+    # Kimi K2.6 Swarm Coordinator: 300-agent fan-out, Temporal-wrapped.
+    if "fan-out" in t or "kimi" in t or "swarm-coordinator" in t:
+        return "kimi_coordinator"
+    # VPS superagent spawning — full Hermes + orchestrator on a dedicated droplet.
+    if "spawn-superagent" in t or "vps-spawn" in t:
+        return "vps_spawn"
+    # Archon agent builder — delegates "create a specialist" to Archon A2A endpoint.
+    if "build-specialist" in t or "archon" in t:
+        return "a2a_delegate"
+    # Retell AI phone channel.
+    if "phone" in t or "retell" in t or "outbound-phone" in t:
+        return "retell_channel"
+    # Generic A2A delegation — when job explicitly targets a named external agent.
+    if "a2a" in t or "delegate" in t:
+        return "a2a_delegate"
 
     # OpenSwarm: multi-agent deliverable production (slides+research+docs+charts)
     # and the agent-builder ("build me a swarm for X"). Per-swarm semantic routing

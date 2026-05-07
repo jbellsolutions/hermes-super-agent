@@ -1,0 +1,20 @@
+component: runtime.kimi_coordinator
+type: specialist-runtime
+description: "Kimi K2.6 Swarm Coordinator — delegates fan-out jobs to up to 300 parallel sub-agents via Moonshot API. A2A-compliant. Temporal-wrapped."
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+  agent-os.bus: ">=0.1"
+  agent-os.workflows: ">=0.1"
+agents:
+  - kimi-k2-coordinator
+data_sources:
+  - moonshot_api
+outputs:
+  - type: vault_run_artifact
+    consumer: vault.runs
+  - type: nats_event
+    subject: "agents.kimi-coordinator.task.*"
+env_vars:
+  - KIMI_COORDINATOR_URL      # A2A endpoint for deployed Kimi Swarm Coordinator
+  - MOONSHOT_API_KEY          # Moonshot API key
+  - TEMPORAL_HOST             # Temporal server (default: localhost:7233)

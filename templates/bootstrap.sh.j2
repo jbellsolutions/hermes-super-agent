@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# Bootstrap script for {{ agent_id }} on {{ vps_ip }}
+# Generated {{ generated_at }} by Admiral Hermes
+# Do not edit — regenerated on each spawn.
+set -euo pipefail
+
+AGENT_ID="{{ agent_id }}"
+REPO_URL="{{ repo_url | default("https://github.com/jbellsolutions/hermes-super-agent") }}"
+INSTALL_DIR="{{ install_dir | default("/opt/hermes") }}"
+BRANCH="{{ branch | default("main") }}"
+PYTHON_VERSION="{{ python_version | default("3.12") }}"
+
+log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] [bootstrap] $*"; }
+
+# ---------------------------------------------------------------------------
+# 1. System packages
+# ---------------------------------------------------------------------------
+log "Installing system packages..."
+apt-get update -qq
+apt-get install -y --no-install-recommends \
+    git curl ca-certificates tmux build-essential libssl-dev \
+    libffi-dev python3-dev
+
+# ---------------------------------------------------------------------------
+# 2. uv (Python package manager)
+# ---------------------------------------------------------------------------
+log "Installing uv..."
+if ! command -v uv &>/dev/null; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.cargo/bin:$PATH"
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Clone repo
+# ---------------------------------------------------------------------------
+log "Cloning $REPO_URL → $INSTALL_DIR..."
+if [ -d "$INSTALL_DIR/.git" ]; then
+    git -C "$INSTALL_DIR" fetch origin
+    git -C "$INSTALL_DIR" checkout "$BRANCH"
+    git -C "$INSTALL_DIR" pull --ff-only origin "$BRANCH"
+else
+    git clone --branch "$BRANCH" --depth 1 "$REPO_URL" "$INSTALL_DIR"
+fi
+
+cd "$INSTALL_DIR"
+
+# ---------------------------------------------------------------------------
+# 4. Python environment
+# ---------------------------------------------------------------------------
+log "Creating Python $PYTHON_VERSION venv and installing dependencies..."
+uv venv --python "$PYTHON_VERSION"
+uv sync --no-dev
+
+# ---------------------------------------------------------------------------
+# 5. Write AGENT.md
+# ---------------------------------------------------------------------------
+log "Writing AGENT.md..."
+cat > "$INSTALL_DIR/AGENT.md" << 'AGENT_EOF'
+{{ agent_md_content }}
+AGENT_EOF
+
+# ---------------------------------------------------------------------------
+# 6. Environment variables (injected at process level — never written to disk)
+# ---------------------------------------------------------------------------
+log "Configuring environment..."
+# Env vars are injected by Admiral via SSH process environment.
+# The tmux session inherits them from this script's environment.
+
+# ---------------------------------------------------------------------------
+# 7. Start Hermes in tmux
+# ---------------------------------------------------------------------------
+log "Starting Hermes agent in tmux session '$AGENT_ID'..."
+tmux kill-session -t "$AGENT_ID" 2>/dev/null || true
+tmux new-session -d -s "$AGENT_ID" \
+    "cd $INSTALL_DIR && uv run hermes 2>&1 | tee $INSTALL_DIR/hermes.log"
+
+# ---------------------------------------------------------------------------
+# 8. Health check
+# ---------------------------------------------------------------------------
+log "Waiting for Hermes to become healthy..."
+HEALTH_URL="http://localhost:{{ a2a_port | default(8080) }}/health"
+MAX_WAIT=120
+ELAPSED=0
+until curl -sf "$HEALTH_URL" > /dev/null 2>&1; do
+    sleep 2
+    ELAPSED=$((ELAPSED + 2))
+    if [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
+        log "ERROR: Hermes did not become healthy within ${MAX_WAIT}s"
+        log "Last 30 lines of hermes.log:"
+        tail -30 "$INSTALL_DIR/hermes.log" || true
+        exit 1
+    fi
+done
+
+log "Hermes is healthy at $HEALTH_URL"
+log "Agent $AGENT_ID bootstrap complete."
+
+# ---------------------------------------------------------------------------
+# 9. Register with Admiral via NATS
+# ---------------------------------------------------------------------------
+{% if nats_url %}
+log "Publishing registration event to NATS..."
+# The running Hermes process will self-register on boot via its NATS publisher.
+# This is a belt-and-suspenders confirmation log only.
+log "NATS_URL={{ nats_url }} — Hermes will publish agents.$AGENT_ID.registered"
+{% endif %}
+
+exit 0

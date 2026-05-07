@@ -11,6 +11,19 @@ dependencies = [
     "pyyaml>=6.0",
     "httpx>=0.27",
     "pydantic>=2.6",
+    # Fabric — A2A server
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    # Fabric — NATS JetStream bus
+    "nats-py>=2.7",
+    # Fabric — Temporal durable workflows
+    "temporalio>=1.7",
+    # Fabric — Jinja2 templates (AGENT.md.j2, bootstrap.sh.j2)
+    "jinja2>=3.1",
+    # Fabric — SSH bootstrap for VPS superagent provisioning
+    "paramiko>=3.4",
+    # Fabric — AgentOps observability
+    "agentops>=0.3",
 ]
 
 [project.optional-dependencies]
