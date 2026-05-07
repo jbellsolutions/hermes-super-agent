@@ -4,7 +4,7 @@ Step-by-step from "code on disk" to "Admiral running in production with the full
 
 Total elapsed time on a clean account: ~3 hours of clock time, mostly waiting for Railway builds.
 
-> Code-side prerequisites (already done): commits b4b2e35 → ad196af on `hermes-super-agent`, plus the `hermes-coordinator` repo at `/Users/home/hermes-coordinator`.
+> Code-side prerequisites (already done): commits b4b2e35 → bb46e06 on `hermes-super-agent`. The Coordinator and Archon wrapper both live as sub-deploys under `deploy/`.
 
 ---
 
@@ -66,14 +66,13 @@ print('connected')
 
 ## Step 3 — Hermes Coordinator service (~15 min)
 
-The coordinator is its own repo at `/Users/home/hermes-coordinator`. Tests are green (6/6).
+The coordinator lives at `deploy/coordinator/` in this repo as a self-contained Railway sub-deploy. Tests are green (6/6).
 
 ```bash
-cd /Users/home/hermes-coordinator
-git add . && git commit -m "initial coordinator"             # if not already
-railway init --name hermes-coordinator
-railway up
-railway variables set \
+cd hermes-super-agent
+railway add --service coordinator
+railway up --service coordinator --root-directory deploy/coordinator
+railway variables set --service coordinator \
     ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
     OPENAI_API_KEY="$OPENAI_API_KEY" \
     NATS_URL="nats://<host>.railway.app:4222" \
