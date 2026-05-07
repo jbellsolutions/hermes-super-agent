@@ -1,0 +1,92 @@
+# Mode B — local fabric stack.
+#
+# Brings up NATS + Temporal + Coordinator on your laptop (or any single host).
+# The Admiral itself stays on the host as a Python process — it's iterated
+# on too often to be worth containerizing for dev.
+#
+# Quickstart:
+#   cp ../../.env.example ../../.env       # fill in ANTHROPIC_API_KEY etc
+#   cd deploy/compose && docker compose up -d
+#   # then from repo root:
+#   uv run agent-os run --prompt "research these 3 things" --tags fan-out \
+#       --meta sub_prompts="A||B||C" --yes
+#
+# The Admiral picks up NATS_URL, TEMPORAL_HOST, COORDINATOR_URL from .env.
+# Already wired — flip the env values and the same code that no-ops in Mode A
+# now publishes events, durable-wraps fan-outs, and dispatches to the live
+# coordinator container.
+#
+# Resource budget on idle: NATS ~50MB RAM, Temporal ~400MB, Coordinator ~150MB.
+# Total ~600MB RAM, ~3GB disk for images.
+
+name: hermes-fabric
+
+services:
+  nats:
+    image: nats:2.10-alpine
+    container_name: hermes-nats
+    command:
+      - "-js"
+      - "-m"
+      - "8222"
+      - "--store_dir"
+      - "/data"
+      - "--max_payload"
+      - "8MB"
+    ports:
+      - "4222:4222"   # client protocol (Admiral connects here)
+      - "8222:8222"   # HTTP monitoring (curl /healthz)
+    volumes:
+      - nats_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  temporal:
+    image: temporalio/auto-setup:1.24
+    container_name: hermes-temporal
+    environment:
+      - TEMPORAL_DB=sqlite
+      - SQLITE_FILENAME=/data/temporal.db
+      - TEMPORAL_LOG_LEVEL=info
+    ports:
+      - "7233:7233"   # gRPC frontend (Admiral + Coordinator connect here)
+      - "8088:8080"   # Temporal Web UI (browse at http://localhost:8088)
+    volumes:
+      - temporal_data:/data
+    restart: unless-stopped
+
+  coordinator:
+    build:
+      context: ../coordinator
+      dockerfile: Dockerfile
+    container_name: hermes-coordinator
+    environment:
+      - PORT=8000
+      - NATS_URL=nats://nats:4222
+      - COORDINATOR_DEFAULT_MODEL=${COORDINATOR_DEFAULT_MODEL:-claude-sonnet-4-5}
+      - COORDINATOR_MAX_CONCURRENCY=${COORDINATOR_MAX_CONCURRENCY:-50}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - MOONSHOT_API_KEY=${MOONSHOT_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      nats:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  nats_data:
+  temporal_data:

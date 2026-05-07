@@ -2,6 +2,20 @@
 # Bootstrap script for {{ agent_id }} on {{ vps_ip }}
 # Generated {{ generated_at }} by Admiral Hermes
 # Do not edit — regenerated on each spawn.
+#
+# Installs the FULL Hermes super-agent toolkit on a fresh VPS:
+#   • System packages, uv, Python {{ python_version | default("3.12") }}
+#   • Node.js 20 (for Claude Code + Codex CLI)
+#   • Docker (for sandboxed/containerized runtimes: e2b, agent_zero, browser_use)
+#   • Hermes super-agent repo + dependencies
+#   • Claude Code CLI    (uses ANTHROPIC_API_KEY for auth — no OAuth needed)
+#   • Codex CLI          (uses OPENAI_API_KEY)
+#   • Aider              (uses ANTHROPIC_API_KEY or OPENAI_API_KEY)
+#
+# Toggle via metadata when calling spawn:
+#   metadata['install_node']   = false   → skip Node + Claude Code + Codex
+#   metadata['install_docker'] = false   → skip Docker (sandboxed runtimes won't work)
+#   metadata['install_aider']  = false   → skip Aider
 set -euo pipefail
 
 AGENT_ID="{{ agent_id }}"
@@ -9,6 +23,9 @@ REPO_URL="{{ repo_url | default("https://github.com/jbellsolutions/hermes-super-
 INSTALL_DIR="{{ install_dir | default("/opt/hermes") }}"
 BRANCH="{{ branch | default("main") }}"
 PYTHON_VERSION="{{ python_version | default("3.12") }}"
+INSTALL_NODE="{{ install_node | default(true) | lower }}"
+INSTALL_DOCKER="{{ install_docker | default(true) | lower }}"
+INSTALL_AIDER="{{ install_aider | default(true) | lower }}"
 
 log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] [bootstrap] $*"; }
 
@@ -16,10 +33,11 @@ log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] [bootstrap] $*"; }
 # 1. System packages
 # ---------------------------------------------------------------------------
 log "Installing system packages..."
+export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y --no-install-recommends \
     git curl ca-certificates tmux build-essential libssl-dev \
-    libffi-dev python3-dev
+    libffi-dev python3-dev jq
 
 # ---------------------------------------------------------------------------
 # 2. uv (Python package manager)
@@ -27,11 +45,40 @@ apt-get install -y --no-install-recommends \
 log "Installing uv..."
 if ! command -v uv &>/dev/null; then
     curl -LsSf https://astral.sh/uv/install.sh | sh
-    export PATH="$HOME/.cargo/bin:$PATH"
+    # uv installs to ~/.local/bin or ~/.cargo/bin depending on version
+    export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 fi
 
 # ---------------------------------------------------------------------------
-# 3. Clone repo
+# 3. Node.js + Claude Code + Codex CLI
+# ---------------------------------------------------------------------------
+if [ "$INSTALL_NODE" = "true" ]; then
+    log "Installing Node.js 20 (LTS)..."
+    if ! command -v node &>/dev/null; then
+        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+        apt-get install -y nodejs
+    fi
+
+    log "Installing Claude Code CLI..."
+    npm install -g @anthropic-ai/claude-code || log "WARN: Claude Code install failed (continuing)"
+
+    log "Installing Codex CLI..."
+    npm install -g @openai/codex || log "WARN: Codex install failed (continuing)"
+fi
+
+# ---------------------------------------------------------------------------
+# 4. Docker (for sandboxed runtimes)
+# ---------------------------------------------------------------------------
+if [ "$INSTALL_DOCKER" = "true" ]; then
+    log "Installing Docker..."
+    if ! command -v docker &>/dev/null; then
+        apt-get install -y docker.io
+        systemctl enable --now docker || true
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# 5. Clone hermes-super-agent
 # ---------------------------------------------------------------------------
 log "Cloning $REPO_URL → $INSTALL_DIR..."
 if [ -d "$INSTALL_DIR/.git" ]; then
@@ -45,14 +92,22 @@ fi
 cd "$INSTALL_DIR"
 
 # ---------------------------------------------------------------------------
-# 4. Python environment
+# 6. Python environment
 # ---------------------------------------------------------------------------
 log "Creating Python $PYTHON_VERSION venv and installing dependencies..."
 uv venv --python "$PYTHON_VERSION"
 uv sync --no-dev
 
 # ---------------------------------------------------------------------------
-# 5. Write AGENT.md
+# 7. Aider (Python tool, after uv is ready)
+# ---------------------------------------------------------------------------
+if [ "$INSTALL_AIDER" = "true" ]; then
+    log "Installing Aider..."
+    uv tool install aider-chat || log "WARN: Aider install failed (continuing)"
+fi
+
+# ---------------------------------------------------------------------------
+# 8. Write AGENT.md
 # ---------------------------------------------------------------------------
 log "Writing AGENT.md..."
 cat > "$INSTALL_DIR/AGENT.md" << 'AGENT_EOF'
@@ -60,14 +115,14 @@ cat > "$INSTALL_DIR/AGENT.md" << 'AGENT_EOF'
 AGENT_EOF
 
 # ---------------------------------------------------------------------------
-# 6. Environment variables (injected at process level — never written to disk)
+# 9. Auth note (env vars are injected at process level by Admiral over SSH)
 # ---------------------------------------------------------------------------
-log "Configuring environment..."
-# Env vars are injected by Admiral via SSH process environment.
-# The tmux session inherits them from this script's environment.
+log "Auth model: ANTHROPIC_API_KEY / OPENAI_API_KEY are forwarded by Admiral"
+log "  via SSH process environment — never written to disk on this VPS."
+log "  Claude Code, Codex, and Aider all read API keys from env, no OAuth needed."
 
 # ---------------------------------------------------------------------------
-# 7. Start Hermes in tmux
+# 10. Start Hermes in tmux
 # ---------------------------------------------------------------------------
 log "Starting Hermes agent in tmux session '$AGENT_ID'..."
 tmux kill-session -t "$AGENT_ID" 2>/dev/null || true
@@ -75,11 +130,11 @@ tmux new-session -d -s "$AGENT_ID" \
     "cd $INSTALL_DIR && uv run hermes 2>&1 | tee $INSTALL_DIR/hermes.log"
 
 # ---------------------------------------------------------------------------
-# 8. Health check
+# 11. Health check
 # ---------------------------------------------------------------------------
 log "Waiting for Hermes to become healthy..."
 HEALTH_URL="http://localhost:{{ a2a_port | default(8080) }}/health"
-MAX_WAIT=120
+MAX_WAIT=180
 ELAPSED=0
 until curl -sf "$HEALTH_URL" > /dev/null 2>&1; do
     sleep 2
@@ -94,15 +149,13 @@ done
 
 log "Hermes is healthy at $HEALTH_URL"
 log "Agent $AGENT_ID bootstrap complete."
+log "Toolkit installed: hermes, $([ "$INSTALL_NODE" = "true" ] && echo "claude-code, codex, ")$([ "$INSTALL_AIDER" = "true" ] && echo "aider, ")$([ "$INSTALL_DOCKER" = "true" ] && echo "docker, ")uv, python$PYTHON_VERSION."
 
 # ---------------------------------------------------------------------------
-# 9. Register with Admiral via NATS
+# 12. Register with Admiral via NATS (the running Hermes does this itself)
 # ---------------------------------------------------------------------------
 {% if nats_url %}
-log "Publishing registration event to NATS..."
-# The running Hermes process will self-register on boot via its NATS publisher.
-# This is a belt-and-suspenders confirmation log only.
-log "NATS_URL={{ nats_url }} — Hermes will publish agents.$AGENT_ID.registered"
+log "NATS_URL={{ nats_url }} — Hermes will publish agents.$AGENT_ID.registered on connect"
 {% endif %}
 
 exit 0

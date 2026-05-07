@@ -62,6 +62,9 @@ async def bootstrap(
         agent_md_content=agent_md,
         branch=branch,
         nats_url=env_vars.get("NATS_URL", ""),
+        install_node=metadata.get("install_node", True),
+        install_docker=metadata.get("install_docker", True),
+        install_aider=metadata.get("install_aider", True),
     )
 
     # Run via SSH in executor (paramiko is sync)
@@ -222,6 +225,9 @@ def _render_bootstrap_sh(
     agent_md_content: str,
     branch: str = "main",
     nats_url: str = "",
+    install_node: bool = True,
+    install_docker: bool = True,
+    install_aider: bool = True,
 ) -> str:
     """Render bootstrap.sh from templates/bootstrap.sh.j2."""
     try:
@@ -241,6 +247,9 @@ def _render_bootstrap_sh(
             a2a_port=_A2A_PORT,
             nats_url=nats_url,
             generated_at=_now_iso(),
+            install_node=install_node,
+            install_docker=install_docker,
+            install_aider=install_aider,
         )
     except Exception as exc:
         logger.warning("bootstrap.sh template render failed (%s) — using inline script", exc)

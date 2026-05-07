@@ -4,6 +4,25 @@ Step-by-step from "code on disk" to "Admiral running in production with the full
 
 Total elapsed time on a clean account: ~3 hours of clock time, mostly waiting for Railway builds.
 
+## Pick your deploy mode first
+
+| Mode | Where things run | Cost/mo | Best for |
+|---|---|---|---|
+| **A. Local dev** | Admiral on laptop; fabric services stub | $0 | Eval, single-user, no fabric features |
+| **B. Local + Docker stack** | Admiral on laptop; NATS + Temporal + Coordinator in `docker compose` | $0 (laptop) + LLM | Power user; full fabric without paying for managed PaaS |
+| **B+. Single DO droplet** | All fabric services on one $12 droplet via `docker compose`; Admiral on the same box | ~$12 + LLM | Always-on private fleet on the cheap |
+| **C. Railway managed** | Each fabric service its own Railway service; Admiral too | ~$40 + LLM | Best DX; managed restarts, public URLs, simple env vars |
+
+**Tier 2 superagent spawning uses DigitalOcean (or Hetzner) regardless of mode** — Railway can't spawn full machines with SSH access. The fixed services (NATS / Temporal / Coordinator / Archon / Admiral) can live on Railway *or* a DO droplet — the architectural choice below.
+
+### Why Railway *and* DO?
+- **Railway** is for the **always-on fixed services** that need 24/7 uptime, public URLs, managed restarts. You point it at a `Dockerfile` and forget. Trade: ~$5–15/service.
+- **DO** is for **spawned superagents** — each Tier 2 spawn is a new machine identity with its own SSH, its own brain, optional sub-fleet. Railway services don't get full machines; they're shared containers.
+
+If you don't need Railway's DX, **Mode B+ collapses to one DO droplet** (~$12) running all the fabric services in `docker compose`, and you spawn additional droplets for Tier 2 superagents. That's the cheap path. Trade-off is operations: you manage `docker compose` updates, restarts, monitoring yourself.
+
+---
+
 > Code-side prerequisites (already done): commits b4b2e35 → bb46e06 on `hermes-super-agent`. The Coordinator and Archon wrapper both live as sub-deploys under `deploy/`.
 
 ---
@@ -61,6 +80,39 @@ print('connected')
 ```
 
 **Unlocks:** durable fan-out (kill mid-run, restart resumes).
+
+---
+
+## Mode B+ — single DO droplet alternative (skip Steps 1–3, ~30 min total)
+
+Instead of three separate Railway services for NATS / Temporal / Coordinator, run all three on a single $12/mo DigitalOcean droplet via `docker compose`. Admiral runs on the same droplet (or your laptop, your call).
+
+```bash
+# 1. Provision the droplet
+doctl compute droplet create hermes-fabric \
+    --image ubuntu-24-04-x64 --size s-1vcpu-2gb --region nyc3 \
+    --ssh-keys $DO_SSH_KEY_FINGERPRINT --wait
+
+# 2. SSH in and install Docker + clone the repo
+ssh root@<droplet-ip> 'apt-get update && apt-get install -y docker.io docker-compose-plugin git && \
+    git clone https://github.com/jbellsolutions/hermes-super-agent /opt/hermes && \
+    cd /opt/hermes/deploy/compose && \
+    cp /opt/hermes/.env.example /opt/hermes/.env'
+
+# 3. Edit /opt/hermes/.env on the droplet — set ANTHROPIC_API_KEY etc
+# 4. Start the stack
+ssh root@<droplet-ip> 'cd /opt/hermes/deploy/compose && docker compose up -d --build'
+```
+
+Expose ports 4222 (NATS), 7233 (Temporal), 8000 (Coordinator) via your firewall, or keep them private and run Admiral on the same box.
+
+**Verify:**
+```bash
+ssh root@<droplet-ip> 'docker compose ps'
+# all three services should show "running"
+```
+
+**Cost:** ~$12/mo flat. **Trade-off:** you do the ops. Skip to Step 4 from here.
 
 ---
 
@@ -263,15 +315,17 @@ When all five pass, the fabric is shipping.
 
 ## Cost summary (recurring)
 
-| Service | Monthly |
-|---|---|
-| NATS (Railway) | ~$5 |
-| Temporal (Railway) | ~$15 |
-| Coordinator (Railway) | ~$5 |
-| Archon wrapper (Railway) | ~$5 |
-| Admiral (Railway) | ~$10 |
-| LLM usage | usage-based |
-| Retell phone | ~$0.05/min |
-| Instantly | tier-based |
-| AgentOps | free tier covers most |
-| **Fixed** | **~$40/mo** |
+| Component | Mode B+ (single DO droplet) | Mode C (Railway managed) |
+|---|---|---|
+| NATS | included | ~$5 |
+| Temporal | included | ~$15 |
+| Coordinator | included | ~$5 |
+| Archon wrapper | included | ~$5 |
+| Admiral | included | ~$10 |
+| Droplet (2GB) | ~$12 | n/a |
+| **Fixed** | **~$12/mo** | **~$40/mo** |
+| LLM usage | usage | usage |
+| Retell phone | ~$0.05/min | same |
+| Instantly | tier-based | same |
+| Tier 2 superagent VPSes | $4–6 each | same |
+| AgentOps | free tier | free tier |
