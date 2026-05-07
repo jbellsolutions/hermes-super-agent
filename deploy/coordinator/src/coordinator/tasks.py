@@ -34,6 +34,10 @@ _DEFAULT_CONCURRENCY = int(os.getenv("COORDINATOR_MAX_CONCURRENCY", "50"))
 # and rate limits. Override via COORDINATOR_MAX_SUBTASKS for power users.
 _MAX_SUBTASKS = int(os.getenv("COORDINATOR_MAX_SUBTASKS", "300"))
 
+# Hard cap on retained tasks in the in-memory store (FIFO eviction).
+# Override via COORDINATOR_MAX_RETAINED for high-volume deployments.
+_MAX_RETAINED_TASKS = int(os.getenv("COORDINATOR_MAX_RETAINED", "1000"))
+
 
 class TooManySubtasks(ValueError):
     pass
@@ -66,6 +70,10 @@ class TaskStore:
             tid = task_id or str(uuid.uuid4())
             task = Task(task_id=tid, prompt=prompt, model=model, metadata=metadata)
             self._tasks[tid] = task
+            # FIFO eviction — Python dicts are insertion-ordered.
+            while len(self._tasks) > _MAX_RETAINED_TASKS:
+                oldest = next(iter(self._tasks))
+                self._tasks.pop(oldest, None)
             return task
 
     async def get(self, task_id: str) -> Task | None:

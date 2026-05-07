@@ -234,7 +234,39 @@ async def _spawn_tier2(job: Job, task_id: str, t0: float) -> dict[str, Any]:
         metadata=job.metadata,
     )
     if boot.get("status") == "error":
-        return _error_result(task_id, f"Bootstrap failed: {boot['error']}", t0)
+        # Bootstrap failed but the VPS is alive — we'd otherwise leak a paid
+        # droplet. Record it in the registry as "bootstrap_failed" with the IP
+        # and provider so the user can find and delete it. Don't auto-delete:
+        # the user might want to SSH in to debug.
+        provider = vps.get("provider", "unknown")
+        server_id = vps.get("server_id", "unknown")
+        cleanup_hint = _cleanup_hint(provider, server_id, vps_ip)
+        try:
+            _register_agent(
+                agent_id=agent_id,
+                tier=2,
+                runtime="vps_spawn",
+                tags=list(job.tags),
+                a2a_endpoint="",
+                vps_ip=vps_ip,
+                model=job.metadata.get("model", ""),
+                notes=f"BOOTSTRAP FAILED. {boot.get('error', '')}\n{cleanup_hint}",
+            )
+            # Patch the entry's status (registry sets 'active' by default)
+            _patch_agent_status(agent_id, "bootstrap_failed")
+        except Exception:
+            logger.exception("Failed to record orphan VPS in registry")
+        publish_event("agents.admiral.alert", {
+            "task_id": task_id,
+            "agent_id": agent_id,
+            "needs_human": True,
+            "error": f"Bootstrap failed; orphan VPS at {vps_ip} ({provider}:{server_id})",
+        })
+        return _error_result(
+            task_id,
+            f"Bootstrap failed: {boot['error']}. Orphan VPS at {vps_ip}. {cleanup_hint}",
+            t0,
+        )
 
     a2a_endpoint = f"http://{vps_ip}:{boot.get('a2a_port', 8080)}"
 
@@ -388,3 +420,31 @@ def _error_result(task_id: str, error: str, t0: float) -> dict[str, Any]:
         "elapsed_seconds": time.monotonic() - t0,
         "error": error,
     }
+
+
+def _cleanup_hint(provider: str, server_id: str, vps_ip: str) -> str:
+    """Print the exact command to delete an orphan VPS for the given provider."""
+    if provider == "digitalocean":
+        return f"To delete: doctl compute droplet delete {server_id}"
+    if provider == "hetzner":
+        return f"To delete: hcloud server delete {server_id}"
+    return f"Manually delete the {provider} VPS at {vps_ip}"
+
+
+def _patch_agent_status(agent_id: str, new_status: str) -> None:
+    """Update the status field of an existing registry entry. Best-effort."""
+    registry_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "vault", "projects", "registry.yaml")
+    )
+    try:
+        with _REGISTRY_LOCK:
+            with open(registry_path) as f:
+                registry = yaml.safe_load(f) or {}
+            for a in registry.get("agents", []):
+                if a.get("id") == agent_id:
+                    a["status"] = new_status
+                    break
+            with open(registry_path, "w") as f:
+                yaml.dump(registry, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    except Exception as exc:
+        logger.warning("Could not patch agent status for %s: %s", agent_id, exc)
