@@ -51,18 +51,17 @@ async def run(job: Job) -> dict[str, Any]:
         "prompt": job.prompt[:200],
     })
 
+    # Plain REST envelope matching Admiral's POST /messages contract:
+    # parts use kind="text", taskId is top-level, metadata sits beside it.
+    # Tags are flattened to a comma string so server.py can split them back.
+    metadata = dict(job.metadata)
+    if job.tags and "tags" not in metadata:
+        metadata["tags"] = ",".join(sorted(job.tags))
+
     payload = {
-        "jsonrpc": "2.0",
-        "id": task_id,
-        "method": "tasks/send",
-        "params": {
-            "id": task_id,
-            "message": {
-                "role": "user",
-                "parts": [{"type": "text", "text": job.prompt}],
-            },
-            "metadata": dict(job.metadata),
-        },
+        "taskId": task_id,
+        "parts": [{"kind": "text", "text": job.prompt}],
+        "metadata": metadata,
     }
 
     messages_url = endpoint.rstrip("/") + "/messages"
@@ -73,7 +72,7 @@ async def run(job: Job) -> dict[str, Any]:
             resp = await client.post(messages_url, json=payload)
             resp.raise_for_status()
             data = resp.json()
-            remote_task_id = (data.get("result") or {}).get("id", task_id)
+            remote_task_id = data.get("taskId") or data.get("id") or task_id
 
         # Poll for completion
         result = await _poll_task(tasks_url, remote_task_id)

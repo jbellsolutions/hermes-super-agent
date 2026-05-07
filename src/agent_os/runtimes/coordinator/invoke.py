@@ -73,10 +73,20 @@ async def run(job: Job) -> dict[str, Any]:
 def _select_model(job: Job) -> str:
     """Resolve which model the coordinator should use for this job.
 
-    Priority: job.metadata['coordinator_model'] > env COORDINATOR_DEFAULT_MODEL > "".
-    Empty string means: let the coordinator service use its own configured default.
+    Priority:
+      1. job.metadata['coordinator_model']     — explicit caller pin
+      2. job.metadata['model_recommendation']  — planner's pick (set by dispatch())
+      3. job.metadata['model']                 — generic model field
+      4. COORDINATOR_DEFAULT_MODEL env         — deployment default
+      5. ""                                    — coordinator uses its own default
     """
-    return job.metadata.get("coordinator_model") or _DEFAULT_MODEL or ""
+    return (
+        job.metadata.get("coordinator_model")
+        or job.metadata.get("model_recommendation")
+        or job.metadata.get("model")
+        or _DEFAULT_MODEL
+        or ""
+    )
 
 
 def _should_use_temporal(job: Job) -> bool:

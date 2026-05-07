@@ -53,8 +53,9 @@ def route(job: Job) -> RuntimeName:
     # Archon agent builder — delegates "create a specialist" to Archon A2A endpoint.
     if "build-specialist" in t or "archon" in t:
         return "a2a_delegate"
-    # Retell AI phone channel.
-    if "phone" in t or "retell" in t or "outbound-phone" in t:
+    # COO outbound channel — phone (Retell) and email (Instantly) share one runtime.
+    if t & {"phone", "retell", "outbound-phone",
+            "email", "outbound-email", "cold-email", "instantly"}:
         return "retell_channel"
     # Generic A2A delegation — when job explicitly targets a named external agent.
     if "a2a" in t or "delegate" in t:
@@ -110,38 +111,58 @@ def plan_for(job: Job, *, identity: str = "primary_hermes"):
     return plan(job, identity=identity)
 
 
-async def dispatch(job: Job):
+_ASYNC_RUNTIMES = {
+    "coordinator":      "agent_os.runtimes.coordinator.invoke",
+    "retell_channel":   "agent_os.runtimes.retell_channel.invoke",
+    "vps_spawn":        "agent_os.runtimes.vps_spawn.invoke",
+    "a2a_delegate":     "agent_os.runtimes.a2a_delegate.invoke",
+}
+_SYNC_RUNTIMES = {
+    "openclaw":        "agent_os.runtimes.openclaw.invoke",
+    "openswarm":       "agent_os.runtimes.openswarm.invoke",
+    "browser_use":     "agent_os.runtimes.browser_use.invoke",
+    "agent_zero":      "agent_os.runtimes.agent_zero.invoke",
+    "computer_use":    "agent_os.runtimes.computer_use.invoke",
+    "claude_subagents":"agent_os.runtimes.claude_subagents.invoke",
+    "codex_cli":       "agent_os.runtimes.codex_cli.invoke",
+    "aider":           "agent_os.runtimes.aider.invoke",
+    "claude_managed":  "agent_os.runtimes.claude_managed.invoke",
+    "e2b":             "agent_os.runtimes.e2b.invoke",
+    "exa":             "agent_os.runtimes.exa.invoke",
+    "livekit":         "agent_os.runtimes.livekit.invoke",
+    "terminal":        "agent_os.runtimes.terminal.invoke",
+    "hermes_self":     "agent_os.runtimes.hermes_self.invoke",
+}
+
+KNOWN_RUNTIMES: set[str] = set(_ASYNC_RUNTIMES) | set(_SYNC_RUNTIMES)
+
+
+async def dispatch(job: Job, plan=None):
     """Route job → correct runtime module → call run(job).
+
+    If `plan` (a ToolPlan from tool_planner) is provided, its `primary_tool`
+    overrides tag-based routing when the tool name maps to a known runtime,
+    and its `model_recommendation` is propagated into job.metadata['model']
+    so the runtime LLM call honors the planner's model choice.
 
     All fabric runtimes (coordinator, retell_channel, vps_spawn,
     a2a_delegate) expose `async def run(job)`. Legacy runtimes that only
     have a sync `invoke(job)` are wrapped with asyncio.to_thread.
     """
     import asyncio
-    runtime = route(job)
 
-    _ASYNC_RUNTIMES = {
-        "coordinator":      "agent_os.runtimes.coordinator.invoke",
-        "retell_channel":   "agent_os.runtimes.retell_channel.invoke",
-        "vps_spawn":        "agent_os.runtimes.vps_spawn.invoke",
-        "a2a_delegate":     "agent_os.runtimes.a2a_delegate.invoke",
-    }
-    _SYNC_RUNTIMES = {
-        "openclaw":        "agent_os.runtimes.openclaw.invoke",
-        "openswarm":       "agent_os.runtimes.openswarm.invoke",
-        "browser_use":     "agent_os.runtimes.browser_use.invoke",
-        "agent_zero":      "agent_os.runtimes.agent_zero.invoke",
-        "computer_use":    "agent_os.runtimes.computer_use.invoke",
-        "claude_subagents":"agent_os.runtimes.claude_subagents.invoke",
-        "codex_cli":       "agent_os.runtimes.codex_cli.invoke",
-        "aider":           "agent_os.runtimes.aider.invoke",
-        "claude_managed":  "agent_os.runtimes.claude_managed.invoke",
-        "e2b":             "agent_os.runtimes.e2b.invoke",
-        "exa":             "agent_os.runtimes.exa.invoke",
-        "livekit":         "agent_os.runtimes.livekit.invoke",
-        "terminal":        "agent_os.runtimes.terminal.invoke",
-        "hermes_self":     "agent_os.runtimes.hermes_self.invoke",
-    }
+    # Honor plan.primary_tool / model_recommendation when supplied.
+    runtime = None
+    if plan is not None:
+        primary = getattr(plan, "primary_tool", None)
+        if primary and primary in KNOWN_RUNTIMES:
+            runtime = primary
+        rec = getattr(plan, "model_recommendation", None)
+        if rec and not job.metadata.get("model"):
+            job.metadata["model"] = rec
+
+    if runtime is None:
+        runtime = route(job)
 
     if runtime in _ASYNC_RUNTIMES:
         import importlib

@@ -53,16 +53,11 @@ def _render_tier_2(plan: ToolPlan) -> str:
     model = plan.model_recommendation or "default"
     cost = f"~${plan.estimated_cost_usd:.2f}"
     minutes = max(1, round(plan.estimated_seconds / 60.0))
-    grace = (
-        f"proceeding in {plan.grace_seconds}s"
-        if plan.grace_seconds
-        else "proceeding"
-    )
     lines = [
         f"📋 Plan: {plan.task_summary}",
         f"  • Tools: {plan.primary_tool} ({plan.primary_reason}); alts: {alts}",
         f"  • Model: {model}{' (' + plan.model_reason + ')' if plan.model_reason else ''}",
-        f"  • Tier 2 · {cost} · ~{minutes}min · {grace} · /cancel /use <tool> /why",
+        f"  • Tier 2 · {cost} · ~{minutes}min · reply 'yes' to run · /cancel /use <tool> /why",
     ]
     return "\n".join(lines)
 

@@ -23,9 +23,14 @@ class LLMResult:
 
 
 async def call_llm(model: str, prompt: str, system: str = "", max_tokens: int = 4096) -> LLMResult:
-    """Single chat completion. Routes by model id prefix."""
+    """Single chat completion. Routes by model id prefix.
+
+    Default fallback must match the `default` task_class in
+    src/agent_os/orchestrator/config/models.yaml so the coordinator
+    and hermes_self runtime stay in sync.
+    """
     if not model:
-        model = os.getenv("COORDINATOR_DEFAULT_MODEL", "claude-sonnet-4-5")
+        model = os.getenv("COORDINATOR_DEFAULT_MODEL", "claude-sonnet-4.7")
 
     if model.startswith("claude-"):
         return await _call_anthropic(model, prompt, system, max_tokens)

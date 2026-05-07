@@ -73,9 +73,13 @@ def test_tier_2_shows_alternatives():
     assert "openclaw" in out
 
 
-def test_tier_2_shows_grace_window():
+def test_tier_2_prompts_for_explicit_yes():
+    """Tier 2 must ask for an explicit 'yes' — channels can't auto-proceed
+    after a grace window because Telegram replies are async and might not
+    land before grace_seconds elapses (F4: align card text with bot logic)."""
     out = plan_card.render(_plan(tier=2, grace_seconds=3))
-    assert "proceeding in 3s" in out
+    assert "yes" in out.lower()
+    assert "proceeding in" not in out
 
 
 def test_tier_2_lists_overrides():

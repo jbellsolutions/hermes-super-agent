@@ -104,7 +104,12 @@ async def submit(req: MessageRequest) -> MessageResponse:
     if not prompt:
         raise HTTPException(status_code=400, detail="No text part in message")
 
-    model = str(req.metadata.get("model") or os.getenv("COORDINATOR_DEFAULT_MODEL", ""))
+    # Honor planner's model_recommendation alongside the explicit `model` field.
+    model = str(
+        req.metadata.get("model")
+        or req.metadata.get("model_recommendation")
+        or os.getenv("COORDINATOR_DEFAULT_MODEL", "")
+    )
     store = get_store()
     task = await store.create(prompt=prompt, model=model, metadata=req.metadata, task_id=req.taskId)
     asyncio.create_task(run_task(task.task_id))

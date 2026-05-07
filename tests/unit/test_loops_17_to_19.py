@@ -80,7 +80,8 @@ def test_hermes_self_default_model_uses_env_chain(monkeypatch):
     assert inv._default_model() == "claude-opus-4-7"
 
     monkeypatch.delenv("COORDINATOR_DEFAULT_MODEL", raising=False)
-    assert inv._default_model() == "claude-sonnet-4-5"  # final fallback
+    # Final fallback aligned with config/models.yaml `default` task class (F6).
+    assert inv._default_model() == "claude-sonnet-4.7"
 
 
 def test_hermes_self_routes_claude_to_anthropic():

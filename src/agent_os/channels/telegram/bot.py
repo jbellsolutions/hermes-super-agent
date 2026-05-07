@@ -109,26 +109,101 @@ async def _handle_message(client: httpx.AsyncClient, msg: dict[str, Any]) -> Non
     # GC expired pending approvals before checking
     _gc_approvals()
 
-    # Tier 2/3 approval reply ("yes" / "no" / "cancel")
-    if chat_id in _PENDING_APPROVALS:
-        decision = text.lower()
-        pending = _PENDING_APPROVALS.pop(chat_id)
-        if decision in ("yes", "y", "go", "approve"):
-            await _dispatch_and_reply(client, chat_id, pending["job"])
-        else:
-            await _send(client, chat_id, "Cancelled.")
-        return
-
-    # Built-in commands
-    if text.startswith("/"):
-        await _send(client, chat_id, _handle_command(text))
-        return
-
     # Lazy imports keep cold-start cheap and avoid hard deps when running
     # other parts of the system.
     from agent_os.orchestrator import plan_card, tier_classifier
     from agent_os.orchestrator.adapters.job_router import Job
+    from agent_os.orchestrator.adapters import plan_overrides
     from agent_os.orchestrator.tool_planner import plan as plan_fn
+
+    # Override commands (/cancel, /use, /why, /plan on|off, /tier N, YES) — these
+    # take precedence over both pending-approval flows and free-form prompts.
+    override = plan_overrides.parse(text)
+
+    if override is not None and override.kind != "unknown":
+        pending = _PENDING_APPROVALS.get(chat_id)
+
+        if override.kind == "cancel":
+            _PENDING_APPROVALS.pop(chat_id, None)
+            await _send(client, chat_id, "Cancelled.")
+            return
+
+        if override.kind == "why":
+            if not pending:
+                await _send(client, chat_id, "No active plan to explain. "
+                                              "Send a request first, then /why.")
+                return
+            await _send(client, chat_id, plan_card.render(pending["plan"], channel="why"))
+            return
+
+        if override.kind == "use":
+            if not pending:
+                await _send(client, chat_id, "No active plan to retarget. "
+                                              "Send a request first, then /use <tool>.")
+                return
+            tool = override.tool or ""
+            from agent_os.orchestrator.adapters.job_router import KNOWN_RUNTIMES
+            if tool not in KNOWN_RUNTIMES:
+                await _send(client, chat_id,
+                            f"Unknown tool: {tool!r}. Known: "
+                            f"{', '.join(sorted(KNOWN_RUNTIMES))}")
+                return
+            pending["plan"].primary_tool = tool
+            pending["plan"].primary_reason = "user override (/use)"
+            if override.model:
+                pending["plan"].model_recommendation = override.model
+            await _send(client, chat_id,
+                        f"Switched to `{tool}`"
+                        f"{' on ' + override.model if override.model else ''}. "
+                        "Reply 'yes' to run.")
+            return
+
+        if override.kind == "tier":
+            if not pending:
+                await _send(client, chat_id, "No active plan to retier. "
+                                              "Send a request first.")
+                return
+            pending["plan"].tier = override.tier or 2
+            await _send(client, chat_id,
+                        f"Forced to tier {pending['plan'].tier}. Reply 'yes' to run.")
+            return
+
+        if override.kind == "confirm":
+            if not pending:
+                await _send(client, chat_id, "No pending tier-3 plan to confirm.")
+                return
+            _PENDING_APPROVALS.pop(chat_id, None)
+            await _dispatch_and_reply(client, chat_id, pending["job"], pending["plan"])
+            return
+
+        if override.kind in ("plan_on", "plan_off"):
+            await _send(client, chat_id, f"Acknowledged: {override.kind}. "
+                                          "(Per-session plan toggle TBD.)")
+            return
+
+    if override is not None and override.kind == "unknown" and override.error:
+        await _send(client, chat_id, override.error)
+        return
+
+    # Tier 2 approval reply ("yes" / "no" / "cancel" — case-insensitive)
+    if chat_id in _PENDING_APPROVALS:
+        decision = text.lower()
+        if decision in ("yes", "y", "go", "approve"):
+            pending = _PENDING_APPROVALS.pop(chat_id)
+            await _dispatch_and_reply(client, chat_id, pending["job"], pending["plan"])
+            return
+        if decision in ("no", "n", "cancel", "stop"):
+            _PENDING_APPROVALS.pop(chat_id, None)
+            await _send(client, chat_id, "Cancelled.")
+            return
+        # Anything else — drop the pending plan and treat the new message
+        # as a fresh request (prevents stuck approvals on misreads).
+        _PENDING_APPROVALS.pop(chat_id, None)
+
+    # Built-in commands (legacy /start, /help, /status — handled after overrides)
+    if text.startswith("/"):
+        await _send(client, chat_id, _handle_command(text))
+        return
 
     job = Job(prompt=text, tags=set())
 
@@ -143,23 +218,29 @@ async def _handle_message(client: httpx.AsyncClient, msg: dict[str, Any]) -> Non
             "plan": tool_plan,
             "expires_at": time.time() + _APPROVAL_TTL_SECONDS,
         }
+        prompt_word = "YES" if decision.tier == 3 else "yes"
         await _send(
             client, chat_id,
-            f"{card}\n\nTier {decision.tier} — reply 'yes' to run, anything else cancels. "
+            f"{card}\n\nTier {decision.tier} — reply '{prompt_word}' to run; "
+            "/cancel to abort, /use <tool>, /why for the long version. "
             "(Approval expires in 5 min.)",
         )
         return
 
     # Tier 1 — autopilot
     await _send(client, chat_id, card)
-    await _dispatch_and_reply(client, chat_id, job)
+    await _dispatch_and_reply(client, chat_id, job, tool_plan)
 
 
-async def _dispatch_and_reply(client: httpx.AsyncClient, chat_id: int, job) -> None:
-    """Run the full dispatch pipeline and reply with the result."""
+async def _dispatch_and_reply(client: httpx.AsyncClient, chat_id: int, job, plan=None) -> None:
+    """Run the full dispatch pipeline and reply with the result.
+
+    `plan` is the ToolPlan from the planner; passing it through means
+    dispatch() honors the planner's primary_tool and model_recommendation.
+    """
     from agent_os.orchestrator.adapters.job_router import dispatch
     try:
-        result = await dispatch(job)
+        result = await dispatch(job, plan=plan)
     except Exception as exc:
         logger.exception("Dispatch failed")
         await _send(client, chat_id, f"⚠️ Error: {exc}")
@@ -189,7 +270,13 @@ def _handle_command(text: str) -> str:
             "Hermes Admiral — your fleet brain.\n\n"
             "Just type what you want. I'll classify the tier, show you a plan, "
             "and run it (or ask for confirmation on Tier 2/3).\n\n"
-            "Commands:\n"
+            "Plan-card overrides (after a plan is shown):\n"
+            "  yes / YES   approve and run (YES required for Tier 3)\n"
+            "  /cancel     abort the pending plan\n"
+            "  /use <tool> [<model>]   swap the runtime / model\n"
+            "  /why        explain how this plan was picked\n"
+            "  /tier <1|2|3>   force a tier override\n\n"
+            "Other commands:\n"
             "  /status — quick fleet status\n"
             "  /help — this message"
         )
