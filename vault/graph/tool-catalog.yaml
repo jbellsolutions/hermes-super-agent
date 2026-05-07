@@ -1,0 +1,471 @@
+generated_at: '2026-05-07T04:31:56+00:00'
+tools:
+  agent_zero:
+    name: agent_zero
+    runtime: agent_zero
+    tier: 2
+    category: visual_autonomous_workspace
+    cost_class: medium
+    risk_class: medium
+    preferred_models:
+    - claude-opus-4.7
+    - gpt-5.5
+    mcp_or_native: native
+    description: Visual autonomous browser + host bridge. Use when the task benefits
+      from a visible UI you can watch in real time AND needs host machine (Mac filesystem/commands)
+      access. Dockerized at localhost:5080 with the A0 connector exposing host commands
+      and Codex.
+    skill_path: vault/skills/active/tools/agent_zero.md
+    manifest_path: src/agent_os/runtimes/agent_zero/manifest.yaml
+    manifest_description: null
+    available_to_bundles: []
+    alternatives:
+    - browser_use
+    - computer_use
+    - openclaw
+  aider:
+    name: aider
+    runtime: aider
+    tier: 2
+    category: coding_git_incremental
+    cost_class: low
+    risk_class: low
+    preferred_models:
+    - claude-sonnet-4.7
+    - deepseek-v4-pro
+    mcp_or_native: native
+    description: Use for git-aware incremental coding where each change is a clean
+      commit. Aider auto-commits per change, enabling easy rollback per turn. Best
+      for surgical edits and refactors.
+    skill_path: vault/skills/active/tools/aider.md
+    manifest_path: src/agent_os/runtimes/aider/manifest.yaml
+    manifest_description: Git-aware incremental coding via Aider CLI. Wraps vendor/aider.
+    available_to_bundles: []
+    alternatives:
+    - claude_subagents
+    - codex_cli
+    - terminal
+  browser_use:
+    name: browser_use
+    runtime: browser_use
+    tier: 2
+    category: browser_automation
+    cost_class: low
+    risk_class: medium
+    preferred_models:
+    - claude-sonnet-4.6
+    - gpt-5.5
+    mcp_or_native: native
+    description: "Use for structured browser automation \u2014 scraping, QA flows,\
+      \ form fills, single-page interactions. Cheaper and lower-overhead than full\
+      \ computer use. Best when the page has a stable DOM and the task can be described\
+      \ as a sequence of element interactions."
+    skill_path: vault/skills/active/tools/browser_use.md
+    manifest_path: src/agent_os/runtimes/browser_use/manifest.yaml
+    manifest_description: Structured browser automation. Wraps vendor/browser-use.
+    available_to_bundles:
+    - gtm
+    - head_of_ops
+    alternatives:
+    - agent_zero
+    - computer_use
+    - openclaw
+  claude_managed:
+    name: claude_managed
+    runtime: claude_managed
+    tier: 3
+    category: long_running_cloud
+    cost_class: high
+    risk_class: high
+    preferred_models:
+    - claude-opus-4.7
+    mcp_or_native: native
+    description: "Anthropic Claude Managed Agents \u2014 long-running cloud-resident\
+      \ jobs (>1hr). Use when the task survives independently of your machine and\
+      \ you don't want to babysit. Tier 3 because it's expensive and runs without\
+      \ immediate oversight."
+    skill_path: vault/skills/active/tools/claude_managed.md
+    manifest_path: src/agent_os/runtimes/claude_managed/manifest.yaml
+    manifest_description: Long-running cloud jobs via Anthropic Claude Managed Agents
+      API.
+    available_to_bundles: []
+    alternatives:
+    - openclaw
+    - e2b
+    - claude_subagents
+  claude_subagents:
+    name: claude_subagents
+    runtime: claude_subagents
+    tier: 2
+    category: coding_interactive
+    cost_class: medium
+    risk_class: medium
+    preferred_models:
+    - claude-opus-4.7
+    - claude-sonnet-4.7
+    mcp_or_native: native
+    description: "Use for interactive coding inside this repo with Claude Code subagents\
+      \ \u2014 direct, in-repo, with tests/verification in the same loop. The default\
+      \ coding runtime when working at the keyboard."
+    skill_path: vault/skills/active/tools/claude_subagents.md
+    manifest_path: src/agent_os/runtimes/claude_subagents/manifest.yaml
+    manifest_description: Interactive coding work via Claude Code subagents.
+    available_to_bundles:
+    - coo
+    alternatives:
+    - codex_cli
+    - aider
+    - claude_managed
+  codex_cli:
+    name: codex_cli
+    runtime: codex_cli
+    tier: 2
+    category: coding_background
+    cost_class: medium
+    risk_class: medium
+    preferred_models:
+    - gpt-5.5
+    mcp_or_native: native
+    description: "Use for background coding via OpenAI Codex CLI \u2014 the default\
+      \ for GPT-5.5 coding work, multi-provider hedge against Anthropic outages. Best\
+      \ when you want to fire off coding tasks and continue with other work."
+    skill_path: vault/skills/active/tools/codex_cli.md
+    manifest_path: src/agent_os/runtimes/codex_cli/manifest.yaml
+    manifest_description: Background coding via OpenAI Codex CLI subprocess. Multi-provider
+      hedge.
+    available_to_bundles: []
+    alternatives:
+    - claude_subagents
+    - aider
+  composio:
+    name: composio
+    runtime: composio
+    tier: 2
+    category: external_connectors
+    cost_class: low
+    risk_class: medium
+    preferred_models:
+    - claude-sonnet-4.7
+    - gpt-5.5
+    mcp_or_native: mcp
+    description: "External SaaS connectors \u2014 Gmail, Slack send, GitHub, Calendar,\
+      \ GSheets, CRM/HubSpot, Salesforce, etc. Use when the task needs structured\
+      \ action against a SaaS API and Composio has the connector. Cheaper and more\
+      \ reliable than browser automation for known APIs."
+    skill_path: vault/skills/active/tools/composio.md
+    manifest_path: null
+    manifest_description: null
+    available_to_bundles:
+    - coo
+    - gtm
+    - head_of_ops
+    alternatives:
+    - browser_use
+    - terminal
+    - mcp_registry
+  computer_use:
+    name: computer_use
+    runtime: computer_use
+    tier: 2
+    category: native_desktop
+    cost_class: medium
+    risk_class: medium
+    preferred_models:
+    - claude-opus-4.7
+    mcp_or_native: native
+    description: "Anthropic Computer Use SDK \u2014 raw desktop control of native\
+      \ (non-browser) apps. Use when the task is in a Mac/Linux native app (Finder,\
+      \ Notion native client, Photoshop, etc.) where browser automation can't reach."
+    skill_path: vault/skills/active/tools/computer_use.md
+    manifest_path: src/agent_os/runtimes/computer_use/manifest.yaml
+    manifest_description: Raw OS-level desktop + browser via Anthropic Computer Use
+      SDK.
+    available_to_bundles: []
+    alternatives:
+    - agent_zero
+    - browser_use
+    - terminal
+  e2b:
+    name: e2b
+    runtime: e2b
+    tier: 2
+    category: sandbox_execution
+    cost_class: low
+    risk_class: low
+    preferred_models:
+    - claude-sonnet-4.7
+    - gpt-5.5
+    mcp_or_native: native
+    description: "E2B \u2014 clean VM per run for sandboxed code execution. Use when\
+      \ you want to run code that you can't or won't trust on your local machine,\
+      \ or need fresh environments for repro builds."
+    skill_path: vault/skills/active/tools/e2b.md
+    manifest_path: src/agent_os/runtimes/e2b/manifest.yaml
+    manifest_description: "Sandboxed code execution via E2B SDK \u2014 clean VM per\
+      \ run."
+    available_to_bundles: []
+    alternatives:
+    - terminal
+    - claude_managed
+    - agent_zero
+  exa:
+    name: exa
+    runtime: exa
+    tier: 1
+    category: search
+    cost_class: low
+    risk_class: low
+    preferred_models:
+    - claude-sonnet-4.7
+    - gpt-5.5
+    mcp_or_native: native
+    description: "Exa neural search \u2014 programmatic \"find me 10 articles about\
+      \ X\" without spinning up a browser. Use for fast, structured search-to-artifact\
+      \ tasks."
+    skill_path: vault/skills/active/tools/exa.md
+    manifest_path: src/agent_os/runtimes/exa/manifest.yaml
+    manifest_description: Neural web search API for quick article lookups.
+    available_to_bundles:
+    - coo
+    - gtm
+    - head_of_ops
+    alternatives:
+    - browser_use
+    - hermes_self
+  hermes_self:
+    name: hermes_self
+    runtime: hermes_self
+    tier: 1
+    category: orchestrator
+    cost_class: low
+    risk_class: low
+    preferred_models:
+    - claude-sonnet-4.6
+    - claude-opus-4.7
+    mcp_or_native: native
+    description: Default. Use when the task can be answered conversationally, with
+      a single doc or short artifact, and no specialist runtime adds clear value.
+      Hermes itself with sub-agents handles most work.
+    skill_path: vault/skills/active/tools/hermes_self.md
+    manifest_path: null
+    manifest_description: null
+    available_to_bundles:
+    - coo
+    - gtm
+    - head_of_ops
+    alternatives:
+    - openswarm
+    - claude_subagents
+    - exa
+  livekit:
+    name: livekit
+    runtime: livekit
+    tier: 2
+    category: voice_realtime
+    cost_class: medium
+    risk_class: low
+    preferred_models:
+    - gpt-5.5
+    - gemini-2.5-pro
+    mcp_or_native: native
+    description: LiveKit + OpenAI Realtime API or Gemini Realtime API for voice/realtime
+      conversations. Use when the task is voice-first or needs sub-2s round-trip audio.
+    skill_path: vault/skills/active/tools/livekit.md
+    manifest_path: src/agent_os/runtimes/livekit/manifest.yaml
+    manifest_description: Voice/realtime via LiveKit Agents framework. Channel-side
+      wiring.
+    available_to_bundles:
+    - coo
+    - gtm
+    alternatives:
+    - hermes_self
+    - claude_managed
+  openclaw:
+    name: openclaw
+    runtime: openclaw
+    tier: 2
+    category: autonomous_grind
+    cost_class: medium
+    risk_class: medium
+    preferred_models:
+    - gpt-5.5
+    - claude-opus-4.7
+    mcp_or_native: native
+    description: Use when the task is autonomous shell + file + browser grind that
+      runs for many minutes. OpenClaw earned its slot via fastest-growing-OSS pressure-tested
+      community velocity. Wraps vendor/openclaw.
+    skill_path: vault/skills/active/tools/openclaw.md
+    manifest_path: src/agent_os/runtimes/openclaw/manifest.yaml
+    manifest_description: 'Autonomous heavy-execution: shell/file/browser/web grind.
+      Wraps vendor/openclaw.'
+    available_to_bundles: []
+    alternatives:
+    - claude_managed
+    - terminal
+    - e2b
+  openswarm:
+    name: openswarm
+    runtime: openswarm
+    tier: 2
+    category: deliverable_production
+    cost_class: medium
+    risk_class: low
+    preferred_models:
+    - claude-opus-4.7
+    - gpt-5.5
+    mcp_or_native: native
+    description: Use when the user asks for multi-deliverable production (slides,
+      decks, research with charts, executive summaries, one-pagers), or wants to build
+      a specialized agent swarm for a business purpose. Forks vendor/openswarm into
+      per-purpose fleet members each with their own port/folder/.env.
+    skill_path: vault/skills/active/tools/openswarm.md
+    manifest_path: src/agent_os/runtimes/openswarm/manifest.yaml
+    manifest_description: Multi-agent deliverable production (slides, research, decks,
+      docs, charts) and the agent-builder agent. Manages a fleet of forked OpenSwarm
+      instances per business purpose.
+    available_to_bundles:
+    - coo
+    - gtm
+    - head_of_ops
+    alternatives:
+    - hermes_self
+    - openclaw
+    - claude_managed
+  terminal:
+    name: terminal
+    runtime: terminal
+    tier: 1
+    category: scripts
+    cost_class: low
+    risk_class: low
+    preferred_models:
+    - claude-sonnet-4.7
+    - deepseek-v4-pro
+    mcp_or_native: native
+    description: "Plain cron-style scripts \u2014 one-shot terminal commands with\
+      \ no autonomous loop. Use when you know exactly what command to run and just\
+      \ need it run."
+    skill_path: vault/skills/active/tools/terminal.md
+    manifest_path: src/agent_os/runtimes/terminal/manifest.yaml
+    manifest_description: Plain shell scripts and cron-style jobs.
+    available_to_bundles:
+    - head_of_ops
+    alternatives:
+    - openclaw
+    - e2b
+    - codex_cli
+bundles:
+  coo:
+  - hermes_self
+  - exa
+  - composio
+  - openswarm
+  - livekit
+  - claude_subagents
+  gtm:
+  - hermes_self
+  - exa
+  - composio
+  - openswarm
+  - browser_use
+  - livekit
+  head_of_ops:
+  - hermes_self
+  - exa
+  - composio
+  - openswarm
+  - browser_use
+  - terminal
+models:
+  claude-opus-4.7:
+    backend: anthropic
+    cost_per_mtok_in: 15.0
+    cost_per_mtok_out: 75.0
+    context_window: 200000
+    task_classes:
+    - architecture
+    - content
+    - design
+    - brand-voice
+    - review
+    - synthesis
+    - deliverable_production
+    - coding_interactive
+    notes: Frontier model. Pair with gpt-5.5 for dual-frontier review.
+  claude-sonnet-4.7:
+    backend: anthropic
+    cost_per_mtok_in: 3.0
+    cost_per_mtok_out: 15.0
+    context_window: 200000
+    task_classes:
+    - default
+    - conversational
+    - coding_interactive
+    - coding_git_incremental
+    - orchestrator
+    - sandbox_execution
+    notes: Default conversational + coding workhorse.
+  claude-sonnet-4.6:
+    backend: anthropic
+    cost_per_mtok_in: 3.0
+    cost_per_mtok_out: 15.0
+    context_window: 200000
+    task_classes:
+    - default
+    - conversational
+    - browser_automation
+    - search
+    notes: Stable Sonnet baseline for non-frontier work.
+  gpt-5.5:
+    backend: openai
+    cost_per_mtok_in: 20.0
+    cost_per_mtok_out: 80.0
+    context_window: 400000
+    task_classes:
+    - debugging
+    - security
+    - authentication
+    - authorization
+    - weak_test_repos
+    - deployment
+    - high_risk_coding
+    - coding_background
+    - native_desktop
+    notes: Frontier model. Pair with claude-opus-4.7 for dual-frontier review.
+  kimi-k2:
+    backend: openrouter
+    cost_per_mtok_in: 0.15
+    cost_per_mtok_out: 2.5
+    context_window: 200000
+    task_classes:
+    - coding_background
+    - coding_git_incremental
+    - mechanical_coding
+    - data_extraction
+    - cheap_legwork
+    - long_context_coding
+    notes: Cheap frontier-class long-context model. Excellent for refactors.
+  deepseek-v4-pro:
+    backend: deepseek
+    cost_per_mtok_in: 0.27
+    cost_per_mtok_out: 1.1
+    context_window: 128000
+    task_classes:
+    - mechanical_coding
+    - coding_git_incremental
+    - data_extraction
+    - cheap_legwork
+    - test_protected_tasks
+    - worker_subtasks
+    notes: "DeepSeek v4 Pro \u2014 preferred cheap worker. Stronger than v3 on coding."
+  gemini-2.5-pro:
+    backend: google
+    cost_per_mtok_in: 1.25
+    cost_per_mtok_out: 5.0
+    context_window: 2000000
+    task_classes:
+    - long_context_research
+    - multimodal
+    - voice_realtime
+    - search
+    notes: 2M context. Best for large-doc research and multimodal tasks.

@@ -1,0 +1,128 @@
+# Model registry — read by model_planner.py + catalog.py.
+#
+# `task_classes` is the routing key — model_planner picks based on this list.
+# `cost_per_mtok_in/out` is in USD per million tokens (estimates as of 2026-05).
+#
+# Dual-frontier review (per docs/routing-intelligence-contract.md): for
+# architecture/debug/security/auth/tests/deploy work, the planner emits TWO
+# models — a draft + a review (gpt-5.5 ↔ claude-opus-4.7). See pick_model().
+
+models:
+
+  claude-opus-4.7:
+    backend: anthropic
+    cost_per_mtok_in: 15.00
+    cost_per_mtok_out: 75.00
+    context_window: 200000
+    task_classes:
+      - architecture
+      - content
+      - design
+      - brand-voice
+      - review
+      - synthesis
+      - deliverable_production
+      - coding_interactive
+    notes: Frontier model. Pair with gpt-5.5 for dual-frontier review.
+
+  claude-sonnet-4.7:
+    backend: anthropic
+    cost_per_mtok_in: 3.00
+    cost_per_mtok_out: 15.00
+    context_window: 200000
+    task_classes:
+      - default
+      - conversational
+      - coding_interactive
+      - coding_git_incremental
+      - orchestrator
+      - sandbox_execution
+    notes: Default conversational + coding workhorse.
+
+  claude-sonnet-4.6:
+    backend: anthropic
+    cost_per_mtok_in: 3.00
+    cost_per_mtok_out: 15.00
+    context_window: 200000
+    task_classes:
+      - default
+      - conversational
+      - browser_automation
+      - search
+    notes: Stable Sonnet baseline for non-frontier work.
+
+  gpt-5.5:
+    backend: openai
+    cost_per_mtok_in: 20.00
+    cost_per_mtok_out: 80.00
+    context_window: 400000
+    task_classes:
+      - debugging
+      - security
+      - authentication
+      - authorization
+      - weak_test_repos
+      - deployment
+      - high_risk_coding
+      - coding_background
+      - native_desktop
+    notes: Frontier model. Pair with claude-opus-4.7 for dual-frontier review.
+
+  kimi-k2:
+    backend: openrouter
+    cost_per_mtok_in: 0.15
+    cost_per_mtok_out: 2.50
+    context_window: 200000
+    task_classes:
+      - coding_background
+      - coding_git_incremental
+      - mechanical_coding
+      - data_extraction
+      - cheap_legwork
+      - long_context_coding
+    notes: Cheap frontier-class long-context model. Excellent for refactors.
+
+  deepseek-v4-pro:
+    backend: deepseek
+    cost_per_mtok_in: 0.27
+    cost_per_mtok_out: 1.10
+    context_window: 128000
+    task_classes:
+      - mechanical_coding
+      - coding_git_incremental
+      - data_extraction
+      - cheap_legwork
+      - test_protected_tasks
+      - worker_subtasks
+    notes: DeepSeek v4 Pro — preferred cheap worker. Stronger than v3 on coding.
+
+  gemini-2.5-pro:
+    backend: google
+    cost_per_mtok_in: 1.25
+    cost_per_mtok_out: 5.00
+    context_window: 2000000
+    task_classes:
+      - long_context_research
+      - multimodal
+      - voice_realtime
+      - search
+    notes: 2M context. Best for large-doc research and multimodal tasks.
+
+# Dual-frontier pairs — the planner uses these for high-stakes tasks.
+dual_frontier_pairs:
+  - [claude-opus-4.7, gpt-5.5]
+  - [gpt-5.5, claude-opus-4.7]
+
+# Task classes that always trigger dual-frontier draft+review.
+dual_frontier_task_classes:
+  - architecture
+  - debugging
+  - security
+  - authentication
+  - authorization
+  - weak_test_repos
+  - deployment
+  - high_risk_coding
+
+# Default model for ambiguous tasks.
+default_model: claude-sonnet-4.7

@@ -17,3 +17,15 @@ skills_priority:
   - hierarchical-delegation
   - heartbeat-recovery
   - manifest-walk
+tools_allowed:
+  - hermes_self
+  - exa
+  - composio          # gmail, slack, calendar, gsheets, hubspot
+  - openswarm         # client deck/report production
+  - livekit           # voice
+  - claude_subagents  # interactive coding when needed
+tools_denied:
+  - terminal          # no destructive infra commands
+  - claude_managed    # no autonomous long-running deploys
+  - e2b               # no untrusted code execution
+default_tier_ceiling: 2  # COO can't trigger tier-3 without primary_hermes approval
