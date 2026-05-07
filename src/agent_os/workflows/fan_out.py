@@ -1,12 +1,13 @@
 """Temporal durable workflow — wraps fan-out operations for crash recovery.
 
-When a 300-agent Kimi fan-out is 200 steps in and the Admiral's VPS reboots,
+When a 300-agent fan-out is 200 steps in and the Admiral's VPS reboots,
 Temporal resumes exactly where it stopped. No "did the fan-out complete?"
 uncertainty.
 
 The workflow has two dispatch paths:
-  1. Kimi K2.6 Coordinator — preferred for true parallel fan-out (up to 300 sub-agents)
-  2. OpenSwarm fleet.fan_out — for local swarm fan-out (existing 14 runtimes)
+  1. Coordinator service — preferred for true parallel fan-out (up to 300 sub-agents).
+     Model is selectable per-job (any chat model — claude-sonnet, gpt-5.5, etc.).
+  2. OpenSwarm fleet.fan_out — for local swarm fan-out (existing 14 runtimes).
 
 Usage:
     from temporalio.client import Client
@@ -19,7 +20,8 @@ Usage:
             task_id="abc123",
             prompt="Research 200 AI startups",
             sub_prompts=["Research company A", "Research company B", ...],
-            engine="kimi",
+            engine="coordinator",
+            model="claude-sonnet-4.7",
             concurrency=300,
         ),
         id="fan-out-abc123",
@@ -43,7 +45,8 @@ class FanOutJob:
     task_id: str
     prompt: str
     sub_prompts: list[str] = field(default_factory=list)
-    engine: str = "kimi"            # "kimi" | "openswarm"
+    engine: str = "coordinator"     # "coordinator" | "openswarm"
+    model: str = ""                 # which model the coordinator should use; "" = service default
     concurrency: int = 50
     agent_id: str = "admiral"
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -54,7 +57,7 @@ class FanOutResult:
     task_id: str
     results: list[dict[str, Any]] = field(default_factory=list)
     failed_count: int = 0
-    engine: str = "kimi"
+    engine: str = "coordinator"
     elapsed_seconds: float = 0.0
 
 
@@ -104,7 +107,12 @@ async def _asyncio_fan_out(job: FanOutJob) -> FanOutResult:
 
     async def _run_one(sub_prompt: str) -> dict[str, Any]:
         async with sem:
-            return await _delegate_to_agent_activity({"task_id": job.task_id, "prompt": sub_prompt, "engine": job.engine})
+            return await _delegate_to_agent_activity({
+                "task_id": job.task_id,
+                "prompt": sub_prompt,
+                "engine": job.engine,
+                "model": job.model,
+            })
 
     tasks = [_run_one(p) for p in job.sub_prompts]
     raw = await asyncio.gather(*tasks, return_exceptions=True)
@@ -180,7 +188,12 @@ try:
                 async with sem:
                     return await workflow.execute_activity(
                         delegate_to_agent_activity,
-                        {"task_id": job.task_id, "prompt": prompt, "engine": job.engine},
+                        {
+                            "task_id": job.task_id,
+                            "prompt": prompt,
+                            "engine": job.engine,
+                            "model": job.model,
+                        },
                         start_to_close_timeout=timedelta(hours=2),
                         retry_policy=retry,
                     )
@@ -209,35 +222,39 @@ except ImportError:
 
 async def _delegate_to_agent_activity(sub_task: dict[str, Any]) -> dict[str, Any]:
     """Route a single sub-task to the appropriate engine."""
-    engine = sub_task.get("engine", "kimi")
+    engine = sub_task.get("engine", "coordinator")
     prompt = sub_task.get("prompt", "")
     task_id = sub_task.get("task_id", "unknown")
+    model = sub_task.get("model", "")
 
-    if engine == "kimi":
-        return await _run_kimi_subtask(task_id, prompt)
+    if engine == "coordinator":
+        return await _run_coordinator_subtask(task_id, prompt, model)
     elif engine == "openswarm":
         return await _run_openswarm_subtask(task_id, prompt)
     else:
         return {"task_id": task_id, "prompt": prompt, "status": "skipped", "reason": f"unknown engine: {engine}"}
 
 
-async def _run_kimi_subtask(task_id: str, prompt: str) -> dict[str, Any]:
-    """Delegate to the Kimi K2.6 Coordinator via A2A."""
-    kimi_url = os.getenv("KIMI_COORDINATOR_URL", "")
-    if not kimi_url:
-        return {"task_id": task_id, "status": "error", "error": "KIMI_COORDINATOR_URL not set"}
+async def _run_coordinator_subtask(task_id: str, prompt: str, model: str) -> dict[str, Any]:
+    """Delegate to the Coordinator service via A2A."""
+    url = os.getenv("COORDINATOR_URL", "")
+    if not url:
+        return {"task_id": task_id, "status": "error", "error": "COORDINATOR_URL not set"}
 
     import httpx
+    metadata: dict[str, Any] = {"engine": "coordinator"}
+    if model:
+        metadata["model"] = model
     payload = {
         "parts": [{"kind": "text", "text": prompt}],
-        "taskId": f"{task_id}-kimi",
-        "metadata": {"engine": "kimi"},
+        "taskId": f"{task_id}-coord",
+        "metadata": metadata,
     }
     try:
         async with httpx.AsyncClient(timeout=120) as client:
-            resp = await client.post(f"{kimi_url}/messages", json=payload)
+            resp = await client.post(f"{url}/messages", json=payload)
             resp.raise_for_status()
-            return {"task_id": task_id, "status": "delegated", "kimi_response": resp.json()}
+            return {"task_id": task_id, "status": "delegated", "coordinator_response": resp.json()}
     except Exception as exc:
         return {"task_id": task_id, "status": "error", "error": str(exc)}
 

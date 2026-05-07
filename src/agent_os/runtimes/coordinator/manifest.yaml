@@ -1,0 +1,18 @@
+component: runtime.coordinator
+type: specialist-runtime
+description: "Fan-out coordinator — delegates fan-out jobs to up to N parallel sub-agents via a deployed A2A service. Model is selectable per-job. A2A-compliant. Temporal-wrapped for durability."
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+  agent-os.bus: ">=0.1"
+  agent-os.workflows: ">=0.1"
+agents:
+  - coordinator
+outputs:
+  - type: vault_run_artifact
+    consumer: vault.runs
+  - type: nats_event
+    subject: "agents.coordinator.task.*"
+env_vars:
+  - COORDINATOR_URL              # A2A endpoint for the deployed coordinator service
+  - COORDINATOR_DEFAULT_MODEL    # Default model id when job doesn't specify (e.g. "claude-sonnet-4.7")
+  - TEMPORAL_HOST                # Temporal server (default: localhost:7233)

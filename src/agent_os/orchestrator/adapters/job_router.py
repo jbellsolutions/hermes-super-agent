@@ -22,7 +22,7 @@ RuntimeName = Literal[
     # Fabric runtimes — external A2A endpoints and VPS provisioner
     "a2a_delegate",      # delegate entire job to an external A2A agent endpoint
     "vps_spawn",         # provision a new Tier 2 superagent on a dedicated VPS
-    "kimi_coordinator",  # fan-out to Kimi K2.6 300-agent swarm via Moonshot API
+    "coordinator",       # fan-out to N-agent swarm via deployed A2A service (model-pluggable)
     "retell_channel",    # outbound phone via Retell AI
 ]
 
@@ -44,9 +44,9 @@ def route(job: Job) -> RuntimeName:
     t = {tag.lower() for tag in job.tags}
 
     # Fabric runtimes — checked first; these handle cross-agent orchestration.
-    # Kimi K2.6 Swarm Coordinator: 300-agent fan-out, Temporal-wrapped.
-    if "fan-out" in t or "kimi" in t or "swarm-coordinator" in t:
-        return "kimi_coordinator"
+    # Coordinator: N-agent fan-out via A2A service, Temporal-wrapped, model-pluggable.
+    if "fan-out" in t or "coordinator" in t or "swarm-coordinator" in t:
+        return "coordinator"
     # VPS superagent spawning — full Hermes + orchestrator on a dedicated droplet.
     if "spawn-superagent" in t or "vps-spawn" in t:
         return "vps_spawn"
@@ -113,7 +113,7 @@ def plan_for(job: Job, *, identity: str = "primary_hermes"):
 async def dispatch(job: Job):
     """Route job → correct runtime module → call run(job).
 
-    All fabric runtimes (kimi_coordinator, retell_channel, vps_spawn,
+    All fabric runtimes (coordinator, retell_channel, vps_spawn,
     a2a_delegate) expose `async def run(job)`. Legacy runtimes that only
     have a sync `invoke(job)` are wrapped with asyncio.to_thread.
     """
@@ -121,7 +121,7 @@ async def dispatch(job: Job):
     runtime = route(job)
 
     _ASYNC_RUNTIMES = {
-        "kimi_coordinator": "agent_os.runtimes.kimi_coordinator.invoke",
+        "coordinator":      "agent_os.runtimes.coordinator.invoke",
         "retell_channel":   "agent_os.runtimes.retell_channel.invoke",
         "vps_spawn":        "agent_os.runtimes.vps_spawn.invoke",
         "a2a_delegate":     "agent_os.runtimes.a2a_delegate.invoke",
