@@ -82,11 +82,11 @@ models:
       - long_context_coding
     notes: Cheap frontier-class long-context model. Excellent for refactors.
 
-  kimi-k2-coordinator:
-    backend: moonshot
-    cost_per_mtok_in: 0.60
-    cost_per_mtok_out: 3.00
-    context_window: 200000
+  coordinator:
+    backend: a2a_service
+    cost_per_mtok_in: 0.0
+    cost_per_mtok_out: 0.0
+    context_window: 0
     task_classes:
       - fan_out
       - swarm_coordination
@@ -94,12 +94,12 @@ models:
       - batch_processing
       - multi_agent_orchestration
     notes: >
-      NOT a direct LLM call — this entry represents the Kimi K2.6 Swarm
-      Coordinator deployed service (A2A endpoint at KIMI_COORDINATOR_URL).
-      The coordinator internally runs up to 300 parallel sub-agents via
-      Moonshot API. Route via job_router runtime 'kimi_coordinator'.
-      75-83% savings with Moonshot prompt caching on repeated prompts.
-      Tool-invocation success rate: 96.6%.
+      NOT a direct LLM call — this entry represents the deployed Coordinator
+      A2A service (endpoint at COORDINATOR_URL). The coordinator internally
+      runs up to 300 parallel sub-agents using whatever LLM is selected
+      per-job (job.metadata['coordinator_model']) or via the
+      COORDINATOR_DEFAULT_MODEL env var. Cost depends on the chosen model.
+      Route via job_router runtime 'coordinator'.
 
   deepseek-v4-pro:
     backend: deepseek

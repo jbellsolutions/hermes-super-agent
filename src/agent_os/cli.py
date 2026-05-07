@@ -42,6 +42,31 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("models", help="List registered models from config/models.yaml")
 
+    p_run = sub.add_parser(
+        "run",
+        help="End-to-end: tier-classify → plan → dispatch (the Admiral pipeline)",
+    )
+    p_run.add_argument("--prompt", required=True)
+    p_run.add_argument("--tags", nargs="*", default=[])
+    p_run.add_argument("--identity", default="primary_hermes")
+    p_run.add_argument("--minutes", type=float, default=None)
+    p_run.add_argument("--cost-usd", type=float, default=None)
+    p_run.add_argument(
+        "--yes",
+        action="store_true",
+        help="Skip the Tier 2/3 confirmation gate (autonomous mode).",
+    )
+    p_run.add_argument("--meta", action="append", default=[], metavar="KEY=VALUE")
+
+    p_spawn = sub.add_parser(
+        "spawn",
+        help="Spawn a Tier 1 specialist (Railway) or Tier 2 superagent (VPS).",
+    )
+    p_spawn.add_argument("--tier", type=int, choices=[1, 2], required=True)
+    p_spawn.add_argument("--prompt", required=True, help="Spec for what to build/spawn.")
+    p_spawn.add_argument("--name", default="", help="Optional explicit agent_id; otherwise slugged from prompt.")
+    p_spawn.add_argument("--meta", action="append", default=[], metavar="KEY=VALUE")
+
     args = parser.parse_args(argv)
 
     if args.cmd == "boot":
@@ -106,7 +131,94 @@ def main(argv: list[str] | None = None) -> int:
                 cost_out = m.get("cost_per_mtok_out", "?")
                 tcs = ", ".join((m.get("task_classes") or [])[:4])
                 print(f"  {name:24s}  ${cost_in}/${cost_out}  [{tcs}]")
+    elif args.cmd == "run":
+        return _cmd_run(args)
+    elif args.cmd == "spawn":
+        return _cmd_spawn(args)
     return 0
+
+
+def _parse_meta(items: list[str]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for item in items or []:
+        if "=" not in item:
+            continue
+        k, v = item.split("=", 1)
+        out[k.strip()] = v.strip()
+    return out
+
+
+def _cmd_run(args) -> int:
+    """Full Admiral pipeline: tier_classifier → tool_planner → plan_card → dispatch."""
+    import asyncio
+
+    from agent_os.observability.agentops.client import init_agentops
+    from agent_os.orchestrator import plan_card, tier_classifier
+    from agent_os.orchestrator.adapters.job_router import Job, dispatch
+    from agent_os.orchestrator.tool_planner import plan as plan_fn
+
+    init_agentops(agent_id="admiral", tags=["cli-run"])
+
+    job = Job(
+        prompt=args.prompt,
+        tags=set(args.tags),
+        estimated_minutes=int(args.minutes) if args.minutes else None,
+        metadata=_parse_meta(args.meta),
+    )
+
+    # 1. Tier classification
+    decision = tier_classifier.classify(
+        job, cost_usd=args.cost_usd, estimated_minutes=args.minutes,
+    )
+
+    # 2. Plan
+    tool_plan = plan_fn(job, identity=args.identity)
+
+    # 3. Plan card (always show)
+    print(plan_card.render(tool_plan, channel="markdown"))
+    print(f"\nTier: {decision.tier}  ({decision.matched_rule})")
+
+    # 4. Approval gate for Tier 2/3
+    if decision.tier >= 2 and not args.yes:
+        print(f"\nTier {decision.tier} requires explicit confirmation. Re-run with --yes to dispatch.")
+        return 0
+
+    # 5. Dispatch
+    print("\nDispatching...")
+    try:
+        result = asyncio.run(dispatch(job))
+    except Exception as exc:
+        print(json.dumps({"status": "error", "error": str(exc)}, indent=2))
+        return 1
+
+    if hasattr(result, "__dict__"):
+        from dataclasses import asdict, is_dataclass
+        result_data = asdict(result) if is_dataclass(result) else vars(result)
+    else:
+        result_data = result
+    print(json.dumps(result_data, indent=2, default=str))
+    return 0 if (isinstance(result_data, dict) and result_data.get("status") != "error") else 1
+
+
+def _cmd_spawn(args) -> int:
+    """Spawn a Tier 1 specialist or Tier 2 superagent via spawner.spawn()."""
+    import asyncio
+    from agent_os.observability.agentops.client import init_agentops
+    from agent_os.orchestrator.adapters.job_router import Job
+    from agent_os.orchestrator.spawner import spawn
+
+    init_agentops(agent_id="admiral", tags=["cli-spawn"])
+
+    metadata = _parse_meta(args.meta)
+    if args.name:
+        metadata["agent_id"] = args.name
+
+    tags = {"spawn-superagent"} if args.tier == 2 else {"build-specialist"}
+
+    job = Job(prompt=args.prompt, tags=tags, metadata=metadata)
+    result = asyncio.run(spawn(job))
+    print(json.dumps(result, indent=2, default=str))
+    return 0 if result.get("status") not in ("error",) else 1
 
 
 if __name__ == "__main__":

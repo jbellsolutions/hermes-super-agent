@@ -53,4 +53,4 @@ description: Delegate "create a specialist agent" requests to Archon (coleam00/A
 ## See also
 - src/agent_os/orchestrator/spawner.py
 - templates/AGENT.md.j2
-- vault/skills/active/tools/kimi_coordinator.md
+- vault/skills/active/tools/coordinator.md

@@ -1,0 +1,6 @@
+component: observability.agentops
+type: observability
+description: "AgentOps SDK initializer. Auto-instruments anthropic/openai/etc. LLM clients to feed a unified cost/latency/error dashboard. No-op when AGENTOPS_API_KEY is unset."
+depends_on: {}
+env_vars:
+  - AGENTOPS_API_KEY    # if unset, instrumentation no-ops
