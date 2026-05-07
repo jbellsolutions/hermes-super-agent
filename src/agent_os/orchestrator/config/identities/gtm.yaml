@@ -10,3 +10,16 @@ slack_channels: [gtm, content, sdr]
 skills_priority:
   - account-research
   - content-multiplier
+tools_allowed:
+  - hermes_self
+  - exa               # neural search for prospecting
+  - composio          # crm/email/calendar
+  - openswarm         # multi-deliverable content production
+  - browser_use       # structured scraping
+  - livekit           # voice for calls
+tools_denied:
+  - terminal
+  - claude_managed
+  - e2b
+  - computer_use
+default_tier_ceiling: 2

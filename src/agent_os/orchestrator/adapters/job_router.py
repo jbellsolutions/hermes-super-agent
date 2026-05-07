@@ -75,3 +75,14 @@ def route(job: Job) -> RuntimeName:
     if "script" in t or "cron" in t:
         return "terminal"
     return "hermes_self"
+
+
+def plan_for(job: Job, *, identity: str = "primary_hermes"):
+    """Convenience: route() + tool_planner.plan() in one call.
+
+    Returns a ToolPlan dataclass. Imported lazily so the router stays usable
+    without the catalog (e.g. for the existing /route CLI which only needs
+    the runtime name).
+    """
+    from agent_os.orchestrator.tool_planner import plan
+    return plan(job, identity=identity)
