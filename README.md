@@ -1,358 +1,291 @@
-# Super Agent
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <strong>Hermes Super Agent</strong><br/>
+  <em>The fabric that turns one agent into a fleet.</em>
+</p>
 
-> **Agent OS + Hermes + Codex + Agent Zero.**
->
-> Super Agent is Justin's Agent OS distribution: the `jbellsolutions/agent-os` foundation plus the local stack we have running now — Hermes as command center, Codex as the coding engine, Agent Zero as the visual/autonomous UI, and A0 as the host bridge.
->
-> Upstream base: [`jbellsolutions/agent-os`](https://github.com/jbellsolutions/agent-os). This repo is the Super Agent fork/version where we wire in Codex, Agent Zero, A0, local runbooks, and experiments.
-
-## What changed from Agent OS
-
-- Agent OS is now the **base operating system** of this repo, not a vendored side folder.
-- Super Agent adds the local Hermes/Codex/Agent Zero/A0 operating model.
-- The previous setup docs were preserved under [`docs/local-stack/`](./docs/local-stack/).
-- Codex stays a first-class coding runtime.
-- Agent Zero + A0 are added as a first-class visual/autonomous runtime layer.
-- Local health checks and runbooks remain part of the repo so we document what works as we build.
+<p align="center">
+  <a href="#get-it-running">Get it running</a> ·
+  <a href="#what-it-actually-does">What it does</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="QUICKSTART.md">Quickstart</a> ·
+  <a href="ARCHITECTURE.md">Architecture</a>
+</p>
 
 ---
 
-> **One agent. One state. Every channel. Daily-evolving.**
->
-> Hermes drives. Agent Zero + A0 provide a visual/autonomous host bridge when needed. OpenClaw + browser-use + Aider + Codex + Claude Code + Anthropic Computer Use + Claude Managed Agents + LiveKit + E2B + Exa are its tool belt. AGI-1 is the quality flywheel. The vault is the single source of truth. The upgrader pulls every dependency upstream every night. Drop a file in Slack, voice-chat the answer on the web — same agent, same memory.
+## Why this exists
 
-[**Read the founding story →**](./STORY.md) — *how 14 broken frameworks became one that actually works.*
+You spun up a Hermes agent. It works. You ask it to do real work and it… runs out of room.
+
+It can't fan one task across 300 parallel sub-agents. It can't spawn its own teammates. It can't survive a reboot mid-job. It can't tell you what it's doing in real time. It can't take a phone call. It can't read a Slack thread, finish the work overnight on a fresh VPS, and ping you on Telegram when it's done.
+
+You don't need a smarter model. You need a **fabric** underneath the agent that does all of that for you.
+
+That's what this is.
 
 ---
 
-## Drop the link, get rolling
+## What you get when this is running
 
-Three paths. Pick one. **You don't need to read the rest of this README to launch.**
+You text Hermes on Telegram: *"Spin up a cold-email superagent with its own swarm coordinator and a phone agent."*
 
-### Path A — Hermes-first walkthrough via Claude Code/Codex (recommended)
+Twelve minutes later:
 
-Drop this in any Claude Code or Codex session:
+- A new VPS is online (DigitalOcean, $5/mo)
+- A full Hermes is running on it, talking the same A2A protocol the Admiral does
+- It has its own Kimi K2.6 coordinator wired in
+- It has a Retell AI phone agent it owns
+- It's heartbeating to your Admiral over NATS
+- All three are auto-instrumented in AgentOps so you can see cost, latency, errors in one dashboard
+- Tier 3 jobs (production deploys, outbound sends, anything destructive) are gated behind a one-line "YES" reply
+- You go to bed. It runs the campaign. You wake up to a summary.
 
-> *"Set up a Hermes Super Agent for me. Repo: https://github.com/jbellsolutions/hermes-super-agent. Start by checking whether Hermes Agent is installed. If Hermes is missing, install it from the official Hermes installer. Then interview me in plain English, ask only for the keys needed for my chosen tier, connect the shared Obsidian/Notion brain if available, and verify everything before you say it is ready."*
+That's the promise. Below is exactly how it does it, and how to set it up tonight.
 
-Claude Code/Codex will read the setup instructions, [`docs/hermes-first-install-walkthrough.md`](./docs/hermes-first-install-walkthrough.md), and the [`agent-os` skill](./.claude/skills/agent-os/SKILL.md), detect whether Hermes exists on the machine, install/configure it if needed, then walk through every Super Agent step in plain English — business context, tier, keys, channels, shared brain, deploy target, tools, and verification. This is the preferred first test path for Zions' computer and the commercial setup experience.
+---
 
-### Path B — One-command wizard
+## What it actually does
 
-```bash
-git clone --recurse-submodules https://github.com/jbellsolutions/hermes-super-agent.git
-cd hermes-super-agent
-./scripts/launch.py
+Five things, all live, all tested, all behind a single Telegram bot:
+
+| | What you can ask for | What happens under the hood |
+|---|---|---|
+| 1 | "Run this 300 ways in parallel and give me the best one." | The Coordinator service fans out to N sub-agents (Kimi K2.6 native, or any Anthropic / OpenAI / DeepSeek / Gemini / Moonshot / OpenRouter model) wrapped in a Temporal workflow so it survives crashes. |
+| 2 | "Spin up a [domain] superagent for me." | The Spawner provisions a real VPS, SSH-bootstraps Docker + uv + the full Claude Code + Codex + Aider toolchain, drops in an `AGENT.md` for the new identity, starts the same A2A FastAPI server, registers with NATS. ~10 minutes. |
+| 3 | "Build me a [linkedin / outbound-X / research-Y] specialist." | Archon (open-source meta-agent) generates the new agent's `AGENT.md` + skill files + Railway config from a natural-language spec. Specialist deploys to Railway and joins the fleet. ~15 minutes. |
+| 4 | "Send a cold email" or "place a phone call." | Same brain (the COO Specialist), two channels: Instantly.ai for email, Retell AI for phone. Tier 3 hard-stop on both. |
+| 5 | "What's everybody doing right now?" | Admiral subscribes to `agents.>` on NATS JetStream and forwards every fleet alert to Telegram. No polling. Sub-millisecond. |
+
+And underneath all five: a planner that picks the right tool, the right model, and the right tier *before* anything runs. So you see the plan card first. You can `/use <tool>` to override, `/why` for the rationale, `/cancel` to abort, or `YES` (uppercase, deliberate) to greenlight a Tier 3.
+
+---
+
+## How it works
+
+Three open-source primitives. None of them new, none of them ours. The trick is what happens when you snap them together.
+
+### 1. Google A2A Protocol — the universal language
+
+Every agent in the fleet exposes three HTTP routes and one JSON file:
+
+```
+GET  /agentCard          → what I can do, what I cost, how to reach me
+POST /messages           → here's a task, run it
+GET  /tasks/{task_id}    → status: submitted → working → completed
 ```
 
-Conversational Python wizard. It starts with a Hermes Agent preflight: if `hermes` is missing, it installs Hermes from the official Nous Research installer before asking Super Agent questions. Then it collects the primary Hermes provider/key — OpenRouter by default — optional Telegram bot token + allowed user ID, business context, tier, approval rules, and deploy target. It writes both the Super Agent `.env` and Hermes' own env/config, runs `uv sync` + `pnpm install`, runs smoke tests, builds the manifest graph, and hands you a summary.
+Cards are self-describing. Admiral reads them at boot and builds a live capability map. Adding a new specialist (Hermes-based, Kimi-based, Agent Zero, Archon, or anything that speaks A2A) does not require a code change in Admiral. It's just a new card.
 
-### Path C — Self-driving setup (Hermes drives)
+### 2. NATS JetStream — the event bus
 
-```bash
-git clone --recurse-submodules https://github.com/jbellsolutions/hermes-super-agent.git
-cd hermes-super-agent
-./scripts/launch.py --minimal      # asks for provider key, operator, and Telegram quick access
-hermes doctor
-hermes
+Every agent publishes to a namespaced subject:
+
+```
+agents.{id}.heartbeat
+agents.{id}.task.started   .progress   .completed   .failed
+agents.{id}.alert
+fleet.commands.{id}
 ```
 
-Then tell Hermes: *"Set yourself up. I want Slack + Telegram + web voice. Keys are in 1Password under 'agent-os/*'. Deploy to Railway when ready."* Hermes uses its own tools and skills to finish configuration. `uv run agent-os boot` is currently a Stage 2 scaffold diagnostic, not the live Hermes launcher. *(Full self-setup loop lights up after stages 3–10 of `docs/EXECUTION-PLAN.md`.)*
+Admiral subscribes to `agents.>` (wildcard). State is live, not polled. JetStream persists, so a restart replays missed events and you never lose a fleet update. There's a circuit breaker in front of every publisher so a NATS outage degrades to "agents keep working, you just don't see them in real time" instead of "everything crashes."
 
-[**Full launch guide →**](./LAUNCH.md)
+### 3. Temporal — durable execution
+
+The fan-out workflow is a Temporal workflow, not a best-effort coroutine. If your VPS reboots while 200 of 300 sub-agents are mid-flight, Temporal resumes from the last completed activity. No "did the job finish?" uncertainty.
+
+That's the whole stack. NATS at $5/mo on Railway, Temporal at $15/mo on Railway, the rest is usage-billed. Floor is $45/mo total infra.
 
 ---
 
-## What you're getting
+## Get it running
+
+You need three things on your laptop: `git`, `python 3.11+`, `uv` (one-line installer). On macOS: `brew install git uv`.
+
+You need three accounts: Anthropic (Claude), Railway (hosts the fleet), Telegram via [@BotFather](https://t.me/BotFather). Sign-up takes ~10 minutes total.
+
+Then pick one of these three.
+
+### Path A — Have an agent set it up for you (recommended)
+
+Open Claude Code, Codex, or any Hermes/Cursor session inside this repo and paste:
+
+> *Set up Hermes Super Agent on this machine. Read [`QUICKSTART.md`](QUICKSTART.md) for the exact steps. Verify `git`, `python 3.11+`, and `uv` are installed; install whatever's missing. Then walk me through every credential one at a time in plain English. For each service, tell me where to sign up, what to click, and what to paste back to you. Set up the required ones first (Anthropic, Telegram, Railway), then ask whether I want any of the optional ones (DigitalOcean for VPS spawning, Retell AI for phone, Instantly for cold email, AgentOps for dashboards). Write everything to `.env` at the repo root. Then run `./scripts/deploy.sh`. When it's done, send a `hello` to my Telegram bot and confirm it replies. Don't write code. I'll paste keys.*
+
+The agent will:
+
+1. Check your local prereqs and install anything missing
+2. Walk you through each signup with the exact URL, exact button text, exact key to copy back
+3. Skip the optional services unless you want them
+4. Write `.env`
+5. Deploy to Railway
+6. Verify the Telegram round-trip
+
+You won't write code. You will paste keys. ~25 minutes start to finish.
+
+### Path B — Run the wizard yourself
+
+Two scripts, three accounts, ~30 minutes. Full doc at [QUICKSTART.md](QUICKSTART.md).
+
+```bash
+git clone https://github.com/jbellsolutions/hermes-super-agent
+cd hermes-super-agent
+uv sync
+./scripts/setup.sh      # interactive, asks for each key with the URL where to grab it
+./scripts/deploy.sh     # spins up NATS → Temporal → Coordinator → Archon → Admiral on Railway
+```
+
+Idempotent. Re-run either script any time to update keys or redeploy.
+
+### Path C — You already have it cloned and just want to wire fabric on top
+
+Already running Hermes locally? Already have an Anthropic key in your shell? Skip the wizard:
+
+```bash
+cd hermes-super-agent
+uv sync
+cp .env.example .env    # edit by hand
+./scripts/deploy.sh
+```
+
+---
+
+## What gets deployed
+
+Five Railway services (one click each, the script does it for you):
+
+```
+You ←→ Telegram ←→ Admiral (Railway)
+                     │
+                     ├── NATS JetStream    (event bus, $5/mo)
+                     ├── Temporal          (durable workflows, $15/mo)
+                     ├── Coordinator       (fan-out engine, model-pluggable)
+                     ├── Archon            (agent builder)
+                     │
+                     └── Spawned superagents → DigitalOcean ($5/mo each, only when spawned)
+```
+
+Each spawned superagent is a real VPS running the same FastAPI A2A server you're running. It has Claude Code, Codex CLI, Aider, Docker — the full toolchain. API keys are forwarded over SSH at process start, never written to disk on the VPS.
+
+---
+
+## Real things you can ask it to do
+
+These all work today on a fresh deploy. None are roadmap.
+
+```
+"summarize the news on AI safety today"
+"research these three startups: Anthropic, OpenAI, Mistral. parallel."
+"draft a Tier 1 email to garry@ycombinator.com about my super-agent fabric"
+"build a LinkedIn outreach specialist that posts twice a week"
+"spin up a cold email superagent with its own Kimi coordinator"
+"what's the fleet doing right now"
+"call (555) 123-4567 — pitch the COO consulting offer, log the transcript"
+"deploy the GTM specialist to production"   ← Tier 3, asks for YES
+```
+
+Every one of those goes through the same pipeline: tier_classifier → tool_planner → model_planner → plan_card → (your approval if Tier 2/3) → dispatch → NATS event → result.
+
+---
+
+## What's actually in the box
 
 | | |
 |---|---|
-| **Persistent orchestrator** | [Hermes](https://github.com/NousResearch/hermes-agent) — 64K★ MIT-licensed, persistent memory across sessions, native skill saving, multi-platform Slack/Telegram/Discord/WhatsApp/CLI, bring-any-model. |
-| **Autonomous execution** | [OpenClaw](https://github.com/openclaw/openclaw) — 302K★, the fastest-growing OSS project ever. Shell, file, browser grind. |
-| **Multi-agent deliverables + agent-builder** | [OpenSwarm](https://github.com/VRSEN/OpenSwarm) — vendored multi-agent deliverable production (slides, decks, research, charts, docs, images, video). Plus the **agent-builder agent**: tell Hermes "build me an SEO swarm" and the runtime forks the vendor, customizes via `claude_code` or `manual` customizer, validates, and registers a new fleet member with auto-routing. Per-swarm folder/port/.env/manifest. See [`vault/decisions/openswarm-runtime-adoption.md`](./vault/decisions/openswarm-runtime-adoption.md). |
-| **Structured browser** | [browser-use](https://github.com/browser-use/browser-use) — 50K★ AI-agent-grade browser automation. |
-| **Coding (interactive)** | Claude Code subagents — direct, in-repo. |
-| **Coding (background)** | OpenAI Codex CLI + [Aider](https://github.com/Aider-AI/aider) — multi-provider hedge so a single outage doesn't stop the press. |
-| **Visual autonomous workspace** | [Agent Zero](https://www.agent-zero.ai/) + A0 Connector — Dockerized web UI with host Mac bridge and Codex access. See [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) and [`runbooks/a0-connector.md`](./runbooks/a0-connector.md). |
-| **Raw desktop** | Anthropic Computer Use SDK. |
-| **Long-running cloud** | Anthropic Claude Managed Agents. |
-| **Sandboxed code** | E2B — clean VM per run. |
-| **Search** | Exa neural search for "find me 10 articles about X" without spinning up a browser. |
-| **Voice + realtime** | LiveKit + OpenAI Realtime API or Gemini Realtime API. |
-| **Quality flywheel** | Your own [agi-1](https://github.com/jbellsolutions/agi-1) — vendored, auto-updated nightly to itself. `/agi-audit`, `/agi-council`, `/agi-research`. |
-| **Observability** | Self-hosted Langfuse + optional NVIDIA NeMo Agent Toolkit — free, no surprise costs. |
-| **Memory** | Markdown vault → Supabase mirror. Single-state across every channel. |
-| **Introspection** | Manifest layer + MCP server + `/explain` skill — finally answers "how do you all tie together?" |
-| **Security wrapper** | NemoClaw vendored and parked until NVIDIA marks GA — flip the env var the day they do. |
-| **Optional cloud computer** | Orgo AI or equivalent managed machine only when a VPS/customer deployment needs an isolated visible desktop. See [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md). |
+| **Orchestrator** | Hermes — persistent memory, identity packs, planner + dispatcher + override surface |
+| **Channels** | Telegram bot (long-poll), web (HTTP A2A), Slack/voice scaffolded |
+| **Fan-out** | Coordinator service — model-pluggable, Temporal-wrapped, fan-out via Kimi K2.6 native or any model |
+| **Spawning** | Tier 1 (Railway via Archon, ~15 min) + Tier 2 (DigitalOcean VPS via SSH bootstrap, ~10 min) |
+| **Outbound** | Retell AI phone + Instantly.ai email — single COO Specialist brain, two channels, Tier 3 by default |
+| **Coding** | Claude Code subagents (interactive) + Codex CLI (background) + Aider (git-aware incremental) |
+| **Browser** | browser-use (structured) + Agent Zero (visual/autonomous, Dockerized) |
+| **Search** | Exa neural search |
+| **Sandbox** | E2B clean VM per run |
+| **Observability** | NATS event stream + AgentOps SDK auto-instrumentation across all 7 model backends |
+| **Tier gating** | tier_classifier.py rules, plan_card.py rendering, plan_overrides.py command parser |
+| **Identity** | YAML-defined identity packs with `tools_allowed` / `tools_denied` / `default_tier_ceiling` |
 
-## Commercial packaging
-
-- **Operator** — default. Hermes + Codex + core tools + gateway + vault + safe updates. Best for one internal operator/business.
-- **Pro Operator** — Operator plus Agent Zero/A0 and the default recommended Tier 1 tool pack when prerequisites pass: Peekaboo, macos-automator-mcp, gogcli, wacli, claude-code-mcp, agent-rules, mcporter.
-- **Enterprise** — isolated customer/project deployments, Railway/DigitalOcean/VPS discovery, cost caps, approval gates, optional Orgo/managed cloud computer.
-
-Orgo is never a default dependency. It is a premium Enterprise option when a customer/workspace needs an isolated visible cloud computer.
-
-See [`docs/commercial-packaging.md`](./docs/commercial-packaging.md).
-
-The differentiator isn't adopting Hermes + OpenClaw — anyone can do that. The differentiator is running them tied together with **daily auto-updates** and a **quality flywheel** and a **single-state accessibility layer** that makes Slack, Telegram, web text, and web voice feel like one agent. See [STORY.md](./STORY.md) for the why.
+Seven models in the registry: Claude Opus 4.7, Claude Sonnet 4.7, Claude Sonnet 4.6, GPT-5.5, Kimi K2, DeepSeek v4 Pro, Gemini 2.5 Pro. Architecture / debug / security work auto-pairs `gpt-5.5 ↔ claude-opus-4.7` for dual-frontier review. The model planner is rule-based and deterministic. No LLM call to pick the model.
 
 ---
 
-## The four "self-" pillars
+## Tier-gated UX (so you stay in control)
 
-| Pillar | Mechanism |
-|---|---|
-| **Self-healing** | Hermes heartbeat detects (heartbeats, validators, cron, API health, cost). Signature-match against `vault/genome/incidents.yaml`. Apply genome fix or 3-agent diagnostic council. Verify. Auto-promote recurring fixes. |
-| **Self-learning** | Every run writes binary assertions to `vault/runs/`. Nightly rollup detects plateau/regression. `/agi-research` evolves prompts via 5-variation tournament; promotes winner if it beats incumbent by ≥5pp. |
-| **Self-growing** | Upgrader pulls Hermes / OpenClaw / browser-use / Aider / Codex / agi-1 / awesome-hermes-agent nightly. New capabilities appear automatically. New MCP servers auto-discovered. |
-| **Self-skills** | Hermes natively saves successful approaches as reusable skills. agi-1 promotes high-confidence skills cross-project via the genome. |
-
-Concrete state machines for each in [`ARCHITECTURE.md`](./ARCHITECTURE.md). Not vibes.
-
----
-
-## Repo map
-
-```
-src/agent_os/
-├── orchestrator/    # Hermes wiring (boot, identities, vault-memory adapter, job router)
-├── runtimes/        # specialist tool belt — Hermes routes here per job tags
-│   ├── openclaw/    │   ├── openswarm/
-│   ├── browser_use/ │   ├── agent_zero/
-│   ├── computer_use/│   ├── claude_subagents/
-│   ├── codex_cli/   │   ├── aider/
-│   ├── claude_managed/ ├── e2b/
-│   ├── exa/         │   ├── livekit/
-│   └── terminal/
-├── manifest/        # introspection — graph aggregator, MCP server, /explain backend
-├── quality/         # agi-1 invocations — audit, council, autoresearch
-├── upgrader/        # nightly auto-update daemon (10 streams)
-├── channels/        # slack / telegram / web / voice — single-state guarantee
-└── observability/   # Langfuse + optional NVIDIA NeMo Agent Toolkit
-
-vendor/              # auto-updated upstream OSS — DO NOT EDIT
-├── hermes-agent/    │   ├── openclaw/         │   ├── openswarm/
-├── browser-use/     │   ├── aider/            │   ├── awesome-hermes-agent/
-├── agi-1/           │   └── nemoclaw/  (parked)
-
-vault/               # markdown source of truth → Supabase mirror
-├── conversations/   # cross-channel logs (single-state)
-├── runs/            # structured run artifacts
-├── incidents/       # self-healing record
-├── upgrades/        # nightly upgrade log
-├── skills/          # active + community-staged + templates
-├── genome/          # cross-project promoted patterns
-└── graph/           # generated by manifest aggregator
-
-packages/webapp/     # Next.js — streaming chat + voice mode
-packages/dashboard/  # Next.js — operator UI
-
-examples/            # vertical apps that consume agent-os
-├── sdr-fleet/
-├── content-engine/
-└── coo-control-room/
-
-.claude/skills/      # /agent-os, /explain, /route, /heal, /agi-audit, /agi-research, /manifest
-.claude/mcp.json     # registers the manifest MCP server locally
-
-deploy/              # Railway / Docker Compose / Fly.io templates
-```
-
----
-
-## Daily life
-
-Three things happen automatically every day, no human in the loop:
-
-1. **02:00** — the upgrader runs (11 streams). Pulls Hermes / OpenClaw / OpenSwarm / browser-use / Aider / Codex / agi-1 / awesome-hermes-agent. Smokes each (OpenSwarm's smoke replays each registered swarm's customization against the fresh vendor — catches "upstream change broke our build"). Promotes the green ones. Quarantines the red ones with a Slack alert. Logs to `vault/upgrades/<date>.yaml`.
-2. **02:30** — `/agi-audit` runs against the day's outputs. Scores `vault/runs/`. Flags regressions. Writes `vault/daily/<date>.md`.
-3. **Every 5 minutes** — the self-healing loop ticks. Polls heartbeats, validators, cron, API health, cost guardrails. Auto-fixes known patterns; spawns a council for unknown ones.
-
-You wake up. The system has improved itself a little. Yesterday's fixes are in the genome. Costs are under budget or you got a Slack alert at 80%. Repeat.
-
----
-
-## Status — verified at scaffold time
-
-```
-✓ uv sync                         # all packages install cleanly
-✓ uv run pytest -q                # 128 passed (OpenSwarm runtime + builder + ops + Slack)
-✓ uv run agent-os route --tags ...# router returns correct runtime per tag
-✓ uv run agent-os manifest        # 20 nodes, 57 edges built
-✓ git submodule status            # 8 submodules pinned (added vendor/openswarm)
-```
-
-What's stubbed (per [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md)):
-
-- **Stage 2** — real Hermes boot
-- **Stage 3** — real OpenClaw `invoke()`, then the other 10 specialists
-- **Stage 4** — real AGI-1 invocations
-- **Stage 5** — real upgrader smoke checks
-- **Stage 6** — real manifest MCP server
-- **Stages 7–9** — Slack/Telegram/web/voice channel wiring
-- **Stage 10** — deploy templates verified end-to-end
-- **Stage 11+** — vertical-app onboarding
-
-The 14 old framework repos remain live and untouched per Justin's call. They were the pattern that this repo exists to break.
-
----
-
-## OpenSwarm fleet — the agent-builder agent
-
-[OpenSwarm](https://github.com/VRSEN/OpenSwarm) is vendored at `vendor/openswarm` and wired in as the `runtime.openswarm` specialist. It's the only runtime that owns a *fleet* — Hermes can fork the vendor into N business-purpose-specific swarms (SEO, sales, ops, …), each with its own folder, port, `.env`, and manifest under `~/.agent-os/swarms/<name>/`. The fleet's registry, port allocator, and run logs all live under `~/.agent-os/swarms/registry.yaml` and `vault/runs/openswarm/`.
-
-What you actually type:
-
-```bash
-# Tag-based routing — Hermes auto-selects the runtime
-uv run agent-os route --tags build-swarm           # → openswarm
-uv run agent-os route --tags multi-deliverable     # → openswarm
-uv run agent-os route --tags slides+research+docs  # → openswarm
-
-# Direct invocation (Slack/Telegram/CLI all funnel through this)
-invoke({"op": "build", "name": "seo-swarm",
-        "description": "SEO research, competitor analysis, blog writing",
-        "customizer": "claude_code"})              # forks + customizes + validates
-invoke({"op": "run", "swarm": "seo-swarm", "prompt": "Write 3 BoFu posts on AI agents"})
-invoke({"op": "list"})                              # show fleet
-invoke({"op": "pipeline", "steps": [...]})          # cross-swarm sequential
-invoke({"op": "fan_out", "swarm": "default",
-        "prompts": [...]})                          # parallel variants
-
-# Slack slash commands (after gateway wiring)
-/build-swarm seo-swarm -- SEO research and blog writing
-/list-swarms
-```
-
-15 invoke ops total: `run`, `list`, `status`, `start`, `stop`, `restart`, `destroy`, `cleanup`, `cost`, `hibernate`, `snapshot`, `pipeline`, `fan_out`, `build`, `upgrade`. Three customizers (`noop` / `manual` / `claude_code`), three validators (`noop` / `health` / `smoke`). Atomic rollback on every failure path. Per-swarm budget guard with soft-warn at 80% and hard-block at 100%. Dashboard tile in `packages/dashboard/app/page.tsx` reads `vault/graph/openswarm.json`.
-
-Full design rationale, customizer/validator contracts, multi-instance correctness story, and verification checklist: [`vault/decisions/openswarm-runtime-adoption.md`](./vault/decisions/openswarm-runtime-adoption.md).
-
----
-
-## Tool awareness — every agent knows every tool
-
-Every agent in the stack — primary Hermes, sub-agents, identity-scoped operators (COO / GTM / Head of Ops) — boots with full awareness of every tool and runtime available, including when to use it, when not to, what it costs, what it risks, and which model should drive it. The system surfaces a **tool plan** at task entry so you see "I'll use X with model Y because Z" *before* anything runs.
-
-**Five layers, each readable by the planner and a human:**
-
-1. **Per-tool SKILL.md** under [`vault/skills/active/tools/`](./vault/skills/active/tools/) — one file per runtime (15 today: `hermes_self`, `openclaw`, `openswarm`, `browser_use`, `agent_zero`, `computer_use`, `claude_subagents`, `codex_cli`, `aider`, `claude_managed`, `e2b`, `exa`, `livekit`, `terminal`, `composio`). Frontmatter declares tier / cost_class / risk_class / preferred_models / category; the body explains *when to use*, *when NOT*, *alternatives*, *examples*. Hermes' router scores these on every prompt.
-2. **Machine-readable catalog** at [`vault/graph/tool-catalog.yaml`](./vault/graph/tool-catalog.yaml) — auto-generated by `agent-os catalog` from the SKILL.md frontmatter + runtime manifests + identity packs + model registry. Single source of truth for the planner, dashboard, `/explain`, and any future Hermes integration.
-3. **Tier classifier** ([`tier_classifier.py`](./src/agent_os/orchestrator/tier_classifier.py)) — heuristic that puts each job into Tier 1 (autonomous + banner), Tier 2 (plan card + 3s grace), or Tier 3 (hard stop, requires `YES`). Rules live in [`config/tiers.yaml`](./src/agent_os/orchestrator/config/tiers.yaml) — tunable without code changes.
-4. **Tool planner** ([`tool_planner.py`](./src/agent_os/orchestrator/tool_planner.py)) — scores the catalog against the job, filtered by the agent's identity bundle, returns a `ToolPlan` with primary tool + alternatives + tier + cost/time estimate + model recommendation.
-5. **Plan card + override surface** ([`plan_card.py`](./src/agent_os/orchestrator/plan_card.py) + [`plan_overrides.py`](./src/agent_os/orchestrator/adapters/plan_overrides.py)) — formats the plan per tier and parses interception commands.
-
-**Model layer ships in the same plan.** [`config/models.yaml`](./src/agent_os/orchestrator/config/models.yaml) registers seven models — Claude Opus 4.7, Claude Sonnet 4.7, Claude Sonnet 4.6, GPT-5.5, Kimi K2, **DeepSeek v4 Pro**, Gemini 2.5 Pro — with task-class tags, per-Mtok pricing, and dual-frontier review pairs (`gpt-5.5` ↔ `claude-opus-4.7`) for architecture / debug / security / auth / tests / deploy. The model planner ([`model_planner.py`](./src/agent_os/orchestrator/model_planner.py)) is rule-based and deterministic — no LLM call to pick the model.
-
-**Tier-gated UX** matches the principle "transparent when it matters, autonomous when it doesn't":
-
-| Tier | Trigger | Output |
+| Tier | When | What happens |
 |---|---|---|
-| **1** | Read-only, cheap, idempotent (search, status, explain, lookup) | One-line banner: `⚡ using openswarm · claude-opus-4.7` |
-| **2** | Mutates / substantive (build, write, generate, send) | 4-line plan card + 3-second grace window for `/cancel` or `/use <tool>` |
-| **3** | Destructive / public / expensive (deploy, delete, force-push, send-email, >$1.00) | Hard stop. Requires uppercase `YES` to proceed |
+| **1** | Read-only, cheap, idempotent | One-line banner: `⚡ using openswarm · claude-opus-4.7` |
+| **2** | Mutates / substantive | 4-line plan card, reply `yes` to run, or `/use <tool>` `/why` `/cancel` |
+| **3** | Destructive / public / >$1 | Hard stop. Reply `YES` (uppercase, deliberate) to proceed. |
 
-**Override surface** works in any channel (Slack/Telegram/CLI/web):
+Override commands work in any channel:
 
 | Command | Effect |
 |---|---|
-| `/cancel` | Abort the task |
-| `/use <tool>` | Replace primary tool; re-emit plan |
-| `/use <tool> <model>` | Replace both |
-| `/why` | 5-line rationale (reads SKILL.md + scoring breakdown) |
-| `/plan on` / `/plan off` | Per-session: emit cards for all tiers / only ≥2 |
-| `/tier 1\|2\|3` | Force this task to a tier (refused for destructive ops on tier 1) |
-| `YES` (uppercase) | Confirm a Tier 3 hard stop |
-
-**Identity packs filter the catalog.** Each identity in [`config/identities/`](./src/agent_os/orchestrator/config/identities/) declares `tools_allowed`, `tools_denied`, and `default_tier_ceiling`. A COO can use OpenSwarm for client decks but not Terminal for destructive infra — and a COO asking for a Tier 3 deploy gets `🚫 Blocked: requires primary_hermes approval` instead of an outright refusal. Escalation path is explicit.
-
-**What you actually type:**
-
-```bash
-# Show the plan card for a job (no execution)
-uv run agent-os plan --tags multi-deliverable --prompt "make me an investor deck"
-# → 📋 Plan: make me an investor deck
-#   • Tools: openswarm; alts: hermes_self
-#   • Model: claude-opus-4.7 (draft) → gpt-5.5 (review)
-#   • Tier 2 · ~$0.40 · ~10min · proceeding in 3s · /cancel /use <tool> /why
-
-uv run agent-os plan --tags deploy production --prompt "ship to prod"
-# → 🛑 Plan: ship to prod / Tier 3 · destructive · reply YES to proceed
-
-uv run agent-os plan --identity coo --tags deploy production
-# → 🚫 Blocked: identity 'coo' has default_tier_ceiling=2; this task is tier 3.
-
-# Inspect / classify / catalog / models
-uv run agent-os tier --tags read,explain                           # → tier 1
-uv run agent-os tool openswarm                                      # show one SKILL.md
-uv run agent-os catalog                                             # rebuild tool-catalog.yaml
-uv run agent-os models                                              # list all 7 registered models
-```
-
-**Use this layer in another project.** The whole tool-awareness layer is self-contained — ~1100 lines of pure Python, three YAML configs, fifteen markdown skills, no DB, no network calls. To incorporate it into a Hermes-style stack, a different Python orchestrator, or as a standalone library: read [`docs/tool-awareness-handoff.md`](./docs/tool-awareness-handoff.md). It includes the complete file inventory, six integration paths (from "import as a library" up to "full incorporation"), tunable configuration knobs, extension recipes (add a tool, add a model, add an identity), and a verification checklist.
-
-**Reference docs for this layer:**
-- [`docs/tool-awareness-handoff.md`](./docs/tool-awareness-handoff.md) — **full handoff doc** for incorporating this layer into another project
-- [`docs/tool-cheatsheet.md`](./docs/tool-cheatsheet.md) — auto-generated table of all 15 tools (tier / category / cost / risk / use-when)
-- [`vault/decisions/tool-awareness-and-model-routing.md`](./vault/decisions/tool-awareness-and-model-routing.md) — design rationale: why tier-gated transparency, why per-tool SKILL.md, why the model layer ships in the same plan
-- [`docs/routing-intelligence-contract.md`](./docs/routing-intelligence-contract.md) — authoritative human-language routing policy (model + backend + tool bundle)
+| `/cancel` | Abort the pending plan |
+| `/use <tool>` | Swap the runtime |
+| `/use <tool> <model>` | Swap both |
+| `/why` | 5-line rationale: tools scored, signals fired, model picked |
+| `/tier <1\|2\|3>` | Force this task to a tier |
+| `YES` (uppercase) | Confirm a Tier 3 |
 
 ---
 
-## The hard rules
+## What it costs
 
-- **Never edit `vendor/`.** It breaks the upgrader. Open an upstream PR or wrap in `src/agent_os/runtimes/`.
-- **Never start another framework wrapper.** New ideas go into a runtime adapter, a Hermes skill, or upstream.
-- **Single-state guarantee.** Every channel writes through `vault_memory` — no per-channel state.
-- **Smoke tests are non-negotiable for the upgrader.** A bad upstream commit silently promoted is the failure mode that takes the system down.
-- **Default to Hermes.** Specialist runtimes are exceptions, not defaults.
+| | Monthly |
+|---|---|
+| Railway (5 services: NATS, Temporal, Coordinator, Archon, Admiral) | ~$40 |
+| Anthropic API (light usage) | $5–50 |
+| Tier 2 superagent VPSes | $5/mo each, only when spawned |
+| Retell phone | $0.05/min when calling |
+| Instantly email | per-campaign |
+| AgentOps | free tier covers most usage |
+| **Floor** | **~$45/mo** |
 
-Full ethos: [`ETHOS.md`](./ETHOS.md). 5-question filter for adopting new tools: [`ECOSYSTEM-PLAYBOOK.md`](./ECOSYSTEM-PLAYBOOK.md). Migration map for the 14 old framework repos: [`MIGRATION-MAP.md`](./MIGRATION-MAP.md).
-
-New operator/runtime intake notes:
-
-- [`docs/commercial-packaging.md`](./docs/commercial-packaging.md) — Operator / Pro Operator / Enterprise packaging and setup contract.
-- [`docs/portfolio-agent-architecture.md`](./docs/portfolio-agent-architecture.md) — hub-and-spoke model for one primary Hermes plus specialist business agents.
-- [`docs/specialist-agent-operations.md`](./docs/specialist-agent-operations.md) — how specialist agents report to and receive tasks from the primary Hermes agent.
-- [`docs/deployments-inventory.md`](./docs/deployments-inventory.md) — redacted Railway/DigitalOcean inventory as discovered.
-- [`docs/portfolio-roadmap.md`](./docs/portfolio-roadmap.md) — near-term roadmap for Paperclip, COO specialist, deployment mapping, and specialist-agent sequencing.
-- [`docs/symphony-intake.md`](./docs/symphony-intake.md) — OpenAI Symphony/harness-engineering evaluation for coding-agent orchestration.
-- [`docs/builder-swarm-harness.md`](./docs/builder-swarm-harness.md) — lightweight Symphony-style builder swarm contract without making Symphony a default dependency.
-- [`docs/deployment-health-specialist.md`](./docs/deployment-health-specialist.md) — first specialist-agent pilot: observe/report health, costs, ownership, and broken deployments.
-- [`docs/coo-single-brain-rebuild.md`](./docs/coo-single-brain-rebuild.md) — rebuild plan for the business-only Single Brain COO using Super Agent, Paperclip, and the existing COO assets.
-- [`docs/cursor-sdk-intake.md`](./docs/cursor-sdk-intake.md) — Cursor TypeScript SDK intake as an optional builder-swarm backend.
-- [`docs/builder-tool-architecture.md`](./docs/builder-tool-architecture.md) — coherent tool composition model for Hermes, Paperclip, Symphony, Cursor SDK, Codex, OpenClaw, Composio, and browser/computer tools.
-- [`docs/hermes-first-install-walkthrough.md`](./docs/hermes-first-install-walkthrough.md) — Hermes-first setup path for fresh computers, including Zions/customer installs, model setup, shared brain sync, tiered tools, and verification.
-- [`docs/private-bootstrap-overlay.md`](./docs/private-bootstrap-overlay.md) — public/product-safe pattern for a separate private encrypted bootstrap repo that can spin up internal agents without re-entering shared credentials.
-- [`docs/routing-intelligence-contract.md`](./docs/routing-intelligence-contract.md) — model/backend/tool routing policy so agents know what to call, when, and with which scoped permissions.
-- [`docs/tool-awareness-handoff.md`](./docs/tool-awareness-handoff.md) — full handoff document for the Phase F tool awareness layer: file inventory, six integration paths, configuration knobs, extension recipes, and verification. The reference for incorporating this layer into another project.
-- [`docs/vault-sync-contract.md`](./docs/vault-sync-contract.md) — mandatory bidirectional Obsidian + Notion sync contract for conversations, actions, decisions, health reports, agent activity, and shared-context retrieval.
-- [`templates/WORKFLOW.md`](./templates/WORKFLOW.md) — copyable coding-agent workflow contract for commercial/customer repos.
-- [`runbooks/deployment-access.md`](./runbooks/deployment-access.md) — safe Railway/DigitalOcean access and read-only inventory workflow.
-- [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) — exact Agent Zero install and verification path that worked locally.
-- [`runbooks/a0-connector.md`](./runbooks/a0-connector.md) — exact A0 host-bridge setup, launchd persistence, and Codex exposure.
-- [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md) — when a cloud computer like Orgo AI is valuable vs unnecessary cost.
-- [`docs/steipete-tool-intake.md`](./docs/steipete-tool-intake.md) — prioritized intake of Peter/steipete tools for Super Agent.
+No surprise costs. The Coordinator has hard caps (`COORDINATOR_MAX_SUBTASKS`, `COORDINATOR_MAX_RETAINED`) so a hostile or confused prompt can't melt your bill. Cost guardrails fire a NATS alert at 80% and hard-block at 100%.
 
 ---
 
-## Reading order if you're new
+## Status
 
-1. [`docs/hermes-first-install-walkthrough.md`](./docs/hermes-first-install-walkthrough.md) — fresh-machine Hermes install and Super Agent setup path. Use this first for Zions/customer installs. ~10 min.
-2. [`STORY.md`](./STORY.md) — why this exists. ~5 min.
-3. This README. ~3 min.
-4. [`LAUNCH.md`](./LAUNCH.md) — get it running. ~5 min.
-5. [`ARCHITECTURE.md`](./ARCHITECTURE.md) — the system shape, the four self-pillars in detail, the routing rules. ~10 min.
-6. [`ETHOS.md`](./ETHOS.md) + [`ECOSYSTEM-PLAYBOOK.md`](./ECOSYSTEM-PLAYBOOK.md) — the discipline that keeps the pathology from coming back. ~5 min.
-7. [`docs/commercial-packaging.md`](./docs/commercial-packaging.md) + [`docs/portfolio-agent-architecture.md`](./docs/portfolio-agent-architecture.md) — sellable tiers and multi-agent structure. ~10 min.
-8. [`runbooks/agent-zero.md`](./runbooks/agent-zero.md) + [`runbooks/a0-connector.md`](./runbooks/a0-connector.md) — reproduce the local Agent Zero/A0/Codex bridge. ~10 min.
-9. [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md) + [`docs/steipete-tool-intake.md`](./docs/steipete-tool-intake.md) — expansion decisions. ~10 min.
-10. [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md) — what ships in which session. ~5 min.
-11. [`vault/decisions/openswarm-runtime-adoption.md`](./vault/decisions/openswarm-runtime-adoption.md) — OpenSwarm runtime + agent-builder design rationale, multi-instance correctness, verification. ~10 min.
-12. [`docs/tool-awareness-handoff.md`](./docs/tool-awareness-handoff.md) — **incorporate the tool awareness layer into another project.** Six integration paths, file inventory, configuration knobs, extension recipes, verification. ~15 min. Use this when you want what's in the "Tool awareness" section above to live in a different codebase.
+The fabric is shipped behind 320 passing unit + smoke + integration tests. The seven recent architectural fixes (loop 20) wired the planner output through dispatch, switched A2A delegation to plain REST, fixed the email-routing gap, aligned model defaults across runtimes, and split Admiral vs worker roles so spawned VPSes don't fight for the Telegram bot token. Commit history is real — every "loop" is a discrete fix bundle with its own test sweep.
+
+What's stubbed (and clearly marked in `docs/EXECUTION-PLAN.md`):
+
+- The auto-update daemon ("self-growing") — wiring exists, the nightly cron is opt-in
+- The quality flywheel ("self-learning") — `/agi-research` skill works on demand, the nightly auto-rollup is opt-in
+- The self-healing loop — heartbeat + alert path is live, the auto-fix step from the genome library is on the next milestone
+
+The five capabilities at the top of this README are live. The four "self-" pillars are real but partially manual today. Don't let anyone tell you otherwise.
+
+---
+
+## Reading order
+
+1. [QUICKSTART.md](QUICKSTART.md) — get it running, ~30 min
+2. [SETUP.md](SETUP.md) — what `setup.sh` and `deploy.sh` do under the hood
+3. [ARCHITECTURE.md](ARCHITECTURE.md) — the system shape, planner contracts, dispatch flow
+4. [STORY.md](STORY.md) — why this exists, the 14 frameworks it replaced
+5. [ETHOS.md](ETHOS.md) — the rules that keep it from sprawling again
+6. [SECURITY.md](SECURITY.md) — secret model, threat surface, where to send disclosures
+7. `vault/decisions/` — every non-obvious choice, with the rationale and the alternative considered
+
+---
+
+## Hard rules
+
+- **Never edit `vendor/`.** Open an upstream PR or wrap in `src/agent_os/runtimes/`.
+- **Never start another framework wrapper.** New ideas land as runtime adapters, Hermes skills, or upstream contributions.
+- **Single-state guarantee.** Every channel writes through the vault adapter. No per-channel state.
+- **Default to Hermes.** Specialist runtimes are exceptions, not defaults. The planner enforces this.
+- **Tier 3 always asks for YES.** No exceptions, no autopilot, no "the user already said yes once."
+
+---
 
 ## License
 
-MIT.
+MIT. Use it, fork it, ship it.
+
+Security disclosures: [SECURITY.md](SECURITY.md).
+
+Built by [Justin Bell](https://github.com/jbellsolutions). Architecture review credits in `vault/decisions/`.
