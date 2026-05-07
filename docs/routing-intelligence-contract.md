@@ -1,6 +1,8 @@
 # Routing Intelligence Contract
 
-_Last updated: 2026-05-02_
+_Last updated: 2026-05-07_
+
+> **Programmatic enforcement (Phase F):** This document is the authoritative policy. The runtime read-side now ships in [`vault/skills/active/tools/`](../vault/skills/active/tools/) (per-tool SKILL.md), [`vault/graph/tool-catalog.yaml`](../vault/graph/tool-catalog.yaml) (machine-readable), and the planner stack in [`src/agent_os/orchestrator/`](../src/agent_os/orchestrator/) (tier_classifier, tool_planner, model_planner, plan_card). Use `agent-os plan` / `agent-os tier` / `agent-os tool <name>` / `agent-os models` to verify routing without invoking. Decision record: [`vault/decisions/tool-awareness-and-model-routing.md`](../vault/decisions/tool-awareness-and-model-routing.md).
 
 ## Purpose
 
@@ -69,7 +71,18 @@ Especially strong for:
 - deployment logic
 - high-stakes coding decisions
 
-### DeepSeek
+### Claude Sonnet 4.6 / 4.7
+
+Default conversational + light orchestration model. Use for:
+
+- normal Hermes turn handling and routing decisions
+- short-to-medium responses where Opus is overkill
+- subagent delegation where the parent reasoning sits in Opus
+- everyday content that doesn't need brand-tier polish
+
+Sonnet is the cheapest Anthropic tier ($3/$15 per Mtok) that still handles tool-use, vision, and chain-of-tool reasoning cleanly. Tier-1 banners default to Sonnet; Tier-2/3 plans escalate to Opus when the task class warrants it.
+
+### DeepSeek v4 Pro
 
 Use for:
 
@@ -79,6 +92,30 @@ Use for:
 - repetitive refactors
 - data extraction/cleanup
 - worker/scheduler subtasks
+
+DeepSeek v4 Pro ($0.27/$1.10 per Mtok) replaces the older v3 line as the cheap-coding default when Kimi K2's long-context strengths aren't needed. Both are eligible for builder-worker bundles.
+
+### Kimi K2
+
+Use for:
+
+- cheap mechanical coding with very long context (100k+ tokens of source)
+- bulk refactors across many files in one pass
+- long-document analysis where Opus is too expensive to fan out
+- background grind tasks that are test-protected
+
+Kimi K2 ($0.15/$2.50 per Mtok via OpenRouter) sits alongside DeepSeek v4 Pro in the cheap-coding tier. Pick Kimi when the task is context-dominated; pick DeepSeek when it's logic-dominated.
+
+### Gemini 2.5 Pro
+
+Use for:
+
+- multimodal research (images + PDFs + screenshots in one prompt)
+- very-long-context document synthesis (1M-token window)
+- cross-document grounding where the source set doesn't fit Opus
+- pre-deck research passes that aggregate dozens of pages
+
+Gemini 2.5 Pro ($1.25/$5 per Mtok) is the long-context multimodal complement to the dual-frontier pair — used in research + synthesis legs of OpenSwarm pipelines, not architecture/security judgment.
 
 ### Cursor Composer / Cursor models
 
@@ -221,7 +258,7 @@ Agents should receive role-specific bundles.
 route_request:
   task_type: architecture|debugging|content|design|mechanical_coding|deployment_health|business_ops|browser_task
   risk: low|medium|high|critical
-  preferred_model: auto|gpt-5.5|opus-4.7|deepseek
+  preferred_model: auto|gpt-5.5|claude-opus-4.7|claude-sonnet-4.7|claude-sonnet-4.6|deepseek-v4-pro|kimi-k2|gemini-2.5-pro
   backend: auto|codex|claude_code|cursor_sdk|hermes_subagent|openclaw|browser_use|agent_zero|orgo
   tool_bundle: primary_hermes|coo|paperclip_company|builder|deployment_health
   proof_required: []
@@ -232,6 +269,8 @@ route_request:
     - repo
     - paperclip
 ```
+
+The runtime model registry that backs `preferred_model: auto` lives at [`src/agent_os/orchestrator/config/models.yaml`](../src/agent_os/orchestrator/config/models.yaml) — edit pricing and task-class tags there, not in this document.
 
 ## Important answer: does everything have access to everything?
 

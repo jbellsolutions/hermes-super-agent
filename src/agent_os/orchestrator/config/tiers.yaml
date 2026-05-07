@@ -1,0 +1,68 @@
+# Tier classification rules.
+#
+# Tier 1: autonomous + banner only. Read-only, idempotent, cheap.
+# Tier 2: plan card + grace timer. Mutates state, costs noticeable, multi-step.
+# Tier 3: hard stop, requires explicit confirm. Destructive, public, expensive.
+#
+# Tunable without code changes — read by tier_classifier.py.
+
+tier_3_tags:
+  - deploy
+  - delete
+  - destroy
+  - drop-table
+  - force-push
+  - publish
+  - send-email
+  - post-public
+  - ssh-prod
+  - merge-main
+  - revoke
+  - credential-rotate
+  - production-write
+  - rm-rf
+
+tier_3_pairs:                   # any pair of tags both present → tier 3
+  - [production, write]
+  - [production, deploy]
+  - [production, send]
+  - [prod, write]
+  - [prod, deploy]
+  - [prod, send]
+  - [main, force-push]
+
+tier_1_tags:
+  - read
+  - search
+  - explain
+  - status
+  - list
+  - route
+  - lookup
+  - introspect
+  - audit-readonly
+  - manifest
+  - help
+
+tier_3_cost_threshold_usd: 1.00
+tier_2_cost_threshold_usd: 0.05    # >= this and < tier_3_cost → tier 2
+tier_1_cost_threshold_usd: 0.05    # < this → tier 1 (if no other signal)
+
+tier_3_estimated_minutes: 60       # >= 60 minutes → tier 3 unless auto-recurring
+tier_2_estimated_minutes: 5        # >= 5 minutes → at least tier 2
+
+# Tags that imply mutation (lifts to tier 2 even if cheap)
+mutation_tags:
+  - write
+  - edit
+  - build
+  - run
+  - generate
+  - send
+  - create
+  - update
+  - upload
+  - commit
+  - push
+  - pr
+  - issue-create

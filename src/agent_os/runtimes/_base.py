@@ -23,6 +23,11 @@ class RuntimeResult:
     cost_usd: float = 0.0
     latency_ms: int = 0
     assertions: dict[str, bool] = field(default_factory=dict)
+    # Optional: the ToolPlan that produced this run, persisted alongside the
+    # result so vault artifacts carry "why this tool was chosen". Populated
+    # when the orchestrator feeds a plan into invoke(). Field is dict to
+    # avoid coupling _base.py to tool_planner.ToolPlan.
+    plan: dict[str, Any] | None = None
 
 
 def write_run_artifact(result: RuntimeResult) -> Path:

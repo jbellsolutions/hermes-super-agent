@@ -11,3 +11,15 @@ slack_channels: [ops, sdr]
 skills_priority:
   - cron-recovery
   - pipeline-rollup
+tools_allowed:
+  - hermes_self
+  - exa
+  - composio          # crm/email/cal/sheets for pipeline
+  - openswarm         # weekly ops reports
+  - browser_use
+  - terminal          # cron + retry scripts
+tools_denied:
+  - claude_managed    # no autonomous long jobs without approval
+  - e2b
+  - computer_use
+default_tier_ceiling: 2
