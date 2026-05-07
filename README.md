@@ -291,7 +291,13 @@ uv run agent-os catalog                                             # rebuild to
 uv run agent-os models                                              # list all 7 registered models
 ```
 
-Human-readable cheatsheet for the whole tool fleet: [`docs/tool-cheatsheet.md`](./docs/tool-cheatsheet.md). Full design rationale, why tier-gated transparency vs always-emit, why per-tool SKILL.md vs grouped categories, and verification checklist: [`vault/decisions/tool-awareness-and-model-routing.md`](./vault/decisions/tool-awareness-and-model-routing.md). Authoritative routing policy (model + backend + tool bundle): [`docs/routing-intelligence-contract.md`](./docs/routing-intelligence-contract.md).
+**Use this layer in another project.** The whole tool-awareness layer is self-contained — ~1100 lines of pure Python, three YAML configs, fifteen markdown skills, no DB, no network calls. To incorporate it into a Hermes-style stack, a different Python orchestrator, or as a standalone library: read [`docs/tool-awareness-handoff.md`](./docs/tool-awareness-handoff.md). It includes the complete file inventory, six integration paths (from "import as a library" up to "full incorporation"), tunable configuration knobs, extension recipes (add a tool, add a model, add an identity), and a verification checklist.
+
+**Reference docs for this layer:**
+- [`docs/tool-awareness-handoff.md`](./docs/tool-awareness-handoff.md) — **full handoff doc** for incorporating this layer into another project
+- [`docs/tool-cheatsheet.md`](./docs/tool-cheatsheet.md) — auto-generated table of all 15 tools (tier / category / cost / risk / use-when)
+- [`vault/decisions/tool-awareness-and-model-routing.md`](./vault/decisions/tool-awareness-and-model-routing.md) — design rationale: why tier-gated transparency, why per-tool SKILL.md, why the model layer ships in the same plan
+- [`docs/routing-intelligence-contract.md`](./docs/routing-intelligence-contract.md) — authoritative human-language routing policy (model + backend + tool bundle)
 
 ---
 
@@ -321,6 +327,7 @@ New operator/runtime intake notes:
 - [`docs/hermes-first-install-walkthrough.md`](./docs/hermes-first-install-walkthrough.md) — Hermes-first setup path for fresh computers, including Zions/customer installs, model setup, shared brain sync, tiered tools, and verification.
 - [`docs/private-bootstrap-overlay.md`](./docs/private-bootstrap-overlay.md) — public/product-safe pattern for a separate private encrypted bootstrap repo that can spin up internal agents without re-entering shared credentials.
 - [`docs/routing-intelligence-contract.md`](./docs/routing-intelligence-contract.md) — model/backend/tool routing policy so agents know what to call, when, and with which scoped permissions.
+- [`docs/tool-awareness-handoff.md`](./docs/tool-awareness-handoff.md) — full handoff document for the Phase F tool awareness layer: file inventory, six integration paths, configuration knobs, extension recipes, and verification. The reference for incorporating this layer into another project.
 - [`docs/vault-sync-contract.md`](./docs/vault-sync-contract.md) — mandatory bidirectional Obsidian + Notion sync contract for conversations, actions, decisions, health reports, agent activity, and shared-context retrieval.
 - [`templates/WORKFLOW.md`](./templates/WORKFLOW.md) — copyable coding-agent workflow contract for commercial/customer repos.
 - [`runbooks/deployment-access.md`](./runbooks/deployment-access.md) — safe Railway/DigitalOcean access and read-only inventory workflow.
@@ -344,6 +351,7 @@ New operator/runtime intake notes:
 9. [`docs/cloud-computer-options.md`](./docs/cloud-computer-options.md) + [`docs/steipete-tool-intake.md`](./docs/steipete-tool-intake.md) — expansion decisions. ~10 min.
 10. [`docs/EXECUTION-PLAN.md`](./docs/EXECUTION-PLAN.md) — what ships in which session. ~5 min.
 11. [`vault/decisions/openswarm-runtime-adoption.md`](./vault/decisions/openswarm-runtime-adoption.md) — OpenSwarm runtime + agent-builder design rationale, multi-instance correctness, verification. ~10 min.
+12. [`docs/tool-awareness-handoff.md`](./docs/tool-awareness-handoff.md) — **incorporate the tool awareness layer into another project.** Six integration paths, file inventory, configuration knobs, extension recipes, verification. ~15 min. Use this when you want what's in the "Tool awareness" section above to live in a different codebase.
 
 ## License
 
