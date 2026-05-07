@@ -107,6 +107,10 @@ def create_a2a_app(agent_id: str | None = None, base_url: str | None = None):  #
     _card = build_card(agent_id=_agent_id, base_url=base_url)
 
     # Spawn the Telegram bot + AgentOps init when the app starts.
+    # Role gate: only the Admiral runs human-channel listeners. Spawned
+    # superagents/specialists run as 'worker' so they never compete on
+    # the same TELEGRAM_BOT_TOKEN long-poll (Telegram allows one).
+    _role = os.getenv("HERMES_ROLE", "admiral").lower()
     from contextlib import asynccontextmanager
 
     @asynccontextmanager
@@ -114,20 +118,23 @@ def create_a2a_app(agent_id: str | None = None, base_url: str | None = None):  #
         # Observability — auto-instrument LLM calls when AGENTOPS_API_KEY is set
         try:
             from agent_os.observability.agentops.client import init_agentops
-            init_agentops(agent_id=_agent_id, tags=["admiral", "a2a-server"])
+            init_agentops(agent_id=_agent_id, tags=[_role, "a2a-server"])
         except Exception as exc:
             logger.debug("AgentOps init skipped: %s", exc)
 
-        # Telegram bot + NATS alert forwarder. Both no-op cleanly when
-        # their dependencies aren't configured (TELEGRAM_BOT_TOKEN, NATS_URL).
         background_tasks: list[asyncio.Task] = []
-        try:
-            from agent_os.channels.telegram.bot import run_alert_forwarder, run_bot
-            background_tasks.append(asyncio.create_task(run_bot()))
-            background_tasks.append(asyncio.create_task(run_alert_forwarder()))
-            logger.info("Telegram bot + alert forwarder spawned")
-        except Exception as exc:
-            logger.warning("Background tasks did not start: %s", exc)
+        if _role == "admiral":
+            # Telegram bot + NATS alert forwarder. Both no-op cleanly when
+            # their dependencies aren't configured (TELEGRAM_BOT_TOKEN, NATS_URL).
+            try:
+                from agent_os.channels.telegram.bot import run_alert_forwarder, run_bot
+                background_tasks.append(asyncio.create_task(run_bot()))
+                background_tasks.append(asyncio.create_task(run_alert_forwarder()))
+                logger.info("Telegram bot + alert forwarder spawned (role=admiral)")
+            except Exception as exc:
+                logger.warning("Background tasks did not start: %s", exc)
+        else:
+            logger.info("HERMES_ROLE=%s — Telegram bot/alert forwarder NOT started", _role)
 
         try:
             yield
@@ -208,35 +215,64 @@ async def _dispatch_task(task: A2ATask, prompt: str, agent_id: str) -> None:
 
     try:
         # Build a Job and run through the Phase F planner stack
-        from agent_os.orchestrator.adapters.job_router import Job, route
+        from agent_os.orchestrator.adapters.job_router import Job, dispatch
         from agent_os.orchestrator.tool_planner import plan
         from agent_os.orchestrator.plan_card import render_markdown
 
-        tags = set(task.message.get("metadata", {}).get("tags", "").split(","))
-        tags.discard("")
+        meta = dict(task.message.get("metadata", {}) or {})
+        tag_str = meta.pop("tags", "") if isinstance(meta.get("tags"), str) else ""
+        tags = {t.strip() for t in tag_str.split(",") if t.strip()}
 
-        job = Job(prompt=prompt, tags=tags)
+        # Stringify any non-string metadata values — Job.metadata is dict[str, str].
+        clean_meta: dict[str, str] = {}
+        for k, v in meta.items():
+            if v is None:
+                continue
+            clean_meta[str(k)] = v if isinstance(v, str) else str(v)
+
+        job = Job(prompt=prompt, tags=tags, metadata=clean_meta)
         tool_plan = plan(job)
         plan_card_md = render_markdown(tool_plan)
 
         task.plan_card = plan_card_md
-        runtime = route(job)
-
-        task.set_status(TaskStatus.COMPLETED, result={
-            "runtime": runtime,
-            "planCard": plan_card_md,
-            "tier": tool_plan.tier,
-            "model": tool_plan.model_recommendation,
-        })
         task.artifacts.append({
             "type": "text/markdown",
             "content": plan_card_md,
             "title": "Plan Card",
         })
 
+        # Tier 3 hard-stop: don't execute without explicit confirmation upstream.
+        # Tier 3 confirmations come through the channel adapter (Telegram), not /messages.
+        if tool_plan.tier >= 3 or tool_plan.blocked_reason:
+            task.set_status(TaskStatus.SUBMITTED, result={
+                "planCard": plan_card_md,
+                "tier": tool_plan.tier,
+                "blocked_reason": tool_plan.blocked_reason,
+                "needs_confirmation": True,
+                "primary_tool": tool_plan.primary_tool,
+                "model": tool_plan.model_recommendation,
+            })
+            publish_event(f"agents.{agent_id}.task.needs_human", {
+                "task_id": task.task_id,
+                "tier": tool_plan.tier,
+                "primary_tool": tool_plan.primary_tool,
+            })
+            return
+
+        # Dispatch through the orchestrator — honors plan.primary_tool / model.
+        result = await dispatch(job, plan=tool_plan)
+
+        task.set_status(TaskStatus.COMPLETED, result={
+            "runtime": tool_plan.primary_tool,
+            "planCard": plan_card_md,
+            "tier": tool_plan.tier,
+            "model": tool_plan.model_recommendation,
+            "output": result,
+        })
+
         publish_event(f"agents.{agent_id}.task.completed", {
             "task_id": task.task_id,
-            "runtime": runtime,
+            "runtime": tool_plan.primary_tool,
             "tier": tool_plan.tier,
         })
 

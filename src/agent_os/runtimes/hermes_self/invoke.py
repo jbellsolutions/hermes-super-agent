@@ -26,20 +26,32 @@ logger = logging.getLogger(__name__)
 
 
 def _default_model() -> str:
+    """Final fallback — must match `default` task_class in config/models.yaml."""
     return (
         os.getenv("HERMES_DEFAULT_MODEL")
         or os.getenv("COORDINATOR_DEFAULT_MODEL")
-        or "claude-sonnet-4-5"
+        or "claude-sonnet-4.7"
     )
 
 
 def invoke(job) -> RuntimeResult:
-    """Run a single LLM call for the job's prompt."""
+    """Run a single LLM call for the job's prompt.
+
+    Model selection precedence (highest first):
+      1. job.metadata['model']                — caller pinned a model
+      2. job.metadata['model_recommendation'] — planner's pick
+      3. HERMES_DEFAULT_MODEL env             — deployment default
+      4. COORDINATOR_DEFAULT_MODEL env        — fleet-wide fallback
+      5. claude-sonnet-4.7                    — final fallback (matches models.yaml)
+    """
     t0 = time.time()
     job_id = new_job_id()
 
     prompt = getattr(job, "prompt", None) or (job.get("prompt") if isinstance(job, dict) else "")
-    model = (getattr(job, "metadata", {}) or {}).get("model") or _default_model()
+    meta = getattr(job, "metadata", None) or {}
+    if not isinstance(meta, dict):
+        meta = {}
+    model = meta.get("model") or meta.get("model_recommendation") or _default_model()
 
     if not prompt:
         return _result(job_id, "error", {"error": "empty prompt"}, t0)
