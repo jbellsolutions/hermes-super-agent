@@ -208,6 +208,30 @@ def _cmd_doctor() -> int:
         except Exception as exc:
             check("Telegram API reachable", False, str(exc)[:60], critical=False)
 
+    # Anthropic — verify the key actually authenticates without spending tokens
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if anthropic_key:
+        try:
+            import httpx
+            # GET /v1/models is a free endpoint that validates the key
+            r = httpx.get(
+                "https://api.anthropic.com/v1/models",
+                headers={"x-api-key": anthropic_key, "anthropic-version": "2023-06-01"},
+                timeout=5,
+            )
+            check(f"Anthropic key valid (HTTP {r.status_code})", r.status_code == 200,
+                  "key rejected" if r.status_code in (401, 403) else f"got {r.status_code}",
+                  critical=False)
+        except Exception as exc:
+            check("Anthropic API reachable", False, str(exc)[:60], critical=False)
+
+    # If TELEGRAM_BOT_TOKEN is set but TELEGRAM_CHAT_ID isn't, surface this loudly:
+    # the bot will silently refuse messages, which is the correct behavior but
+    # confusing without explanation.
+    if tg_token and not os.getenv("TELEGRAM_CHAT_ID"):
+        print(f"  {warn} TELEGRAM_BOT_TOKEN is set but TELEGRAM_CHAT_ID is empty —")
+        print(f"    {D}the bot will refuse all messages until you set your chat ID.{END}")
+
     print()
     if failures == 0:
         print(f"  {ok} all critical checks passed")

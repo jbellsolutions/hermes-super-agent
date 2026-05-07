@@ -106,20 +106,22 @@ def create_a2a_app(agent_id: str | None = None, base_url: str | None = None):  #
         except Exception as exc:
             logger.debug("AgentOps init skipped: %s", exc)
 
-        # Telegram bot — long-polls if TELEGRAM_BOT_TOKEN is set, else no-op
-        bot_task = None
+        # Telegram bot + NATS alert forwarder. Both no-op cleanly when
+        # their dependencies aren't configured (TELEGRAM_BOT_TOKEN, NATS_URL).
+        background_tasks: list[asyncio.Task] = []
         try:
-            from agent_os.channels.telegram.bot import run_bot
-            bot_task = asyncio.create_task(run_bot())
-            logger.info("Telegram bot task spawned")
+            from agent_os.channels.telegram.bot import run_alert_forwarder, run_bot
+            background_tasks.append(asyncio.create_task(run_bot()))
+            background_tasks.append(asyncio.create_task(run_alert_forwarder()))
+            logger.info("Telegram bot + alert forwarder spawned")
         except Exception as exc:
-            logger.warning("Telegram bot did not start: %s", exc)
+            logger.warning("Background tasks did not start: %s", exc)
 
         try:
             yield
         finally:
-            if bot_task is not None:
-                bot_task.cancel()
+            for t in background_tasks:
+                t.cancel()
 
     app = FastAPI(title=f"A2A — {_agent_id}", version="1.0.0", lifespan=_lifespan)
 
