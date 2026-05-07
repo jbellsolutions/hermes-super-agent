@@ -1,0 +1,138 @@
+# Fleet Agent Registry
+#
+# Authoritative record of every agent in the fleet.
+# Admiral reads this at boot and after any spawn event.
+#
+# Fields per agent:
+#   id:           unique agent identifier (matches NATS subject prefix)
+#   tier:         1 (specialist) | 2 (superagent with sub-fleet)
+#   runtime:      job_router RuntimeName that dispatches to this agent
+#   status:       active | inactive | provisioning | degraded
+#   a2a_endpoint: base URL for A2A HTTP routes (/agentCard, /messages, /tasks/{id})
+#   nats_subject: NATS subject prefix (agents.<id>.*)
+#   vps_ip:       VPS IP for Tier 2 superagents; empty for Railway Tier 1
+#   railway_service: Railway service name for Tier 1 agents
+#   model:        primary model (from models.yaml)
+#   tags:         routing tags this agent handles
+#   created_at:   ISO-8601 timestamp
+#   created_by:   admiral | manual
+
+agents:
+
+  - id: admiral
+    tier: 2
+    runtime: hermes_self
+    status: active
+    a2a_endpoint: "${HERMES_BASE_URL:-http://localhost:8080}"
+    nats_subject: "agents.admiral.*"
+    vps_ip: ""
+    railway_service: agentstack-hermes
+    model: claude-sonnet-4.7
+    tags:
+      - orchestrate
+      - plan
+      - route
+      - spawn-specialist
+      - spawn-superagent
+    created_at: "2026-05-07T00:00:00Z"
+    created_by: manual
+    notes: >
+      Admiral Hermes — the primary orchestrator. Receives all Telegram messages,
+      runs tier_classifier → tool_planner → model_planner → job_router.
+      A2A endpoint serves /agentCard so external agents can delegate back to Admiral.
+
+  - id: kimi-k2-coordinator
+    tier: 1
+    runtime: kimi_coordinator
+    status: inactive
+    a2a_endpoint: "${KIMI_COORDINATOR_URL:-}"
+    nats_subject: "agents.kimi-coordinator.*"
+    vps_ip: ""
+    railway_service: ""
+    model: kimi-k2-coordinator
+    tags:
+      - fan-out
+      - kimi
+      - swarm-coordinator
+      - parallel
+      - batch
+    created_at: "2026-05-07T00:00:00Z"
+    created_by: manual
+    notes: >
+      Kimi K2.6 Swarm Coordinator — deployed service (not a Railway service in this
+      repo). Wraps Moonshot API to run up to 300 parallel sub-agents.
+      Set KIMI_COORDINATOR_URL to activate. Status will update to 'active'
+      once first heartbeat is received on NATS.
+
+  - id: coo-specialist
+    tier: 1
+    runtime: retell_channel
+    status: inactive
+    a2a_endpoint: ""
+    nats_subject: "agents.coo-specialist.*"
+    vps_ip: ""
+    railway_service: ""
+    model: claude-sonnet-4.7
+    tags:
+      - phone
+      - outbound-phone
+      - email
+      - outbound-email
+      - retell
+      - instantly
+      - cold-email
+      - coo-specialist
+    created_at: "2026-05-07T00:00:00Z"
+    created_by: manual
+    notes: >
+      COO Specialist Hermes — same brain, two outbound channels.
+      phone/retell tags → Retell AI API (RETELL_API_KEY + RETELL_AGENT_ID).
+      email/instantly tags → Instantly.ai API (INSTANTLY_API_KEY).
+      Both channels are Tier 3 (hard stop, explicit YES required).
+
+  - id: archon-builder
+    tier: 1
+    runtime: a2a_delegate
+    status: inactive
+    a2a_endpoint: "${ARCHON_A2A_URL:-}"
+    nats_subject: "agents.archon-builder.*"
+    vps_ip: ""
+    railway_service: ""
+    model: claude-sonnet-4.7
+    tags:
+      - build-specialist
+      - archon
+      - agent-gen
+      - spawn-specialist
+    created_at: "2026-05-07T00:00:00Z"
+    created_by: manual
+    notes: >
+      Archon meta-agent — receives natural-language specialist specs and generates
+      AGENT.md + skill definitions + Railway deploy config. Admiral delegates
+      'build-specialist' tagged jobs to this A2A endpoint, then takes the output
+      and deploys via Railway API. Set ARCHON_A2A_URL to activate.
+
+# ---------------------------------------------------------------------------
+# Superagent slots — populated by spawner.py at spawn time
+# ---------------------------------------------------------------------------
+# When a Tier 2 superagent is spawned, spawner.py appends an entry here:
+#
+#   - id: cold-email-superagent
+#     tier: 2
+#     runtime: vps_spawn
+#     status: active
+#     a2a_endpoint: http://123.45.67.89:8080
+#     nats_subject: agents.cold-email-superagent.*
+#     vps_ip: 123.45.67.89
+#     railway_service: ""
+#     model: deepseek-v4-pro
+#     tags: [cold-email, phone, coo-specialist, kimi-coordinator]
+#     created_at: "2026-05-07T12:34:56Z"
+#     created_by: admiral
+#     sub_fleet:
+#       - id: kimi-k2-coordinator
+#         endpoint: http://123.45.67.89:8081
+#       - id: coo-specialist
+#         endpoint: http://123.45.67.89:8082
+#       - id: retell-phone
+#         endpoint: http://123.45.67.89:8083

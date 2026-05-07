@@ -21,6 +21,10 @@ tier_3_tags:
   - credential-rotate
   - production-write
   - rm-rf
+  - outbound-phone          # Retell AI outbound call — hard stop
+  - outbound-email          # Instantly.ai cold email — hard stop
+  - phone                   # shorthand triggers same gate as outbound-phone
+  - retell                  # explicit Retell AI invocation
 
 tier_3_pairs:                   # any pair of tags both present → tier 3
   - [production, write]
@@ -30,6 +34,11 @@ tier_3_pairs:                   # any pair of tags both present → tier 3
   - [prod, deploy]
   - [prod, send]
   - [main, force-push]
+  - [email, send]           # generic email + send → tier 3
+  - [email, campaign]       # adding to a campaign → tier 3
+  - [phone, call]           # phone + call → tier 3
+  - [coo-specialist, phone]
+  - [coo-specialist, email]
 
 tier_1_tags:
   - read
