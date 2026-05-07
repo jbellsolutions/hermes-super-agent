@@ -1,25 +1,28 @@
 # Hermes Fabric — Setup Runbook
 
-Step-by-step from "code on disk" to "Admiral running in production with the full fabric." Each step states **what you do**, **what to verify**, and **what unlocks** when it's green.
+> **Most people should run [`QUICKSTART.md`](QUICKSTART.md), not this.** Two scripts, ~30 minutes, done. This file is the long-form reference for what those scripts do under the hood and for power users who want to deploy services individually.
 
-Total elapsed time on a clean account: ~3 hours of clock time, mostly waiting for Railway builds.
+The default deploy is **Railway-managed** — every fabric service runs as its own Railway service, fully managed, ~$40/mo. Tier 2 spawned superagents land on DigitalOcean droplets because Railway containers don't support SSH bootstrap.
 
-## Pick your deploy mode first
+---
 
-| Mode | Where things run | Cost/mo | Best for |
+## Why both Railway and DigitalOcean?
+
+- **Railway** runs the **fixed always-on services** (NATS, Temporal, Coordinator, Archon wrapper, Admiral). One Dockerfile per service, auto-restart, public TLS URLs, env vars in a dashboard. You set it up once and forget.
+- **DigitalOcean** runs **spawned Tier 2 superagents** — each spawn is a brand-new machine with its own SSH access, its own Hermes install, its own optional sub-fleet. Railway can't spawn full machines.
+
+Railway gets used because the fleet's brain needs to be always-on with managed ops; DO gets used because spawned superagents need full-machine control. They serve different roles.
+
+---
+
+## Other deploy modes (advanced; skip unless you have a reason)
+
+| Mode | Where things run | Cost/mo | Use when |
 |---|---|---|---|
-| **A. Local dev** | Admiral on laptop; fabric services stub | $0 | Eval, single-user, no fabric features |
-| **B. Local + Docker stack** | Admiral on laptop; NATS + Temporal + Coordinator in `docker compose` | $0 (laptop) + LLM | Power user; full fabric without paying for managed PaaS |
-| **B+. Single DO droplet** | All fabric services on one $12 droplet via `docker compose`; Admiral on the same box | ~$12 + LLM | Always-on private fleet on the cheap |
-| **C. Railway managed** | Each fabric service its own Railway service; Admiral too | ~$40 + LLM | Best DX; managed restarts, public URLs, simple env vars |
-
-**Tier 2 superagent spawning uses DigitalOcean (or Hetzner) regardless of mode** — Railway can't spawn full machines with SSH access. The fixed services (NATS / Temporal / Coordinator / Archon / Admiral) can live on Railway *or* a DO droplet — the architectural choice below.
-
-### Why Railway *and* DO?
-- **Railway** is for the **always-on fixed services** that need 24/7 uptime, public URLs, managed restarts. You point it at a `Dockerfile` and forget. Trade: ~$5–15/service.
-- **DO** is for **spawned superagents** — each Tier 2 spawn is a new machine identity with its own SSH, its own brain, optional sub-fleet. Railway services don't get full machines; they're shared containers.
-
-If you don't need Railway's DX, **Mode B+ collapses to one DO droplet** (~$12) running all the fabric services in `docker compose`, and you spawn additional droplets for Tier 2 superagents. That's the cheap path. Trade-off is operations: you manage `docker compose` updates, restarts, monitoring yourself.
+| A. Local dev | Admiral on laptop, fabric stubs | $0 | Trying out the CLI without deploying anything |
+| B. Local Docker stack | Admiral on laptop, fabric in `docker compose` | $0 + LLM | Hacking on coordinator code; want full local fabric |
+| B+. Single DO droplet | Everything on one droplet via `docker compose` | ~$12 + LLM | You'll do your own ops to save money |
+| **C. Railway managed (default)** | Each fabric service is its own Railway service | ~$40 + LLM | Plug-and-play, always-on, zero ops |
 
 ---
 
