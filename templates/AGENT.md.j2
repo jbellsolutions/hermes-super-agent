@@ -1,0 +1,80 @@
+# Agent Identity — {{ agent_id }}
+
+## Mission
+{{ mission }}
+
+## Identity
+- **Agent ID:** `{{ agent_id }}`
+- **Role:** {{ role | default("Specialist") }}
+- **Model:** {{ model | default("claude-sonnet-4-6") }}
+- **Created:** {{ created_at }}
+- **Created by:** {{ created_by | default("Admiral Hermes") }}
+
+## Capabilities
+{% for capability in capabilities %}
+- {{ capability }}
+{% endfor %}
+
+## Tools Allowed
+{% for tool in tools_allowed %}
+- `{{ tool }}`
+{% endfor %}
+
+## Tools Denied
+{% for tool in tools_denied %}
+- `{{ tool }}`
+{% endfor %}
+
+## Tier Ceiling
+**Default tier ceiling:** Tier {{ tier_ceiling | default(2) }}
+
+{% if tier_ceiling == 3 or tier_ceiling == "3" %}
+> **Tier 3 agent** — all outbound actions require explicit YES confirmation.
+{% elif tier_ceiling == 2 or tier_ceiling == "2" %}
+> **Tier 2 agent** — plan cards shown, 3-second grace window before auto-execute.
+{% else %}
+> **Tier 1 agent** — low-risk tasks execute automatically.
+{% endif %}
+
+## Budget
+- **Daily budget:** ${{ daily_budget | default("10.00") }}
+- **Per-task ceiling:** ${{ per_task_ceiling | default("2.00") }}
+
+## Control Level
+**{{ control_level | default("delegated-autonomy") }}**
+
+{% if control_level == "delegated-autonomy" %}
+This agent acts autonomously within its domain. It escalates to Admiral only when:
+- A task exceeds the per-task budget ceiling
+- A Tier 3 outbound action is required
+- An explicit `needs_human` flag is set
+{% elif control_level == "supervised" %}
+This agent proposes actions and waits for Admiral approval before executing.
+{% endif %}
+
+## Sub-Fleet
+{% if sub_fleet %}
+This agent manages the following sub-agents:
+{% for sub in sub_fleet %}
+- **{{ sub.id }}** (`{{ sub.runtime }}`): {{ sub.description }}
+{% endfor %}
+{% else %}
+No sub-fleet. This is a Tier 1 specialist.
+{% endif %}
+
+## A2A Endpoint
+- **Base URL:** `{{ a2a_base_url | default("http://localhost:8080") }}`
+- **Agent Card:** `{{ a2a_base_url | default("http://localhost:8080") }}/agentCard`
+- **NATS Subject:** `agents.{{ agent_id }}.>`
+
+## Environment
+{% for key, value in env_vars.items() %}
+- `{{ key }}`: {{ value }}
+{% endfor %}
+
+## Memory
+- **Vault path:** `vault/agents/{{ agent_id }}/`
+- **Heartbeat interval:** 30 seconds (published to `agents.{{ agent_id }}.heartbeat`)
+
+## Notes
+{{ notes | default("") }}

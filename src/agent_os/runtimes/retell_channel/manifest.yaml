@@ -1,0 +1,17 @@
+component: runtime.retell_channel
+type: specialist-runtime
+description: "Outbound phone (Retell AI) and cold email (Instantly.ai) channels. Same COO Specialist brain, different output modality. Tier 3 — requires explicit YES before any outbound action."
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+agents:
+  - coo-specialist
+data_sources: []
+outputs:
+  - type: vault_run_artifact
+    consumer: vault.runs
+  - type: nats_event
+    subject: "agents.coo-specialist.task.*"
+env_vars:
+  - RETELL_API_KEY         # Retell AI API key
+  - RETELL_AGENT_ID        # Pre-configured Retell agent ID (points to COO Specialist)
+  - INSTANTLY_API_KEY      # Instantly.ai API key for cold email
