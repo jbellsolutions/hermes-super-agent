@@ -40,9 +40,29 @@ if [ ! -f "$ENV_FILE" ]; then
     exit 1
 fi
 
-# Source .env so we can use values for env-var commands.
-# shellcheck disable=SC1090
-set -a; source "$ENV_FILE"; set +a
+# Load .env safely — never execute shell expansions on values that are API keys.
+# We parse KEY=VALUE lines, strip optional surrounding quotes, and `export` the
+# value as a literal string. Backticks and $(...) in a token will NOT be evaluated.
+load_env_safe() {
+    local file="$1"
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Skip comments + blank lines
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line// }" ]] && continue
+        # Match KEY=VALUE (key = letters/digits/_)
+        if [[ "$line" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+            local k="${BASH_REMATCH[1]}" v="${BASH_REMATCH[2]}"
+            # Strip surrounding single or double quotes if present
+            if [[ "$v" =~ ^\"(.*)\"$ ]] || [[ "$v" =~ ^\'(.*)\'$ ]]; then
+                v="${BASH_REMATCH[1]}"
+            fi
+            # Trim trailing CR (Windows line endings)
+            v="${v%$'\r'}"
+            export "$k=$v"
+        fi
+    done < "$file"
+}
+load_env_safe "$ENV_FILE"
 
 # Install railway CLI if missing
 if ! command -v railway &>/dev/null; then
