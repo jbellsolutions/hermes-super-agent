@@ -1,0 +1,93 @@
+name: skool-post-to-feed
+description: Navigate to a Skool group and publish a text post to the feed.
+version: "1.0"
+skill_ref: vault/skills/active/skool-group-manager/skool-post.md
+
+inputs:
+  - name: post_content
+    source: job.prompt
+    required: true
+    max_chars: 2000
+  - name: group_url
+    source: job.metadata.group_url
+    fallback: config.group.skool_url
+    required: true
+
+steps:
+  - id: login_check
+    action: navigate
+    url: "{{ group_url }}"
+    then:
+      - id: check_login
+        action: check_element
+        selector: "[data-testid='user-avatar'], .user-avatar, .profile-menu"
+        if_missing:
+          - id: do_login
+            action: navigate
+            url: "https://www.skool.com/login"
+          - action: fill
+            selector: "input[type='email'], input[name='email']"
+            value: "{{ env.SKOOL_EMAIL }}"
+          - action: fill
+            selector: "input[type='password'], input[name='password']"
+            value: "{{ env.SKOOL_PASSWORD }}"
+          - action: click
+            selector: "button[type='submit'], button:contains('Sign in'), button:contains('Log in')"
+          - action: wait_for_navigation
+          - action: check_captcha
+            on_captcha: emit_pending_action
+          - action: navigate
+            url: "{{ group_url }}"
+
+  - id: open_post_editor
+    action: click
+    selector: "[placeholder*='Write a post'], [placeholder*='Share something'], .post-composer, button:contains('Write')"
+    fallback_selectors:
+      - ".create-post"
+      - "[data-testid='post-composer']"
+    on_error: emit_pending_action
+
+  - id: type_content
+    action: fill
+    selector: ".post-editor [contenteditable='true'], textarea.post-content, .ql-editor"
+    value: "{{ post_content }}"
+    method: type_chars
+
+  - id: submit_post
+    action: click
+    selector: "button:contains('Post'), button[type='submit'].post-btn, [data-testid='submit-post']"
+    on_error: emit_pending_action
+
+  - id: wait_confirm
+    action: wait
+    duration_ms: 3000
+
+  - id: verify_post
+    action: check_text_in_feed
+    text_prefix: "{{ post_content[:50] }}"
+    timeout_ms: 10000
+    on_success:
+      status: verified
+    on_failure:
+      status: unconfirmed
+      note: "Post may have been published but could not be confirmed in feed. Do NOT retry."
+
+outputs:
+  - name: status
+    values: [verified, unconfirmed, failed]
+  - name: error_detail
+    type: string
+    optional: true
+
+error_handling:
+  captcha:
+    action: emit_pending_action
+    message: "CAPTCHA encountered during Skool post. Human intervention required."
+  login_failed:
+    action: emit_pending_action
+    message: "Skool login failed. Check credentials in vault/secrets."
+  editor_not_found:
+    action: emit_pending_action
+    message: "Skool post editor selector not found. UI may have changed."
+  duplicate_guard:
+    note: "Never retry a post submission. If verify fails, log as unconfirmed only."
