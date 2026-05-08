@@ -28,20 +28,25 @@ That's what this is.
 
 ## What you get when this is running
 
-You text Hermes on Telegram: *"Spin up a cold-email superagent with its own swarm coordinator and a phone agent."*
+Most days, it looks like this. You text Hermes:
 
-Twelve minutes later:
+> *"Research these 5 SaaS startups and tell me which one is the strongest acquisition target."*
 
-- A new VPS is online (DigitalOcean, $5/mo)
-- A full Hermes is running on it, talking the same A2A protocol the Admiral does
-- It has its own Kimi K2.6 coordinator wired in
-- It has a Retell AI phone agent it owns
-- It's heartbeating to your Admiral over NATS
-- All three are auto-instrumented in AgentOps so you can see cost, latency, errors in one dashboard
-- Tier 3 jobs (production deploys, outbound sends, anything destructive) are gated behind a one-line "YES" reply
-- You go to bed. It runs the campaign. You wake up to a summary.
+A few minutes later, you have a brief. No new infrastructure spun up. One in-process LLM call, a couple of tool uses, done.
 
-That's the promise. Below is exactly how it does it, and how to set it up tonight.
+Some days, it looks like this:
+
+> *"Run this RFP analysis 100 ways in parallel and give me the best three."*
+
+The fan-out runs through the Coordinator service that's already deployed. 100 parallel sub-agents, Temporal-wrapped so it survives a restart. Still no new infrastructure.
+
+Once in a while — maybe twice a quarter — it looks like this:
+
+> *"Spin up a cold-email superagent with its own swarm coordinator and a phone agent."*
+
+You get a Tier 3 plan card with `⚠ Permanent infra: provisions a NEW DigitalOcean VPS (~$5/mo recurring) running a full Hermes process until stopped.` You reply **`YES`**. Twelve minutes later: VPS online, full Hermes running, talking A2A, heartbeating on NATS, three sub-agents deployed, all auto-instrumented in AgentOps. You go to bed. It runs the campaign. You wake up to a summary.
+
+That's the promise. Below is exactly how it decides which of those three lanes to take, how it does each one, and how to set it up tonight.
 
 ---
 
@@ -58,6 +63,22 @@ Five things, all live, all tested, all behind a single Telegram bot:
 | 5 | "What's everybody doing right now?" | Admiral subscribes to `agents.>` on NATS JetStream and forwards every fleet alert to Telegram. No polling. Sub-millisecond. |
 
 And underneath all five: a planner that picks the right tool, the right model, and the right tier *before* anything runs. So you see the plan card first. You can `/use <tool>` to override, `/why` for the rationale, `/cancel` to abort, or `YES` (uppercase, deliberate) to greenlight a Tier 3.
+
+---
+
+## How it decides — three lanes, named out loud
+
+This is an agent that runs a company. Most of the time, it does the work itself. Sometimes it outsources. Once in a while, it hires.
+
+| | Lane | When | What it does | Cost |
+|---|---|---|---|---|
+| **🏃** | **Ephemeral sub-agent** *(~90% of jobs)* | "summarize this", "research these 3 startups", "draft an email" | Runs in-process via `hermes_self`. One LLM call, maybe a tool use, returns. | $0 infra |
+| **🎯** | **Outsourced fan-out** *(~8%)* | "do this 100 ways in parallel", "fan out across 50 leads" | Routes to the existing Coordinator service. N parallel calls, Temporal-wrapped, model-pluggable. **No new infrastructure.** | Existing Railway service |
+| **👔** | **Permanent superagent** *(~2%, never auto-fires)* | "spin up a cold email superagent", "hire a LinkedIn specialist" | Tier 3 hard stop. Plan card prints `⚠ Permanent infra`. After your **YES**: provisions a NEW VPS or Railway service. Recurring cost until stopped. | $5/mo each |
+
+The natural-language intent classifier (`intent_classifier.py`) reads your prompt before the planner runs. It only adds spawn tags when the wording is unambiguous. *"Research X"* never accidentally provisions a VPS. *"Spin up a cold email superagent"* always asks for a `YES` and shows the recurring cost first.
+
+Same metaphor: a junior asks for a task, you do it. A junior asks for help on a 100-document review, you hand it to a contractor pool. A junior asks for a permanent SDR — you go through a hiring process. Every time.
 
 ---
 

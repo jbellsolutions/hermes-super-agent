@@ -44,6 +44,11 @@ class ToolPlan:
     bundle_used: str = "primary_hermes"
     blocked_reason: str | None = None  # set when identity ceiling refuses tier
     signals: list[str] = field(default_factory=list)
+    # True when this job will provision long-running infrastructure (a new
+    # VPS or Railway service). Surfaced in plan_card so users see "permanent"
+    # vs "ephemeral" before approving. Set from intent_classifier tags.
+    permanent_resource: bool = False
+    permanent_resource_kind: str = ""  # "vps" | "railway-service" | ""
 
 
 # --------------------------------------------------------------------------
@@ -194,6 +199,20 @@ def plan(
     except Exception:  # noqa: BLE001
         model_id, model_reason = None, "model_planner not yet available"
 
+    # Permanent-infra detection. Same source of truth as tier_3_tags above
+    # (intent_classifier emits these tags on natural-language spawn requests),
+    # surfaced separately so the plan card can show an explicit "this will
+    # provision a new VPS / Railway service" warning.
+    from agent_os.orchestrator import intent_classifier
+    is_permanent = intent_classifier.is_permanent_resource(job.tags)
+    permanent_kind = ""
+    lower_tags = {t.lower() for t in job.tags}
+    if lower_tags & {"spawn-superagent", "vps-spawn", "spawn-vps"}:
+        permanent_kind = "vps"
+    elif lower_tags & {"build-specialist", "archon", "hire", "hire-agent",
+                       "permanent-agent"}:
+        permanent_kind = "railway-service"
+
     return ToolPlan(
         task_summary=_summarize(job.prompt),
         primary_tool=primary_name,
@@ -211,6 +230,8 @@ def plan(
         bundle_used=identity,
         blocked_reason=blocked,
         signals=decision.signals,
+        permanent_resource=is_permanent,
+        permanent_resource_kind=permanent_kind,
     )
 
 

@@ -68,6 +68,7 @@ def _render_tier_3(plan: ToolPlan) -> str:
     cost = f"~${plan.estimated_cost_usd:.2f}"
     flavor = (
         "destructive" if plan.risk_class == "high"
+        else "permanent-infra" if plan.permanent_resource
         else "expensive" if plan.estimated_cost_usd > 1.0
         else "high-impact"
     )
@@ -75,9 +76,29 @@ def _render_tier_3(plan: ToolPlan) -> str:
         f"🛑 Plan: {plan.task_summary}",
         f"  • Tools: {plan.primary_tool} ({plan.primary_reason}); alts: {alts}",
         f"  • Model: {model}",
-        f"  • Tier 3 · {flavor} · {cost} · reply YES to proceed (/cancel /use <tool> /why)",
     ]
+    if plan.permanent_resource:
+        lines.append(_permanent_resource_warning(plan))
+    lines.append(
+        f"  • Tier 3 · {flavor} · {cost} · reply YES to proceed (/cancel /use <tool> /why)"
+    )
     return "\n".join(lines)
+
+
+def _permanent_resource_warning(plan: ToolPlan) -> str:
+    """Explicit recurring-cost warning for spawn / hire requests.
+
+    The user said it best: most jobs are 'a task to do', a small minority
+    are 'hiring someone for a role'. This line names the difference.
+    """
+    if plan.permanent_resource_kind == "vps":
+        return ("  • ⚠ Permanent infra: provisions a NEW DigitalOcean VPS "
+                "(~$5/mo recurring) running a full Hermes process until stopped.")
+    if plan.permanent_resource_kind == "railway-service":
+        return ("  • ⚠ Permanent infra: deploys a NEW Railway service "
+                "(recurring monthly cost) running until stopped.")
+    return ("  • ⚠ Permanent infra: this stands up a long-running agent "
+            "(recurring cost until stopped).")
 
 
 def _render_blocked(plan: ToolPlan) -> str:
