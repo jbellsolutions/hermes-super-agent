@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" role="img" aria-label="Hermes Super Agent — The fabric that turns one agent into a fleet.">
+  <title>Hermes Super Agent</title>
+  <desc>The fabric that turns one agent into a fleet.</desc>
+
+  <defs>
+    <!-- Deep void background -->
+    <radialGradient id="void" cx="50%" cy="50%" r="80%">
+      <stop offset="0%" stop-color="#1a0f3a"/>
+      <stop offset="50%" stop-color="#0d0820"/>
+      <stop offset="100%" stop-color="#050208"/>
+    </radialGradient>
+
+    <!-- Saiyan-gold aura -->
+    <radialGradient id="aura" cx="50%" cy="55%" r="45%">
+      <stop offset="0%" stop-color="#fff7c2" stop-opacity="0.95"/>
+      <stop offset="35%" stop-color="#ffd23f" stop-opacity="0.55"/>
+      <stop offset="70%" stop-color="#ff7b1c" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ff7b1c" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Title gradient -->
+    <linearGradient id="titleFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"  stop-color="#fffacd"/>
+      <stop offset="50%" stop-color="#ffd23f"/>
+      <stop offset="100%" stop-color="#ff8c1c"/>
+    </linearGradient>
+
+    <linearGradient id="subtitleFill" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"  stop-color="#ffe28a"/>
+      <stop offset="100%" stop-color="#ffb066"/>
+    </linearGradient>
+
+    <!-- Glow filter for typography -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft glow for the aura ball -->
+    <filter id="auraBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="20"/>
+    </filter>
+
+    <!-- Lightning bolt symbol -->
+    <symbol id="bolt" viewBox="0 0 24 32">
+      <path d="M14 0 L0 18 L9 18 L7 32 L24 12 L14 12 Z"
+            fill="url(#titleFill)" stroke="#fff7c2" stroke-width="0.5" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="400" fill="url(#void)"/>
+
+  <!-- Faint grid suggesting infrastructure -->
+  <g stroke="#2a1a55" stroke-width="0.5" opacity="0.4">
+    <path d="M0 80 L1200 80 M0 160 L1200 160 M0 240 L1200 240 M0 320 L1200 320"/>
+    <path d="M150 0 L150 400 M300 0 L300 400 M450 0 L450 400 M600 0 L600 400 M750 0 L750 400 M900 0 L900 400 M1050 0 L1050 400"/>
+  </g>
+
+  <!-- Saiyan aura ball behind the title -->
+  <g filter="url(#auraBlur)">
+    <ellipse cx="600" cy="220" rx="380" ry="180" fill="url(#aura)"/>
+  </g>
+
+  <!-- Energy particles (rising sparks) -->
+  <g fill="#ffd23f" opacity="0.85">
+    <circle cx="360" cy="320" r="2.5"/>
+    <circle cx="420" cy="290" r="1.8"/>
+    <circle cx="500" cy="340" r="2.2"/>
+    <circle cx="560" cy="280" r="1.5"/>
+    <circle cx="640" cy="335" r="2.5"/>
+    <circle cx="720" cy="295" r="1.8"/>
+    <circle cx="800" cy="345" r="2.2"/>
+    <circle cx="860" cy="285" r="1.6"/>
+  </g>
+
+  <!-- Lightning bolts flanking the title -->
+  <use href="#bolt" x="200" y="148" width="36" height="48" filter="url(#glow)" opacity="0.85"/>
+  <use href="#bolt" x="964" y="148" width="36" height="48" filter="url(#glow)" opacity="0.85"/>
+
+  <!-- Title -->
+  <g filter="url(#glow)">
+    <text x="600" y="195"
+          text-anchor="middle"
+          font-family="Helvetica, Arial, sans-serif"
+          font-weight="900"
+          font-size="84"
+          letter-spacing="2"
+          fill="url(#titleFill)">
+      HERMES SUPER AGENT
+    </text>
+  </g>
+
+  <!-- Subtitle -->
+  <text x="600" y="245"
+        text-anchor="middle"
+        font-family="Helvetica, Arial, sans-serif"
+        font-weight="400"
+        font-size="22"
+        fill="url(#subtitleFill)"
+        letter-spacing="1.5">
+    The fabric that turns one agent into a fleet.
+  </text>
+
+  <!-- Power-level pill -->
+  <g transform="translate(600 295)">
+    <rect x="-220" y="0" width="440" height="44" rx="22" ry="22"
+          fill="#0a0418" stroke="#ffd23f" stroke-width="1.5" opacity="0.92"/>
+    <text x="0" y="29"
+          text-anchor="middle"
+          font-family="Menlo, Consolas, monospace"
+          font-size="16"
+          fill="#ffd23f"
+          letter-spacing="1.5">
+      LV 1: SAIYAN  ·  LV 2: SUPER SAIYAN  ·  ONE LINK
+    </text>
+  </g>
+</svg>

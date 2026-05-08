@@ -1,31 +1,97 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
-  <strong>Hermes Super Agent</strong><br/>
-  <em>The fabric that turns one agent into a fleet.</em>
+  <img src="assets/banner.svg" alt="Hermes Super Agent — the fabric that turns one agent into a fleet" width="100%"/>
 </p>
 
 <p align="center">
-  <a href="#pick-your-form">Pick your form</a> ·
-  <a href="#what-it-actually-does">What it does</a> ·
-  <a href="#how-it-works">How it works</a> ·
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-ffd23f?style=for-the-badge"/></a>
+  <a href="#"><img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-1a0f3a?style=for-the-badge&labelColor=ffd23f&color=1a0f3a"/></a>
+  <a href="#"><img alt="Tests 337 passing" src="https://img.shields.io/badge/tests-337%20passing-ff7b1c?style=for-the-badge"/></a>
+  <a href="https://github.com/jbellsolutions/hermes-super-agent/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/jbellsolutions/hermes-super-agent?style=for-the-badge&color=ffd23f"/></a>
+</p>
+
+<p align="center">
+  <strong>Drop the link. Paste the prompt. Pick your power level.</strong><br/>
+  Saiyan (lite, ~3 min) drops the planner + 14 runtimes into your existing Hermes.<br/>
+  Super Saiyan (full, ~30 min) deploys NATS + Temporal + Coordinator + Archon + Admiral on Railway.<br/>
+  One repo. Two install modes. One share link.
+</p>
+
+<p align="center">
+  <a href="#-pick-your-power-level">Pick your form</a> ·
+  <a href="#-install-in-one-prompt">Install</a> ·
+  <a href="#-how-it-decides">How it decides</a> ·
+  <a href="#-how-it-works">How it works</a> ·
   <a href="QUICKSTART.md">Quickstart</a> ·
-  <a href="INSTALL.md">Install</a>
+  <a href="INSTALL.md">Master prompt</a>
 </p>
 
 ---
 
-## Pick your form
+## ⚡ The 30-second pitch
 
-One repo, two modes, one share link.
+You spun up a Hermes agent. It works. You ask it to do real work and it runs out of room.
 
-| | **Saiyan** *(lite)* | **Super-saiyan** *(full)* |
+It can't fan one task across 300 parallel sub-agents. It can't spawn its own teammates. It can't survive a reboot mid-job. It can't read a Slack thread, finish the work overnight on a fresh VPS, and ping you on Telegram when it's done.
+
+You don't need a smarter model. You need a **fabric** underneath the agent that does all of that for you. That's what this is.
+
+Same brain across every channel. Three execution lanes (in-process / fan-out / permanent spawn), each tier-gated. One Telegram bot to drive the whole fleet.
+
+---
+
+## 🟡 Pick your power level
+
+<p align="center">
+  <img src="assets/power-levels.svg" alt="Saiyan (lite, ~3 min, $0 infra) vs Super Saiyan (full, ~30 min, ~$45/mo)" width="100%"/>
+</p>
+
+|  | **Saiyan** *(lite)* | **Super Saiyan** *(full)* |
 |---|---|---|
 | **For** | You already have a Hermes / Python agent project | You're starting fresh, want the full fleet |
-| **What you get** | Planner + 14 in-process runtimes + 16 SKILL.md files, dropped into your project | NATS + Temporal + Coordinator + Archon + Admiral on Railway, plus Tier 2 VPS spawning |
+| **Install command** | `install.py --mode=saiyan --target=YOUR_PROJECT` | `install.py --mode=super-saiyan` |
+| **What lands** | Planner + 14 in-process runtimes + 16 SKILL.md files | NATS + Temporal + Coordinator + Archon + Admiral on Railway, plus Tier 2 VPS spawning |
+| **New infrastructure** | None | 5 Railway services |
 | **Cost floor** | $0 (you keep your existing setup) | ~$45/mo + LLM usage |
-| **Install time** | ~3 min via `install.py --mode=saiyan` | ~30 min via `install.py --mode=super-saiyan` |
+| **Install time** | ~3 minutes | ~30 minutes |
+| **Upgradable later** | Yes, idempotent — re-run with `--mode=super-saiyan` | n/a |
 
-**Single share link, branching install.** Paste the master prompt in [INSTALL.md](INSTALL.md) into Claude Code, Codex, or Cursor. The agent asks *"have Hermes? saiyan or super-saiyan?"* and walks the right path. You paste keys. You don't write code.
+When in doubt, **start Saiyan**. ~3 minutes, no infra. Upgrading to Super Saiyan later doesn't undo anything.
+
+---
+
+## 🚀 Install in one prompt
+
+Open Claude Code, Codex, or Cursor. Paste this. Done.
+
+```text
+Set up Hermes for me, A to Z, from
+https://github.com/jbellsolutions/hermes-super-agent.
+
+Step 1 — Hermes prereq.
+  Ask me: "Do you have Hermes installed already?"
+  - If NO: walk me through QUICKSTART.md to install Hermes.
+  - If YES: skip to step 2.
+
+Step 2 — Pick a mode.
+  Ask me: "Saiyan or super-saiyan?"
+  - Saiyan (lite): keep my Hermes; install just the planner + 14
+    runtimes + 16 SKILL.md files. ~3 minutes.
+  - Super-saiyan (full): full Railway fabric + Tier 2 VPS spawning.
+    ~30 minutes.
+
+Step 3 — Install.
+  - Saiyan: clone the repo to /tmp, run
+    python3 /tmp/hermes-super-agent/install.py --mode=saiyan
+    --target=/path/to/my/project. Stream output. Run smoke test.
+  - Super-saiyan: walk me through every signup, write .env, run
+    python3 install.py --mode=super-saiyan.
+
+Don't write code. I'll paste keys. If anything fails, walk me
+through the fix.
+```
+
+You paste keys. You don't write code. The agent handles every signup, every config, every smoke test. ~25 minutes start to finish for the full path. ~3 minutes for the lite path.
 
 Or run it yourself:
 
@@ -34,85 +100,61 @@ Or run it yourself:
 git clone https://github.com/jbellsolutions/hermes-super-agent /tmp/hsa
 python3 /tmp/hsa/install.py --mode=saiyan --target=/path/to/your/project
 
-# Super-saiyan (full — Railway fabric)
+# Super Saiyan (full — Railway fabric)
 git clone https://github.com/jbellsolutions/hermes-super-agent
 cd hermes-super-agent && uv sync
 python3 install.py --mode=super-saiyan
 ```
 
-Deep-dive on what each mode contains: [docs/modes.md](docs/modes.md).
+Manual fallback walkthrough: [INSTALL.md](INSTALL.md). Mode deep-dive: [docs/modes.md](docs/modes.md).
 
 ---
 
-## Why this exists
+## 💪 What you can do
 
-You spun up a Hermes agent. It works. You ask it to do real work and it… runs out of room.
+Most days, you text Hermes:
 
-It can't fan one task across 300 parallel sub-agents. It can't spawn its own teammates. It can't survive a reboot mid-job. It can't tell you what it's doing in real time. It can't take a phone call. It can't read a Slack thread, finish the work overnight on a fresh VPS, and ping you on Telegram when it's done.
+```
+research these 5 SaaS startups and tell me which is the strongest acquisition target
+```
 
-You don't need a smarter model. You need a **fabric** underneath the agent that does all of that for you.
+A brief lands a few minutes later. No new infrastructure spun up. One in-process LLM call, a couple of tool uses, done.
 
-That's what this is.
+Some days:
 
----
+```
+run this RFP analysis 100 ways in parallel and give me the best three
+```
 
-## What you get when this is running
+The Coordinator service that's already deployed runs 100 parallel sub-agents, Temporal-wrapped so it survives a restart. Still no new infra.
 
-Most days, it looks like this. You text Hermes:
+Once in a while — maybe twice a quarter:
 
-> *"Research these 5 SaaS startups and tell me which one is the strongest acquisition target."*
+```
+spin up a cold-email superagent with its own swarm coordinator and a phone agent
+```
 
-A few minutes later, you have a brief. No new infrastructure spun up. One in-process LLM call, a couple of tool uses, done.
+You get a Tier 3 plan card: `⚠ Permanent infra: provisions a NEW DigitalOcean VPS (~$5/mo recurring) running a full Hermes process until stopped.` You reply **`YES`**. Twelve minutes later: VPS online, full Hermes running, three sub-agents deployed, all heartbeating on NATS.
 
-Some days, it looks like this:
-
-> *"Run this RFP analysis 100 ways in parallel and give me the best three."*
-
-The fan-out runs through the Coordinator service that's already deployed. 100 parallel sub-agents, Temporal-wrapped so it survives a restart. Still no new infrastructure.
-
-Once in a while — maybe twice a quarter — it looks like this:
-
-> *"Spin up a cold-email superagent with its own swarm coordinator and a phone agent."*
-
-You get a Tier 3 plan card with `⚠ Permanent infra: provisions a NEW DigitalOcean VPS (~$5/mo recurring) running a full Hermes process until stopped.` You reply **`YES`**. Twelve minutes later: VPS online, full Hermes running, talking A2A, heartbeating on NATS, three sub-agents deployed, all auto-instrumented in AgentOps. You go to bed. It runs the campaign. You wake up to a summary.
-
-That's the promise. Below is exactly how it decides which of those three lanes to take, how it does each one, and how to set it up tonight.
+You go to bed. It runs the campaign. You wake up to a summary.
 
 ---
 
-## What it actually does
-
-Five things, all live, all tested, all behind a single Telegram bot:
-
-| | What you can ask for | What happens under the hood |
-|---|---|---|
-| 1 | "Run this 300 ways in parallel and give me the best one." | The Coordinator service fans out to N sub-agents (Kimi K2.6 native, or any Anthropic / OpenAI / DeepSeek / Gemini / Moonshot / OpenRouter model) wrapped in a Temporal workflow so it survives crashes. |
-| 2 | "Spin up a [domain] superagent for me." | The Spawner provisions a real VPS, SSH-bootstraps Docker + uv + the full Claude Code + Codex + Aider toolchain, drops in an `AGENT.md` for the new identity, starts the same A2A FastAPI server, registers with NATS. ~10 minutes. |
-| 3 | "Build me a [linkedin / outbound-X / research-Y] specialist." | Archon (open-source meta-agent) generates the new agent's `AGENT.md` + skill files + Railway config from a natural-language spec. Specialist deploys to Railway and joins the fleet. ~15 minutes. |
-| 4 | "Send a cold email" or "place a phone call." | Same brain (the COO Specialist), two channels: Instantly.ai for email, Retell AI for phone. Tier 3 hard-stop on both. |
-| 5 | "What's everybody doing right now?" | Admiral subscribes to `agents.>` on NATS JetStream and forwards every fleet alert to Telegram. No polling. Sub-millisecond. |
-
-And underneath all five: a planner that picks the right tool, the right model, and the right tier *before* anything runs. So you see the plan card first. You can `/use <tool>` to override, `/why` for the rationale, `/cancel` to abort, or `YES` (uppercase, deliberate) to greenlight a Tier 3.
-
----
-
-## How it decides — three lanes, named out loud
+## 🧠 How it decides
 
 This is an agent that runs a company. Most of the time, it does the work itself. Sometimes it outsources. Once in a while, it hires.
 
 | | Lane | When | What it does | Cost |
 |---|---|---|---|---|
-| **🏃** | **Ephemeral sub-agent** *(~90% of jobs)* | "summarize this", "research these 3 startups", "draft an email" | Runs in-process via `hermes_self`. One LLM call, maybe a tool use, returns. | $0 infra |
-| **🎯** | **Outsourced fan-out** *(~8%)* | "do this 100 ways in parallel", "fan out across 50 leads" | Routes to the existing Coordinator service. N parallel calls, Temporal-wrapped, model-pluggable. **No new infrastructure.** | Existing Railway service |
-| **👔** | **Permanent superagent** *(~2%, never auto-fires)* | "spin up a cold email superagent", "hire a LinkedIn specialist" | Tier 3 hard stop. Plan card prints `⚠ Permanent infra`. After your **YES**: provisions a NEW VPS or Railway service. Recurring cost until stopped. | $5/mo each |
+| **🏃** | **Ephemeral sub-agent** *(~90%)* | "summarize this", "research these 3 startups", "draft an email" | Runs in-process via `hermes_self`. One LLM call, maybe a tool use, returns. | $0 incremental |
+| **🎯** | **Outsourced fan-out** *(~8%)* | "do this 100 ways in parallel", "fan out across 50 leads" | Routes to the existing Coordinator service. N parallel calls, Temporal-wrapped. **No new infra.** | Existing Railway service |
+| **👔** | **Permanent superagent** *(~2%)* | "spin up a cold email superagent", "hire a LinkedIn specialist" | Tier 3 hard stop. Plan card prints `⚠ Permanent infra`. After your **YES**: provisions NEW VPS or Railway service. | $5/mo each |
 
-The natural-language intent classifier (`intent_classifier.py`) reads your prompt before the planner runs. It only adds spawn tags when the wording is unambiguous. *"Research X"* never accidentally provisions a VPS. *"Spin up a cold email superagent"* always asks for a `YES` and shows the recurring cost first.
-
-Same metaphor: a junior asks for a task, you do it. A junior asks for help on a 100-document review, you hand it to a contractor pool. A junior asks for a permanent SDR — you go through a hiring process. Every time.
+The intent classifier reads your wording before the planner runs and only adds spawn tags when the wording is unambiguous. *"Research X"* never accidentally provisions a VPS. *"Spin up a cold email superagent"* always asks for a `YES` and shows the recurring cost first.
 
 ---
 
-## How it works
+## 🔥 How it works
 
 Three open-source primitives. None of them new, none of them ours. The trick is what happens when you snap them together.
 
@@ -126,7 +168,7 @@ POST /messages           → here's a task, run it
 GET  /tasks/{task_id}    → status: submitted → working → completed
 ```
 
-Cards are self-describing. Admiral reads them at boot and builds a live capability map. Adding a new specialist (Hermes-based, Kimi-based, Agent Zero, Archon, or anything that speaks A2A) does not require a code change in Admiral. It's just a new card.
+Cards are self-describing. Admiral reads them at boot, builds a live capability map. Adding a new specialist (Hermes-based, Kimi-based, Agent Zero, Archon, anything that speaks A2A) does not require a code change in Admiral. It's just a new card.
 
 ### 2. NATS JetStream — the event bus
 
@@ -139,7 +181,7 @@ agents.{id}.alert
 fleet.commands.{id}
 ```
 
-Admiral subscribes to `agents.>` (wildcard). State is live, not polled. JetStream persists, so a restart replays missed events and you never lose a fleet update. There's a circuit breaker in front of every publisher so a NATS outage degrades to "agents keep working, you just don't see them in real time" instead of "everything crashes."
+Admiral subscribes to `agents.>` (wildcard). State is live, not polled. JetStream persists, so a restart replays missed events and you never lose a fleet update. There's a circuit breaker in front of every publisher: a NATS outage degrades to "agents keep working, you just don't see them in real time" instead of "everything crashes."
 
 ### 3. Temporal — durable execution
 
@@ -149,139 +191,57 @@ That's the whole stack. NATS at $5/mo on Railway, Temporal at $15/mo on Railway,
 
 ---
 
-## Get it running
+## 📦 What's in the box
 
-You need three things on your laptop: `git`, `python 3.11+`, `uv` (one-line installer). On macOS: `brew install git uv`.
-
-You need three accounts: Anthropic (Claude), Railway (hosts the fleet), Telegram via [@BotFather](https://t.me/BotFather). Sign-up takes ~10 minutes total.
-
-Then pick one of these three.
-
-### Path A — Have an agent set it up for you (recommended)
-
-Open Claude Code, Codex, or any Hermes/Cursor session inside this repo and paste:
-
-> *Set up Hermes Super Agent on this machine. Read [`QUICKSTART.md`](QUICKSTART.md) for the exact steps. Verify `git`, `python 3.11+`, and `uv` are installed; install whatever's missing. Then walk me through every credential one at a time in plain English. For each service, tell me where to sign up, what to click, and what to paste back to you. Set up the required ones first (Anthropic, Telegram, Railway), then ask whether I want any of the optional ones (DigitalOcean for VPS spawning, Retell AI for phone, Instantly for cold email, AgentOps for dashboards). Write everything to `.env` at the repo root. Then run `./scripts/deploy.sh`. When it's done, send a `hello` to my Telegram bot and confirm it replies. Don't write code. I'll paste keys.*
-
-The agent will:
-
-1. Check your local prereqs and install anything missing
-2. Walk you through each signup with the exact URL, exact button text, exact key to copy back
-3. Skip the optional services unless you want them
-4. Write `.env`
-5. Deploy to Railway
-6. Verify the Telegram round-trip
-
-You won't write code. You will paste keys. ~25 minutes start to finish.
-
-### Path B — Run the wizard yourself
-
-Two scripts, three accounts, ~30 minutes. Full doc at [QUICKSTART.md](QUICKSTART.md).
-
-```bash
-git clone https://github.com/jbellsolutions/hermes-super-agent
-cd hermes-super-agent
-uv sync
-./scripts/setup.sh      # interactive, asks for each key with the URL where to grab it
-./scripts/deploy.sh     # spins up NATS → Temporal → Coordinator → Archon → Admiral on Railway
-```
-
-Idempotent. Re-run either script any time to update keys or redeploy.
-
-### Path C — You already have it cloned and just want to wire fabric on top
-
-Already running Hermes locally? Already have an Anthropic key in your shell? Skip the wizard:
-
-```bash
-cd hermes-super-agent
-uv sync
-cp .env.example .env    # edit by hand
-./scripts/deploy.sh
-```
-
----
-
-## What gets deployed
-
-Five Railway services (one click each, the script does it for you):
-
-```
-You ←→ Telegram ←→ Admiral (Railway)
-                     │
-                     ├── NATS JetStream    (event bus, $5/mo)
-                     ├── Temporal          (durable workflows, $15/mo)
-                     ├── Coordinator       (fan-out engine, model-pluggable)
-                     ├── Archon            (agent builder)
-                     │
-                     └── Spawned superagents → DigitalOcean ($5/mo each, only when spawned)
-```
-
-Each spawned superagent is a real VPS running the same FastAPI A2A server you're running. It has Claude Code, Codex CLI, Aider, Docker — the full toolchain. API keys are forwarded over SSH at process start, never written to disk on the VPS.
-
----
-
-## Real things you can ask it to do
-
-These all work today on a fresh deploy. None are roadmap.
-
-```
-"summarize the news on AI safety today"
-"research these three startups: Anthropic, OpenAI, Mistral. parallel."
-"draft a Tier 1 email to garry@ycombinator.com about my super-agent fabric"
-"build a LinkedIn outreach specialist that posts twice a week"
-"spin up a cold email superagent with its own Kimi coordinator"
-"what's the fleet doing right now"
-"call (555) 123-4567 — pitch the COO consulting offer, log the transcript"
-"deploy the GTM specialist to production"   ← Tier 3, asks for YES
-```
-
-Every one of those goes through the same pipeline: tier_classifier → tool_planner → model_planner → plan_card → (your approval if Tier 2/3) → dispatch → NATS event → result.
-
----
-
-## What's actually in the box
+Saiyan mode ships:
 
 | | |
 |---|---|
-| **Orchestrator** | Hermes — persistent memory, identity packs, planner + dispatcher + override surface |
-| **Channels** | Telegram bot (long-poll), web (HTTP A2A), Slack/voice scaffolded |
-| **Fan-out** | Coordinator service — model-pluggable, Temporal-wrapped, fan-out via Kimi K2.6 native or any model |
-| **Spawning** | Tier 1 (Railway via Archon, ~15 min) + Tier 2 (DigitalOcean VPS via SSH bootstrap, ~10 min) |
-| **Outbound** | Retell AI phone + Instantly.ai email — single COO Specialist brain, two channels, Tier 3 by default |
-| **Coding** | Claude Code subagents (interactive) + Codex CLI (background) + Aider (git-aware incremental) |
-| **Browser** | browser-use (structured) + Agent Zero (visual/autonomous, Dockerized) |
-| **Search** | Exa neural search |
-| **Sandbox** | E2B clean VM per run |
-| **Observability** | NATS event stream + AgentOps SDK auto-instrumentation across all 7 model backends |
-| **Tier gating** | tier_classifier.py rules, plan_card.py rendering, plan_overrides.py command parser |
-| **Identity** | YAML-defined identity packs with `tools_allowed` / `tools_denied` / `default_tier_ceiling` |
+| **Planner stack** | tier_classifier · tool_planner · model_planner · plan_card · intent_classifier · catalog |
+| **Override surface** | `/cancel /use <tool> /why /tier <N> YES` parsed in any channel |
+| **14 in-process runtimes** | hermes_self · claude_subagents · codex_cli · aider · claude_managed · openclaw · openswarm · browser_use · agent_zero · computer_use · e2b · exa · livekit · terminal |
+| **16 SKILL.md** | one frontmatter-tagged markdown file per tool, scored by the planner |
+| **7 models** | Claude Opus 4.7 · Claude Sonnet 4.7 · Claude Sonnet 4.6 · GPT-5.5 · Kimi K2 · DeepSeek v4 Pro · Gemini 2.5 Pro |
+| **3 identities** | COO · GTM · Head of Ops, with `tools_allowed` / `tools_denied` / `default_tier_ceiling` per role |
+| **3 tunable configs** | `models.yaml` · `tiers.yaml` · `identities/*.yaml` — change without touching code |
 
-Seven models in the registry: Claude Opus 4.7, Claude Sonnet 4.7, Claude Sonnet 4.6, GPT-5.5, Kimi K2, DeepSeek v4 Pro, Gemini 2.5 Pro. Architecture / debug / security work auto-pairs `gpt-5.5 ↔ claude-opus-4.7` for dual-frontier review. The model planner is rule-based and deterministic. No LLM call to pick the model.
+Super Saiyan mode adds:
+
+| | |
+|---|---|
+| **A2A FastAPI server** | `/agentCard` · `/messages` · `/tasks/{id}` |
+| **NATS JetStream bus** | publisher + subscriber, circuit-breaker'd |
+| **Temporal durable workflows** | fan_out wrapped, crash-recoverable |
+| **Coordinator service** | model-pluggable, fan-out across N, deployed as one Railway service |
+| **Archon agent builder** | natural-language → AGENT.md + Railway service in ~15 min |
+| **VPS provisioner** | DigitalOcean droplet + SSH bootstrap of full Hermes + Claude Code + Codex + Aider |
+| **Telegram channel** | long-poll bot, plan-card overrides wired |
+| **Outbound channels** | Retell AI phone + Instantly.ai email, both Tier 3 by default |
+| **AgentOps observability** | auto-instruments LLM calls across all 7 backends |
 
 ---
 
-## Tier-gated UX (so you stay in control)
+## 🛡️ Tier-gated UX
 
 | Tier | When | What happens |
 |---|---|---|
 | **1** | Read-only, cheap, idempotent | One-line banner: `⚡ using openswarm · claude-opus-4.7` |
 | **2** | Mutates / substantive | 4-line plan card, reply `yes` to run, or `/use <tool>` `/why` `/cancel` |
-| **3** | Destructive / public / >$1 | Hard stop. Reply `YES` (uppercase, deliberate) to proceed. |
+| **3** | Destructive · public · spawn · outbound · >$1 | Hard stop. Reply uppercase `YES` to proceed. |
 
 Override commands work in any channel:
 
 | Command | Effect |
 |---|---|
 | `/cancel` | Abort the pending plan |
-| `/use <tool>` | Swap the runtime |
-| `/use <tool> <model>` | Swap both |
+| `/use <tool> [<model>]` | Swap the runtime (and optionally the model) |
 | `/why` | 5-line rationale: tools scored, signals fired, model picked |
 | `/tier <1\|2\|3>` | Force this task to a tier |
 | `YES` (uppercase) | Confirm a Tier 3 |
 
 ---
 
-## What it costs
+## 💰 Cost
 
 | | Monthly |
 |---|---|
@@ -293,50 +253,88 @@ Override commands work in any channel:
 | AgentOps | free tier covers most usage |
 | **Floor** | **~$45/mo** |
 
-No surprise costs. The Coordinator has hard caps (`COORDINATOR_MAX_SUBTASKS`, `COORDINATOR_MAX_RETAINED`) so a hostile or confused prompt can't melt your bill. Cost guardrails fire a NATS alert at 80% and hard-block at 100%.
+Hard caps in code: `COORDINATOR_MAX_SUBTASKS=300` and `COORDINATOR_MAX_RETAINED=1000` so a hostile or confused prompt can't melt your bill. Cost guardrails fire a NATS alert at 80% of `DAILY_COST_CAP_USD` and hard-block at 100%.
 
 ---
 
-## Status
+## 🎯 Status
 
-The fabric is shipped behind 320 passing unit + smoke + integration tests. The seven recent architectural fixes (loop 20) wired the planner output through dispatch, switched A2A delegation to plain REST, fixed the email-routing gap, aligned model defaults across runtimes, and split Admiral vs worker roles so spawned VPSes don't fight for the Telegram bot token. Commit history is real — every "loop" is a discrete fix bundle with its own test sweep.
+Shipped. **337 unit + smoke + integration tests passing.**
 
-What's stubbed (and clearly marked in `docs/EXECUTION-PLAN.md`):
+Recent fix bundles, each with its own contract tests:
 
-- The auto-update daemon ("self-growing") — wiring exists, the nightly cron is opt-in
-- The quality flywheel ("self-learning") — `/agi-research` skill works on demand, the nightly auto-rollup is opt-in
-- The self-healing loop — heartbeat + alert path is live, the auto-fix step from the genome library is on the next milestone
+- **Loop 21** — three lanes (ephemeral / fan-out / permanent spawn), intent classifier, permanent-infra warnings
+- **Loop 20** — A2A `_dispatch_task` actually calls `dispatch()`; planner output flows through; lite-mode dispatch trim; admiral/worker role split via `HERMES_ROLE`
+- **Loop 17–19** — unbounded growth caps, orphan VPS cleanup, full `hermes_self` runtime
+- **Loops 4–16** — bootstrap entrypoint, registry locking, NATS circuit breaker, cost ceilings, security gate
 
-The five capabilities at the top of this README are live. The four "self-" pillars are real but partially manual today. Don't let anyone tell you otherwise.
-
----
-
-## Reading order
-
-1. [QUICKSTART.md](QUICKSTART.md) — get it running, ~30 min
-2. [SETUP.md](SETUP.md) — what `setup.sh` and `deploy.sh` do under the hood
-3. [ARCHITECTURE.md](ARCHITECTURE.md) — the system shape, planner contracts, dispatch flow
-4. [STORY.md](STORY.md) — why this exists, the 14 frameworks it replaced
-5. [ETHOS.md](ETHOS.md) — the rules that keep it from sprawling again
-6. [SECURITY.md](SECURITY.md) — secret model, threat surface, where to send disclosures
-7. `vault/decisions/` — every non-obvious choice, with the rationale and the alternative considered
+What's intentionally manual: the auto-update daemon and quality-flywheel cron live in code but are opt-in. The self-healing loop's auto-fix step from the genome library is on the next milestone. We don't claim "self-X" capabilities the system doesn't actually run on its own.
 
 ---
 
-## Hard rules
+## ❓ FAQ
+
+**Do I need to install Hermes first separately?**
+No. This repo IS the Hermes install. Super Saiyan mode brings up a full Hermes stack on Railway. Saiyan mode is for people who already have *some* Python agent project they want to layer the planner onto.
+
+**Will it spawn a VPS just because I asked it to do work?**
+No. Pure natural-language prompts ("research X", "summarize Y") never auto-spawn anything. Permanent-infra spawning fires only on explicit phrases like *"spin up"*, *"hire"*, *"create a permanent X"* — and even then it's gated behind a Tier 3 plan card with a recurring-cost warning, requiring uppercase `YES`.
+
+**Can I use my own model?**
+Yes. `config/models.yaml` registers seven models out of the box, plus an OpenRouter fallback that takes any `vendor/model` id. The model planner is rule-based and deterministic — no LLM call to pick the model.
+
+**What if Saiyan mode's smoke test fails because pyyaml isn't installed?**
+The installer treats that as success — files copied OK, you just need to run `pip install -r requirements.txt` (or `uv sync`) in your project. The script prints the exact follow-up command.
+
+**Can I upgrade Saiyan → Super Saiyan later?**
+Yes, idempotent. Clone the repo fresh, run `install.py --mode=super-saiyan`, point your local Hermes at the new Admiral's A2A endpoint via env var. The skills layer you already installed keeps working.
+
+**Two repos or one?**
+One. Splitting later is reversible. Pre-splitting now is friction without benefit. See `vault/decisions/` for the full reasoning.
+
+**Why DBZ-themed names?**
+Because *saiyan* and *super-saiyan* describe the actual difference: base form vs powered-up form, additive transformation. `lite` and `full` work as aliases if you'd rather type those.
+
+---
+
+## 🛠️ Hard rules
 
 - **Never edit `vendor/`.** Open an upstream PR or wrap in `src/agent_os/runtimes/`.
-- **Never start another framework wrapper.** New ideas land as runtime adapters, Hermes skills, or upstream contributions.
+- **Never start another framework wrapper.** New ideas land as runtime adapters, Hermes skills, or upstream PRs.
 - **Single-state guarantee.** Every channel writes through the vault adapter. No per-channel state.
 - **Default to Hermes.** Specialist runtimes are exceptions, not defaults. The planner enforces this.
-- **Tier 3 always asks for YES.** No exceptions, no autopilot, no "the user already said yes once."
+- **Tier 3 always asks for `YES`.** No exceptions, no autopilot, no "the user said yes once last week."
 
 ---
 
-## License
+## 📚 Deeper docs
+
+| | |
+|---|---|
+| [QUICKSTART.md](QUICKSTART.md) | ~30 min Super Saiyan deploy |
+| [INSTALL.md](INSTALL.md) | The master prompt + manual fallback for both modes |
+| [docs/modes.md](docs/modes.md) | Saiyan vs Super Saiyan deep-dive, what's in each |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | A2A + NATS + Temporal contracts, dispatch flow, planner internals |
+| [STORY.md](STORY.md) | The 14 frameworks this replaced |
+| [ETHOS.md](ETHOS.md) | The rules that keep it from sprawling again |
+| [SECURITY.md](SECURITY.md) | Secret model, threat surface, disclosure address |
+| [docs/tool-awareness-handoff.md](docs/tool-awareness-handoff.md) | Tool catalog + planner internals (the layer Saiyan ships) |
+| `vault/decisions/` | Every non-obvious choice, with rationale and the alternative considered |
+
+---
+
+## ⭐ Star this repo
+
+If this saved you a week of building durable execution + multi-agent fan-out + a tier-gated planner from scratch, hit the star. It's free and helps other builders find it.
+
+[![Star History Chart](https://api.star-history.com/svg?repos=jbellsolutions/hermes-super-agent&type=Date)](https://star-history.com/#jbellsolutions/hermes-super-agent&Date)
+
+---
+
+## License + credits
 
 MIT. Use it, fork it, ship it.
 
-Security disclosures: [SECURITY.md](SECURITY.md).
+Built by [Justin Bell](https://github.com/jbellsolutions). Architecture-review credits in `vault/decisions/`. The DBZ flavor is homage, not affiliation — Dragon Ball is © Toei Animation / Akira Toriyama. The artwork in `assets/` is original SVG (no copyrighted imagery).
 
-Built by [Justin Bell](https://github.com/jbellsolutions). Architecture review credits in `vault/decisions/`.
+Security disclosures: [SECURITY.md](SECURITY.md).

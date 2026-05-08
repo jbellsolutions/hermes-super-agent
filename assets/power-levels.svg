@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 540" role="img" aria-label="Saiyan vs Super Saiyan power levels">
+  <title>Saiyan vs Super Saiyan</title>
+
+  <defs>
+    <radialGradient id="bgL" cx="50%" cy="50%" r="80%">
+      <stop offset="0%"  stop-color="#0d1c2c"/>
+      <stop offset="100%" stop-color="#050a14"/>
+    </radialGradient>
+    <radialGradient id="bgR" cx="50%" cy="50%" r="80%">
+      <stop offset="0%"  stop-color="#1a0f3a"/>
+      <stop offset="100%" stop-color="#0a0418"/>
+    </radialGradient>
+
+    <!-- Saiyan (lite) — calm blue/teal aura -->
+    <radialGradient id="auraSaiyan" cx="50%" cy="55%" r="55%">
+      <stop offset="0%" stop-color="#9ad7ff" stop-opacity="0.85"/>
+      <stop offset="50%" stop-color="#3aa1ff" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#1a4d8f" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Super Saiyan — golden inferno -->
+    <radialGradient id="auraSuper" cx="50%" cy="55%" r="55%">
+      <stop offset="0%"  stop-color="#fff7c2" stop-opacity="0.95"/>
+      <stop offset="40%" stop-color="#ffd23f" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ff7b1c" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="titleSaiyan" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#cbeaff"/>
+      <stop offset="100%" stop-color="#3aa1ff"/>
+    </linearGradient>
+    <linearGradient id="titleSuper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fffacd"/>
+      <stop offset="100%" stop-color="#ff8c1c"/>
+    </linearGradient>
+
+    <filter id="glowL" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowR" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="auraBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+  </defs>
+
+  <!-- =================== LEFT PANEL (Saiyan / lite) =================== -->
+  <g>
+    <rect x="0" y="0" width="600" height="540" fill="url(#bgL)"/>
+    <g filter="url(#auraBlur)">
+      <ellipse cx="300" cy="270" rx="220" ry="180" fill="url(#auraSaiyan)"/>
+    </g>
+
+    <!-- Power orb -->
+    <circle cx="300" cy="270" r="80" fill="#3aa1ff" opacity="0.18"/>
+    <circle cx="300" cy="270" r="55" fill="#9ad7ff" opacity="0.35"/>
+    <circle cx="300" cy="270" r="32" fill="#cbeaff" opacity="0.85"/>
+
+    <!-- Label -->
+    <text x="300" y="65" text-anchor="middle"
+          font-family="Menlo, Consolas, monospace" font-size="14"
+          fill="#3aa1ff" letter-spacing="3">LEVEL 1</text>
+    <g filter="url(#glowL)">
+      <text x="300" y="115" text-anchor="middle"
+            font-family="Helvetica, Arial, sans-serif" font-weight="900"
+            font-size="56" fill="url(#titleSaiyan)" letter-spacing="2">SAIYAN</text>
+    </g>
+    <text x="300" y="148" text-anchor="middle"
+          font-family="Helvetica, Arial, sans-serif" font-weight="400"
+          font-size="16" fill="#cbeaff" letter-spacing="1">drop-in · lite</text>
+
+    <!-- Stats card -->
+    <g transform="translate(70 380)">
+      <rect width="460" height="125" rx="14" ry="14"
+            fill="#0a1530" stroke="#1f3d6b" stroke-width="1"/>
+      <text x="20" y="32" font-family="Menlo, Consolas, monospace"
+            font-size="13" fill="#7fb6d6" letter-spacing="1">INSTALL</text>
+      <text x="20" y="58" font-family="Menlo, Consolas, monospace"
+            font-size="14" fill="#cbeaff">$ install.py --mode=saiyan</text>
+      <text x="20" y="92" font-family="Menlo, Consolas, monospace"
+            font-size="13" fill="#7fb6d6" letter-spacing="1">TIME · COST</text>
+      <text x="20" y="115" font-family="Menlo, Consolas, monospace"
+            font-size="14" fill="#cbeaff">~3 min  ·  $0/mo infra</text>
+    </g>
+  </g>
+
+  <!-- =================== RIGHT PANEL (Super Saiyan / full) =================== -->
+  <g transform="translate(600 0)">
+    <rect width="600" height="540" fill="url(#bgR)"/>
+    <g filter="url(#auraBlur)">
+      <ellipse cx="300" cy="270" rx="240" ry="200" fill="url(#auraSuper)"/>
+    </g>
+
+    <!-- Power orb (bigger, more intense) -->
+    <circle cx="300" cy="270" r="115" fill="#ff7b1c" opacity="0.18"/>
+    <circle cx="300" cy="270" r="85"  fill="#ffd23f" opacity="0.45"/>
+    <circle cx="300" cy="270" r="55"  fill="#fff7c2" opacity="0.9"/>
+
+    <!-- Energy particles -->
+    <g fill="#ffd23f">
+      <circle cx="180" cy="200" r="2.5"/>
+      <circle cx="220" cy="160" r="1.8"/>
+      <circle cx="380" cy="170" r="2.2"/>
+      <circle cx="430" cy="220" r="2"/>
+      <circle cx="170" cy="340" r="2"/>
+      <circle cx="420" cy="350" r="2.5"/>
+      <circle cx="240" cy="380" r="1.8"/>
+      <circle cx="370" cy="400" r="2"/>
+    </g>
+
+    <!-- Label -->
+    <text x="300" y="65" text-anchor="middle"
+          font-family="Menlo, Consolas, monospace" font-size="14"
+          fill="#ffd23f" letter-spacing="3">LEVEL 2</text>
+    <g filter="url(#glowR)">
+      <text x="300" y="115" text-anchor="middle"
+            font-family="Helvetica, Arial, sans-serif" font-weight="900"
+            font-size="56" fill="url(#titleSuper)" letter-spacing="2">SUPER SAIYAN</text>
+    </g>
+    <text x="300" y="148" text-anchor="middle"
+          font-family="Helvetica, Arial, sans-serif" font-weight="400"
+          font-size="16" fill="#ffe28a" letter-spacing="1">full fabric · fleet</text>
+
+    <!-- Stats card -->
+    <g transform="translate(70 380)">
+      <rect width="460" height="125" rx="14" ry="14"
+            fill="#1a0f30" stroke="#5a3b1c" stroke-width="1"/>
+      <text x="20" y="32" font-family="Menlo, Consolas, monospace"
+            font-size="13" fill="#ffb066" letter-spacing="1">INSTALL</text>
+      <text x="20" y="58" font-family="Menlo, Consolas, monospace"
+            font-size="14" fill="#ffe28a">$ install.py --mode=super-saiyan</text>
+      <text x="20" y="92" font-family="Menlo, Consolas, monospace"
+            font-size="13" fill="#ffb066" letter-spacing="1">TIME · COST</text>
+      <text x="20" y="115" font-family="Menlo, Consolas, monospace"
+            font-size="14" fill="#ffe28a">~30 min  ·  ~$45/mo + usage</text>
+    </g>
+  </g>
+
+  <!-- =================== Center divider with arrow =================== -->
+  <g>
+    <line x1="600" y1="0" x2="600" y2="540" stroke="#2a1a55" stroke-width="1"/>
+    <g transform="translate(600 270)">
+      <circle cx="0" cy="0" r="36" fill="#0a0418" stroke="#ffd23f" stroke-width="2"/>
+      <text x="0" y="6" text-anchor="middle"
+            font-family="Menlo, Consolas, monospace" font-size="13"
+            fill="#ffd23f" letter-spacing="1">→</text>
+    </g>
+    <text x="600" y="332" text-anchor="middle"
+          font-family="Menlo, Consolas, monospace" font-size="11"
+          fill="#7c6ba0" letter-spacing="2">UPGRADE</text>
+  </g>
+</svg>
