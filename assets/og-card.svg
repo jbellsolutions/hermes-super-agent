@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" role="img" aria-label="Hermes Super Agent — Open Graph card">
+  <title>Hermes Super Agent — One link. Two power levels.</title>
+
+  <defs>
+    <radialGradient id="ogVoid" cx="50%" cy="50%" r="80%">
+      <stop offset="0%"  stop-color="#1a0f3a"/>
+      <stop offset="50%" stop-color="#0d0820"/>
+      <stop offset="100%" stop-color="#050208"/>
+    </radialGradient>
+    <radialGradient id="ogAura" cx="50%" cy="55%" r="55%">
+      <stop offset="0%"  stop-color="#fff7c2" stop-opacity="0.95"/>
+      <stop offset="35%" stop-color="#ffd23f" stop-opacity="0.55"/>
+      <stop offset="70%" stop-color="#ff7b1c" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ff7b1c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ogTitleFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"  stop-color="#fffacd"/>
+      <stop offset="50%" stop-color="#ffd23f"/>
+      <stop offset="100%" stop-color="#ff8c1c"/>
+    </linearGradient>
+    <linearGradient id="ogPillBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"  stop-color="#3aa1ff"/>
+      <stop offset="100%" stop-color="#1a4d8f"/>
+    </linearGradient>
+    <linearGradient id="ogPillGold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"  stop-color="#ffd23f"/>
+      <stop offset="100%" stop-color="#ff7b1c"/>
+    </linearGradient>
+    <filter id="ogGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="ogAuraBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#ogVoid)"/>
+
+  <!-- Grid lines -->
+  <g stroke="#2a1a55" stroke-width="0.5" opacity="0.4">
+    <path d="M0 128 L1280 128 M0 256 L1280 256 M0 384 L1280 384 M0 512 L1280 512"/>
+    <path d="M160 0 L160 640 M320 0 L320 640 M480 0 L480 640 M640 0 L640 640 M800 0 L800 640 M960 0 L960 640 M1120 0 L1120 640"/>
+  </g>
+
+  <!-- Aura -->
+  <g filter="url(#ogAuraBlur)">
+    <ellipse cx="640" cy="280" rx="520" ry="220" fill="url(#ogAura)"/>
+  </g>
+
+  <!-- Title -->
+  <g filter="url(#ogGlow)">
+    <text x="640" y="240"
+          text-anchor="middle"
+          font-family="Helvetica, Arial, sans-serif"
+          font-weight="900"
+          font-size="118"
+          letter-spacing="2"
+          fill="url(#ogTitleFill)">
+      HERMES
+    </text>
+    <text x="640" y="350"
+          text-anchor="middle"
+          font-family="Helvetica, Arial, sans-serif"
+          font-weight="900"
+          font-size="118"
+          letter-spacing="2"
+          fill="url(#ogTitleFill)">
+      SUPER AGENT
+    </text>
+  </g>
+
+  <!-- Tagline -->
+  <text x="640" y="410"
+        text-anchor="middle"
+        font-family="Helvetica, Arial, sans-serif"
+        font-weight="400"
+        font-size="26"
+        fill="#ffe28a"
+        letter-spacing="1.5">
+    The fabric that turns one agent into a fleet.
+  </text>
+
+  <!-- Power pills -->
+  <g transform="translate(640 480)">
+    <!-- Saiyan pill -->
+    <g transform="translate(-300 0)">
+      <rect x="-130" y="0" width="260" height="62" rx="31" ry="31"
+            fill="#0a1530" stroke="url(#ogPillBlue)" stroke-width="2"/>
+      <text x="0" y="40"
+            text-anchor="middle"
+            font-family="Menlo, Consolas, monospace"
+            font-size="20" fill="#cbeaff" letter-spacing="2">
+        LV 1: SAIYAN
+      </text>
+    </g>
+    <!-- Super Saiyan pill -->
+    <g transform="translate(300 0)">
+      <rect x="-160" y="0" width="320" height="62" rx="31" ry="31"
+            fill="#1a0f30" stroke="url(#ogPillGold)" stroke-width="2"/>
+      <text x="0" y="40"
+            text-anchor="middle"
+            font-family="Menlo, Consolas, monospace"
+            font-size="20" fill="#ffd23f" letter-spacing="2">
+        LV 2: SUPER SAIYAN
+      </text>
+    </g>
+    <!-- Connector -->
+    <text x="0" y="40"
+          text-anchor="middle"
+          font-family="Menlo, Consolas, monospace"
+          font-size="22" fill="#7c6ba0" letter-spacing="3">
+      →
+    </text>
+  </g>
+
+  <!-- Footer URL -->
+  <text x="640" y="600"
+        text-anchor="middle"
+        font-family="Menlo, Consolas, monospace"
+        font-size="18"
+        fill="#7c6ba0"
+        letter-spacing="2">
+    github.com/jbellsolutions/hermes-super-agent
+  </text>
+</svg>
