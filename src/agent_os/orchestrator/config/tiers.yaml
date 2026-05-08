@@ -25,6 +25,17 @@ tier_3_tags:
   - outbound-email          # Instantly.ai cold email — hard stop
   - phone                   # shorthand triggers same gate as outbound-phone
   - retell                  # explicit Retell AI invocation
+  # Permanent-infra spawning — these provision a NEW VPS or Railway
+  # service that runs continuously until stopped. Treat like hiring an
+  # employee: always require an explicit YES, never auto-approve.
+  - spawn-superagent        # DigitalOcean VPS, full Hermes install (~$5/mo)
+  - vps-spawn
+  - spawn-vps
+  - build-specialist        # Archon-built Railway specialist (recurring)
+  - archon
+  - hire                    # natural-language alias
+  - hire-agent
+  - permanent-agent
 
 tier_3_pairs:                   # any pair of tags both present → tier 3
   - [production, write]

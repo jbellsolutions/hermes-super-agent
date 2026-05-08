@@ -111,7 +111,7 @@ async def _handle_message(client: httpx.AsyncClient, msg: dict[str, Any]) -> Non
 
     # Lazy imports keep cold-start cheap and avoid hard deps when running
     # other parts of the system.
-    from agent_os.orchestrator import plan_card, tier_classifier
+    from agent_os.orchestrator import plan_card, tier_classifier, intent_classifier
     from agent_os.orchestrator.adapters.job_router import Job
     from agent_os.orchestrator.adapters import plan_overrides
     from agent_os.orchestrator.tool_planner import plan as plan_fn
@@ -205,23 +205,29 @@ async def _handle_message(client: httpx.AsyncClient, msg: dict[str, Any]) -> Non
         await _send(client, chat_id, _handle_command(text))
         return
 
-    job = Job(prompt=text, tags=set())
+    # Lane gating — empty natural-language prompts default to in-process
+    # (hermes_self). intent_classifier only adds tags for spawn / fan-out /
+    # outbound intent it can prove from the wording. No fuzziness, no LLM
+    # call, no auto-spawn from ambiguous prompts.
+    intent = intent_classifier.classify(text)
+    job = Job(prompt=text, tags=set(intent.tags))
 
-    decision = tier_classifier.classify(job)
     tool_plan = plan_fn(job, identity="primary_hermes")
+    # tool_plan.tier already came from tier_classifier.classify with the
+    # tool's cost/minutes baked in — use it directly to keep gating consistent.
     card = plan_card.render(tool_plan, channel="markdown")
 
-    if decision.tier >= 2:
+    if tool_plan.tier >= 2:
         # Save pending with a 5-minute TTL.
         _PENDING_APPROVALS[chat_id] = {
             "job": job,
             "plan": tool_plan,
             "expires_at": time.time() + _APPROVAL_TTL_SECONDS,
         }
-        prompt_word = "YES" if decision.tier == 3 else "yes"
+        prompt_word = "YES" if tool_plan.tier == 3 else "yes"
         await _send(
             client, chat_id,
-            f"{card}\n\nTier {decision.tier} — reply '{prompt_word}' to run; "
+            f"{card}\n\nTier {tool_plan.tier} — reply '{prompt_word}' to run; "
             "/cancel to abort, /use <tool>, /why for the long version. "
             "(Approval expires in 5 min.)",
         )
