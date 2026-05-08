@@ -1,6 +1,8 @@
 # Tool Awareness Layer + Model Routing — Full Handoff
 
-_Last updated: 2026-05-07_
+> **There's an installer for this now.** Run `python3 install.py --mode=saiyan --target=YOUR_PROJECT` from the repo root and it copies this whole layer into your project, patches the dispatcher to be lite-mode-safe, merges deps, and runs a smoke test. No manual integration. See [INSTALL.md](../INSTALL.md) and [docs/modes.md](modes.md). This document remains for in-tree integrators who want to understand the layer before the installer touches their code, or who need to do something the installer doesn't.
+
+_Last updated: 2026-05-08_
 _Scope: incorporate this layer into another project (Hermes-style or otherwise)._
 
 ---
