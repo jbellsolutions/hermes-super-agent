@@ -1,0 +1,110 @@
+name: skool-send-dm
+description: Send a private DM to a specific Skool group member.
+version: "1.0"
+skill_ref: vault/skills/active/skool-group-manager/skool-dm.md
+
+inputs:
+  - name: message_content
+    source: job.prompt
+    required: true
+    max_chars: 1000
+  - name: member_url
+    source: job.metadata.member_url
+    required: true
+    description: "Full Skool profile URL of the recipient, e.g. https://www.skool.com/@username"
+  - name: group_url
+    source: job.metadata.group_url
+    fallback: config.group.skool_url
+    required: true
+
+pre_checks:
+  - id: rate_cap_check
+    action: read_vault_counter
+    path: "vault/runs/{{ today }}/dm-counter.txt"
+    compare: config.recruiting.daily_outreach_target
+    if_exceeded:
+      action: abort
+      message: "Daily DM rate cap reached. Remaining recipients logged for tomorrow."
+
+steps:
+  - id: login_check
+    action: navigate
+    url: "{{ group_url }}"
+    then:
+      - id: check_login
+        action: check_element
+        selector: "[data-testid='user-avatar'], .user-avatar, .profile-menu"
+        if_missing:
+          - action: navigate
+            url: "https://www.skool.com/login"
+          - action: fill
+            selector: "input[type='email'], input[name='email']"
+            value: "{{ env.SKOOL_EMAIL }}"
+          - action: fill
+            selector: "input[type='password'], input[name='password']"
+            value: "{{ env.SKOOL_PASSWORD }}"
+          - action: click
+            selector: "button[type='submit'], button:contains('Sign in')"
+          - action: wait_for_navigation
+          - action: check_captcha
+            on_captcha: emit_pending_action
+
+  - id: navigate_to_member
+    action: navigate
+    url: "{{ member_url }}"
+    on_error:
+      status: member_not_found
+      action: abort_this_recipient
+
+  - id: open_message
+    action: click
+    selector: "button:contains('Message'), a:contains('Message'), [data-testid='message-button']"
+    fallback_selectors:
+      - ".message-btn"
+      - "button.dm-button"
+    on_error:
+      status: cannot_dm
+      note: "Member may have DMs disabled or profile is private."
+      action: abort_this_recipient
+
+  - id: type_message
+    action: fill
+    selector: "textarea.message-input, [contenteditable='true'].chat-input, .dm-composer textarea"
+    value: "{{ message_content }}"
+    method: type_chars
+
+  - id: send_message
+    action: click
+    selector: "button:contains('Send'), button[type='submit'].send-btn, [data-testid='send-message']"
+    on_error: emit_pending_action
+
+  - id: verify_sent
+    action: check_element
+    selector: ".message-sent-indicator, [data-status='sent'], .delivery-receipt"
+    timeout_ms: 5000
+    on_success:
+      status: sent
+    on_failure:
+      status: unconfirmed
+
+  - id: increment_counter
+    action: increment_vault_counter
+    path: "vault/runs/{{ today }}/dm-counter.txt"
+
+outputs:
+  - name: status
+    values: [sent, unconfirmed, cannot_dm, member_not_found, rate_cap_exceeded, failed]
+  - name: error_detail
+    type: string
+    optional: true
+
+error_handling:
+  captcha:
+    action: emit_pending_action
+    message: "CAPTCHA during DM send. Human required."
+  login_failed:
+    action: emit_pending_action
+    message: "Skool login failed."
+  rate_cap_exceeded:
+    action: abort
+    message: "Daily DM cap hit. Logged remaining list for tomorrow."

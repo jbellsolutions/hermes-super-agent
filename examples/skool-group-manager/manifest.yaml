@@ -1,0 +1,78 @@
+component: skool-group-manager
+type: vertical-app
+description: >
+  AI agent team that manages a Skool community group — content posting,
+  member engagement, recruiting outreach, JAP coaching, and daily EOD Slack
+  reporting. Fully templatized: onboard any group via config.<group-name>.yaml.
+  All Skool interactions run through browser-use (no official API).
+
+depends_on:
+  agent-os.orchestrator: ">=0.1"
+  agent-os.runtimes.browser_use: any
+  agent-os.runtimes.claude_subagents: any
+  agent-os.runtimes.exa: any
+  agent-os.runtimes.openswarm: any
+
+agents:
+  - name: skool-content-agent
+    brief: agent-briefs/content-agent.md
+    role: Write and post daily content to Skool feed (morning FOMO, job leads, AI news)
+    tools: [openswarm, browser_use, vault, exa]
+    schedule: "0 8,14,16 * * *"
+    outputs:
+      - vault/runs/YYYY-MM-DD/content.md
+
+  - name: skool-engagement-agent
+    brief: agent-briefs/engagement-agent.md
+    role: DM new members with intake invite, post call recaps, tag active builders
+    tools: [browser_use, vault]
+    schedule: "triggered_by: [skool-content-agent, post-call-input]"
+    outputs:
+      - vault/runs/YYYY-MM-DD/engagement.md
+
+  - name: skool-recruiting-agent
+    brief: agent-briefs/recruiting-agent.md
+    role: Outreach DMs to warm leads, follow-ups, track new member joins
+    tools: [browser_use, exa, vault]
+    schedule: "0 8 * * *"
+    outputs:
+      - vault/runs/YYYY-MM-DD/recruiting.md
+
+  - name: skool-jap-agent
+    brief: agent-briefs/jap-coach-agent.md
+    role: Monitor job applications, flag stalled members, aggregate KPI totals
+    tools: [browser_use, vault]
+    schedule: "0 17 * * *"
+    outputs:
+      - vault/runs/YYYY-MM-DD/jap.md
+
+  - name: skool-eod-coordinator
+    brief: agent-briefs/eod-coordinator.md
+    role: Aggregate all daily agent outputs and post EOD Slack report
+    tools: [slack_mcp, vault]
+    schedule: "0 18 * * *"
+    outputs:
+      - vault/runs/YYYY-MM-DD/eod.md
+
+data_sources:
+  - skool_feed (via browser-use: playbooks/skool/post-to-feed.yaml)
+  - skool_members (via browser-use: playbooks/skool/scrape-activity.yaml)
+  - skool_dms (via browser-use: playbooks/skool/send-dm.yaml)
+  - call_notes (vault/uploads/YYYY-MM-DD/)
+  - exa_search (social prospecting)
+
+outputs:
+  - type: skool_post
+  - type: skool_dm
+  - type: slack_eod_report
+  - type: vault_run_log
+
+config_template: config.template.yaml
+downstream_consumers: [coo-control-room]
+
+constraints:
+  - "Skool has no official API — all Skool actions run through browser-use"
+  - "Skool credentials stored in vault/secrets (never in code)"
+  - "DM rate cap enforced via config.recruiting.daily_outreach_target"
+  - "CAPTCHA → PendingAction (escalate to human, do not bypass)"
+  - "All playbooks include a verify step before logging success"

@@ -1,0 +1,78 @@
+# Skool Group Manager — AI Integrators Instance Config
+# Group: AI Integrators (Justin Bell / Xander Everyday)
+
+group:
+  name: "AI Integrators"
+  skool_url: "https://www.skool.com/ai-integrators"
+  admin_credentials_key: "vault/secrets/skool-ai-integrators.env"
+
+operator:
+  name: "Justin Bell"
+  brand_name: "Xander"
+  slack_channel: "#daily-ops"
+
+calls:
+  build_call:
+    enabled: true
+    schedule_label: "daily 10:00 EST"
+    platform: "Zoom"
+    recording_upload_path: "vault/uploads/build-calls/"
+  job_call:
+    enabled: true
+    schedule_label: "daily 14:00 and 16:00 EST"
+    platform: "Zoom"
+    recording_upload_path: "vault/uploads/job-calls/"
+  intake_call:
+    enabled: true
+    schedule_label: "daily"
+    recording_upload_path: "vault/uploads/intake-calls/"
+
+content:
+  tone: "direct, action-focused, no fluff"
+  post_voice: |
+    Write like Xander: in the trenches, results-first, no motivational fluff.
+    Short sentences. Specific numbers when available. Strong call to action.
+  proof_sources:
+    - type: member_tag
+      prompt: "Who built something today? Tag them in the post."
+    - type: placement_win
+      prompt: "Any member landed a job or got an interview? Lead with that."
+  ai_news_sources:
+    - exa_search
+  hashtags: []
+
+recruiting:
+  daily_outreach_target: 25
+  follow_up_days: 2
+  warm_lead_sources:
+    - exa_social_search
+    - vault/data/ai-integrators-prior-interest.md
+  welcome_dm_template: "vault/skills/active/skool-group-manager/welcome-dm.md"
+
+jap:
+  stall_threshold_days: 2
+  kpi_fields:
+    - emails_sent
+    - prospecting_members
+    - interviews_booked
+  activity_scrape_path: "vault/runs/YYYY-MM-DD/member-activity.md"
+
+notifications:
+  slack_webhook_env: "SLACK_WEBHOOK_URL"
+  eod_time: "18:00"
+  eod_format: "xander-checklist"
+
+vault:
+  daily_run_path: "vault/runs/YYYY-MM-DD/"
+  member_log_path: "vault/data/ai-integrators-members.md"
+  content_log_path: "vault/data/ai-integrators-content-history.md"
+
+schedule:
+  timezone: "America/New_York"
+  agents:
+    content_morning: "0 8 * * *"
+    recruiting: "0 8 * * *"
+    content_afternoon_1: "0 14 * * *"
+    content_afternoon_2: "0 16 * * *"
+    jap_review: "0 17 * * *"
+    eod_report: "0 18 * * *"

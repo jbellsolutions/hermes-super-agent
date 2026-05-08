@@ -1,0 +1,169 @@
+name: skool-scrape-activity
+description: Scrape the Skool group member list and activity feed. Extracts new member joins, member count, and JAP-relevant activity from last 24 hours.
+version: "1.0"
+skill_ref: vault/skills/active/skool-group-manager/skool-scrape-members.md
+
+inputs:
+  - name: group_url
+    source: job.metadata.group_url
+    fallback: config.group.skool_url
+    required: true
+  - name: member_log_path
+    source: config.vault.member_log_path
+    required: true
+  - name: output_path
+    source: "vault/runs/{{ today }}/member-activity.md"
+    required: true
+
+steps:
+  - id: login_check
+    action: navigate
+    url: "{{ group_url }}"
+    then:
+      - id: check_login
+        action: check_element
+        selector: "[data-testid='user-avatar'], .user-avatar, .profile-menu"
+        if_missing:
+          - action: navigate
+            url: "https://www.skool.com/login"
+          - action: fill
+            selector: "input[type='email'], input[name='email']"
+            value: "{{ env.SKOOL_EMAIL }}"
+          - action: fill
+            selector: "input[type='password'], input[name='password']"
+            value: "{{ env.SKOOL_PASSWORD }}"
+          - action: click
+            selector: "button[type='submit'], button:contains('Sign in')"
+          - action: wait_for_navigation
+          - action: check_captcha
+            on_captcha: emit_pending_action
+
+  - id: scrape_members
+    action: navigate
+    url: "{{ group_url }}/members"
+    then:
+      - id: scroll_member_list
+        action: scroll_to_bottom
+        max_scrolls: 20
+        pause_ms: 500
+      - id: extract_members
+        action: extract_elements
+        selector: ".member-card, [data-testid='member-item'], .member-list-item"
+        fields:
+          - name: display_name
+            selector: ".member-name, .display-name, h3"
+          - name: username
+            selector: ".username, .handle, [data-username]"
+            attr: data-username
+          - name: join_date
+            selector: ".join-date, .member-since, time[data-join]"
+            attr: datetime
+          - name: profile_url
+            selector: "a.member-link, a[href*='/@']"
+            attr: href
+          - name: role
+            selector: ".member-role, .badge-role"
+        output_key: all_members
+
+  - id: scrape_activity_feed
+    action: navigate
+    url: "{{ group_url }}"
+    then:
+      - id: scroll_feed
+        action: scroll_to_bottom
+        max_scrolls: 10
+        pause_ms: 800
+        stop_condition: "post timestamp older than 24 hours"
+      - id: extract_feed_posts
+        action: extract_elements
+        selector: ".feed-post, .post-card, [data-testid='post']"
+        fields:
+          - name: author_name
+            selector: ".post-author, .author-name, .poster-name"
+          - name: author_url
+            selector: "a.author-link"
+            attr: href
+          - name: timestamp
+            selector: "time.post-time, .post-timestamp, time"
+            attr: datetime
+          - name: content_text
+            selector: ".post-body, .post-content, .post-text"
+            max_chars: 500
+        filter:
+          timestamp_after: "{{ 24_hours_ago }}"
+        output_key: feed_posts
+
+  - id: classify_feed_posts
+    action: llm_classify
+    model: claude-haiku-4-5
+    input: feed_posts
+    prompt: |
+      For each post, classify the type and extract application count if mentioned.
+      Types: jap_update (job applications, prospecting, interviews), build_share,
+      question, announcement, other.
+      Return JSON array: [{author_name, timestamp, type, application_count, summary}]
+    output_key: classified_posts
+
+  - id: identify_new_members
+    action: compare_to_vault
+    current_list: all_members
+    vault_list_path: "{{ member_log_path }}"
+    match_field: username
+    output_key: new_members_today
+
+  - id: write_output
+    action: write_vault
+    path: "{{ output_path }}"
+    template: |
+      # Member Activity Scrape — {{ today }} {{ now_time }}
+
+      ## Member Counts
+      total_members: {{ all_members | length }}
+      new_members_today:
+      {% for m in new_members_today %}
+        - name: {{ m.display_name }}
+          username: {{ m.username }}
+          join_date: {{ m.join_date }}
+          profile_url: {{ m.profile_url }}
+      {% endfor %}
+
+      ## Activity Feed (last 24h — JAP-relevant)
+      {% for post in classified_posts %}
+      - author: {{ post.author_name }}
+        timestamp: {{ post.timestamp }}
+        type: {{ post.type }}
+        application_count_mentioned: {{ post.application_count | default("null") }}
+        content_summary: {{ post.summary }}
+      {% endfor %}
+
+      ## Scrape metadata
+      scraped_at: {{ now_iso }}
+      pages_scrolled: {{ scroll_count }}
+
+  - id: update_member_log
+    action: write_vault
+    path: "{{ member_log_path }}"
+    mode: overwrite
+    content: "{{ all_members | to_vault_member_list }}"
+
+outputs:
+  - name: total_members
+    type: int
+  - name: new_members_count
+    type: int
+  - name: new_members
+    type: list
+  - name: jap_activity_count
+    type: int
+
+error_handling:
+  captcha:
+    action: emit_pending_action
+    message: "CAPTCHA during member scrape."
+  member_tab_load_failure:
+    action: retry_once
+    delay_ms: 10000
+    on_second_failure:
+      note: "Partial member data — continuing with what was scraped."
+  feed_scrape_incomplete:
+    note: "Log how far scroll reached. Continue with partial data."

@@ -1,0 +1,79 @@
+# Skool Group Manager — Per-Group Configuration Template
+# Copy this file to config.<group-name>.yaml and fill in all values.
+# Hermes reads this config to know WHERE agents operate and HOW.
+
+group:
+  name: "YOUR_GROUP_NAME"                        # Display name (e.g. "AI Integrators")
+  skool_url: "https://www.skool.com/YOUR_SLUG"  # Full Skool group URL
+  admin_credentials_key: "vault/secrets/skool-YOUR_SLUG.env"  # Env file with SKOOL_EMAIL, SKOOL_PASSWORD
+
+operator:
+  name: "YOUR_NAME"                             # e.g. "Justin Bell"
+  brand_name: "YOUR_BRAND"                      # e.g. "Xander" — used in post signatures
+  slack_channel: "#daily-ops"                   # Channel for EOD report
+
+calls:
+  build_call:
+    enabled: true
+    schedule_label: "daily 10:00"               # Human-readable, for post copy only
+    platform: "Zoom"
+    recording_upload_path: "vault/uploads/build-calls/"
+  job_call:
+    enabled: true
+    schedule_label: "daily 14:00 and 16:00"
+    platform: "Zoom"
+    recording_upload_path: "vault/uploads/job-calls/"
+  intake_call:
+    enabled: true
+    schedule_label: "daily"
+    recording_upload_path: "vault/uploads/intake-calls/"
+
+content:
+  tone: "direct, action-focused, no fluff"
+  post_voice: |
+    Write like a coach who has been in the trenches.
+    No motivational fluff. Short sentences. Specific results.
+  proof_sources:
+    - type: member_tag
+      prompt: "Who built something today? Tag them in the post."
+    - type: placement_win
+      prompt: "Any member landed a job or got an interview? Lead with that."
+  ai_news_sources:
+    - exa_search
+  hashtags: []                                   # Add group-specific hashtags if needed
+
+recruiting:
+  daily_outreach_target: 25                      # Max DMs per day (enforced hard cap)
+  follow_up_days: 2                              # Days before follow-up DM
+  warm_lead_sources:
+    - exa_social_search
+    - vault/data/prior-interest-list.md
+  welcome_dm_template: "vault/skills/active/skool-group-manager/welcome-dm.md"
+
+jap:
+  stall_threshold_days: 2                        # Flag member if 0 applications in N days
+  kpi_fields:
+    - emails_sent
+    - prospecting_members
+    - interviews_booked
+  activity_scrape_path: "vault/runs/YYYY-MM-DD/member-activity.md"
+
+notifications:
+  slack_webhook_env: "SLACK_WEBHOOK_URL"         # Env var name (value set in Railway secrets)
+  eod_time: "18:00"
+  eod_format: "xander-checklist"                # Matches /api/submit-eod schema
+
+vault:
+  daily_run_path: "vault/runs/YYYY-MM-DD/"       # Agents write outputs here
+  member_log_path: "vault/data/members.md"       # Running member list
+  content_log_path: "vault/data/content-history.md"
+
+schedule:
+  timezone: "America/New_York"
+  agents:
+    content_morning: "0 8 * * *"
+    recruiting: "0 8 * * *"
+    content_afternoon_1: "0 14 * * *"
+    content_afternoon_2: "0 16 * * *"
+    jap_review: "0 17 * * *"
+    eod_report: "0 18 * * *"
