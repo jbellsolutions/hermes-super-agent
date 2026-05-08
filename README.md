@@ -5,12 +5,42 @@
 </p>
 
 <p align="center">
-  <a href="#get-it-running">Get it running</a> ·
+  <a href="#pick-your-form">Pick your form</a> ·
   <a href="#what-it-actually-does">What it does</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="QUICKSTART.md">Quickstart</a> ·
-  <a href="ARCHITECTURE.md">Architecture</a>
+  <a href="INSTALL.md">Install</a>
 </p>
+
+---
+
+## Pick your form
+
+One repo, two modes, one share link.
+
+| | **Saiyan** *(lite)* | **Super-saiyan** *(full)* |
+|---|---|---|
+| **For** | You already have a Hermes / Python agent project | You're starting fresh, want the full fleet |
+| **What you get** | Planner + 14 in-process runtimes + 16 SKILL.md files, dropped into your project | NATS + Temporal + Coordinator + Archon + Admiral on Railway, plus Tier 2 VPS spawning |
+| **Cost floor** | $0 (you keep your existing setup) | ~$45/mo + LLM usage |
+| **Install time** | ~3 min via `install.py --mode=saiyan` | ~30 min via `install.py --mode=super-saiyan` |
+
+**Single share link, branching install.** Paste the master prompt in [INSTALL.md](INSTALL.md) into Claude Code, Codex, or Cursor. The agent asks *"have Hermes? saiyan or super-saiyan?"* and walks the right path. You paste keys. You don't write code.
+
+Or run it yourself:
+
+```bash
+# Saiyan (lite — drop into your existing Hermes)
+git clone https://github.com/jbellsolutions/hermes-super-agent /tmp/hsa
+python3 /tmp/hsa/install.py --mode=saiyan --target=/path/to/your/project
+
+# Super-saiyan (full — Railway fabric)
+git clone https://github.com/jbellsolutions/hermes-super-agent
+cd hermes-super-agent && uv sync
+python3 install.py --mode=super-saiyan
+```
+
+Deep-dive on what each mode contains: [docs/modes.md](docs/modes.md).
 
 ---
 
