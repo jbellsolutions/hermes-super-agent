@@ -146,6 +146,10 @@ def _saiyan(*, target: Path, dry_run: bool, force: bool) -> int:
         tgt.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, tgt)
 
+    # Lock in the Saiyan identity — copy SOUL.md into the Hermes profile so the
+    # agent boots as the Saiyan version, not base Hermes.
+    _inject_soul("saiyan", dry_run=dry_run)
+
     if not dry_run:
         # Patch the copied job_router.py for lite-mode dispatch.
         _patch_job_router_for_saiyan(target_agent_os / "orchestrator" / "adapters" / "job_router.py")
@@ -398,6 +402,30 @@ def _smoke_test(*, target: Path, layout: str) -> bool:
     return result.returncode == 0
 
 
+def _inject_soul(mode: str, *, dry_run: bool) -> None:
+    """Copy the mode's SOUL.md into the Hermes profile so the agent boots with
+    the Saiyan / Super Saiyan identity instead of the base Hermes identity.
+
+    Mirrors scripts/start.sh: SOUL-<mode>.md if present, else SOUL.md, into
+    ~/.hermes/profiles/<HERMES_PROFILE or 'supersan'>/SOUL.md.
+    """
+    soul_src = SCRIPT_DIR / f"SOUL-{mode}.md"
+    if not soul_src.exists():
+        soul_src = SCRIPT_DIR / "SOUL.md"
+    if not soul_src.exists():
+        print("  ⚠ no SOUL.md in repo — skipping identity injection")
+        return
+    profile = os.environ.get("HERMES_PROFILE", "supersan")
+    profile_dir = Path.home() / ".hermes" / "profiles" / profile
+    dest = profile_dir / "SOUL.md"
+    if dry_run:
+        print(f"  WOULD INJECT identity  {soul_src.name} → {dest}")
+        return
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(soul_src, dest)
+    print(f"  ⚡ identity locked: {soul_src.name} → ~/.hermes/profiles/{profile}/SOUL.md")
+
+
 def _print_next_steps() -> None:
     print(
         "Next steps — wire it into your Super Agent turn handler:\n"
@@ -435,6 +463,10 @@ def _super_saiyan() -> int:
     print("  This runs: scripts/setup.sh (interactive credentials)")
     print("            scripts/deploy.sh (Railway deploy of 5 services)")
     print()
+
+    # Lock in the Super Saiyan identity on this machine too (the Railway
+    # deploy gets it via scripts/start.sh, but this covers a local run).
+    _inject_soul("super-saiyan", dry_run=False)
 
     rc = subprocess.call(["bash", str(setup)])
     if rc != 0:

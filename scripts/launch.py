@@ -22,6 +22,7 @@ missing/blank values unless --reset is passed.
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -584,10 +585,34 @@ def _run(cmd: list[str], label: str) -> bool:
     return True
 
 
+def inject_soul(mode: str) -> None:
+    """Lock in the version identity — copy the mode's SOUL.md into the Hermes
+    profile so the agent boots as Saiyan / Super Saiyan, not base Hermes.
+
+    Mirrors scripts/start.sh: SOUL-<mode>.md if present, else SOUL.md, into
+    ~/.hermes/profiles/<HERMES_PROFILE or 'supersan'>/SOUL.md.
+    """
+    soul_src = ROOT / f"SOUL-{mode}.md"
+    if not soul_src.exists():
+        soul_src = ROOT / "SOUL.md"
+    if not soul_src.exists():
+        print(yellow("  no SOUL.md in repo — skipping identity injection"))
+        return
+    profile = os.environ.get("HERMES_PROFILE", "supersan")
+    profile_dir = Path.home() / ".hermes" / "profiles" / profile
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy(soul_src, profile_dir / "SOUL.md")
+    print(green(f"  identity locked: {soul_src.name} → ~/.hermes/profiles/{profile}/SOUL.md"))
+
+
 def step_install(env: dict[str, str], mode: str, minimal: bool, skip_install: bool) -> bool:
     print()
     print(cyan(f"Step 5 — install ({mode})"))
     print()
+
+    # Lock in the version identity first — this is the whole point of the mode.
+    # Runs even with --skip-install: it's a cheap file copy, not a heavy installer.
+    inject_soul(mode)
 
     if skip_install:
         print(yellow("  --skip-install passed; not running the installer"))
