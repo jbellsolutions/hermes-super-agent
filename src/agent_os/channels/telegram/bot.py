@@ -111,9 +111,9 @@ async def _handle_message(client: httpx.AsyncClient, msg: dict[str, Any]) -> Non
 
     # Lazy imports keep cold-start cheap and avoid hard deps when running
     # other parts of the system.
-    from agent_os.orchestrator import plan_card, tier_classifier, intent_classifier
-    from agent_os.orchestrator.adapters.job_router import Job
+    from agent_os.orchestrator import intent_classifier, plan_card
     from agent_os.orchestrator.adapters import plan_overrides
+    from agent_os.orchestrator.adapters.job_router import Job
     from agent_os.orchestrator.tool_planner import plan as plan_fn
 
     # Override commands (/cancel, /use, /why, /plan on|off, /tier N, YES) — these
@@ -210,7 +210,7 @@ async def _handle_message(client: httpx.AsyncClient, msg: dict[str, Any]) -> Non
     # outbound intent it can prove from the wording. No fuzziness, no LLM
     # call, no auto-spawn from ambiguous prompts.
     intent = intent_classifier.classify(text)
-    job = Job(prompt=text, tags=set(intent.tags))
+    job = Job(prompt=text, tags=set(intent.tags), metadata={"user_id": str(chat_id)})
 
     tool_plan = plan_fn(job, identity="primary_hermes")
     # tool_plan.tier already came from tier_classifier.classify with the
@@ -329,7 +329,7 @@ async def run_bot() -> None:
                         # Handle each message in its own task so a slow LLM
                         # call doesn't block the poll loop.
                         asyncio.create_task(_handle_message(client, msg))
-            except (httpx.HTTPError, asyncio.TimeoutError) as exc:
+            except (TimeoutError, httpx.HTTPError) as exc:
                 logger.warning("Telegram poll error: %s — retrying in 5s", exc)
                 await asyncio.sleep(5)
             except Exception:

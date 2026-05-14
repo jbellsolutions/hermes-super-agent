@@ -27,3 +27,33 @@ def append_message(canonical_user_id: str, role: str, content: str) -> None:
 def load_history(canonical_user_id: str) -> str:
     p = conversation_path(canonical_user_id)
     return p.read_text() if p.exists() else ""
+
+
+def parse_history(canonical_user_id: str, limit: int = 10) -> list[dict]:
+    """Return recent conversation as OpenAI-style messages list.
+
+    Parses the markdown log written by append_message() back into
+    [{role, content}, ...] so runtimes can pass it directly to LLM APIs.
+    limit is the number of turns (each turn = one user + one assistant message).
+    """
+    raw = load_history(canonical_user_id)
+    if not raw:
+        return []
+    messages: list[dict] = []
+    current_role: str | None = None
+    current_lines: list[str] = []
+    for line in raw.split("\n"):
+        if line.startswith("## "):
+            if current_role and current_lines:
+                content = "\n".join(current_lines).strip()
+                if content:
+                    messages.append({"role": current_role, "content": content})
+            current_role = line[3:].strip()
+            current_lines = []
+        else:
+            current_lines.append(line)
+    if current_role and current_lines:
+        content = "\n".join(current_lines).strip()
+        if content:
+            messages.append({"role": current_role, "content": content})
+    return messages[-(limit * 2):]
