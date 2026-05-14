@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """Super Agent conversational launch wizard.
 
-The runnable twin of INSTALL.md's master prompt. Walks you through:
+The runnable twin of INSTALL.md's master prompt. Same order, same wording:
 
-    1. Pick your power level — Saiyan or Super Saiyan
-    2. Hermes preflight — install the Hermes runtime if it's missing
-    3. Keys & channels — conversational, asks only for what your mode needs
-    4. Install — mode-aware (saiyan drop-in, or Super Saiyan full bring-up)
+    1. Hermes preflight — install the Hermes runtime if it's missing
+    2. Keys & channels — provider keys, Telegram, shared brain, channels
+    3. Pick your power level — Saiyan or Super Saiyan
+       ...then the mode-specific setup the chosen path needs
+    4. Configure Hermes — sync the relevant keys into Hermes itself
+    5. Install — mode-aware (saiyan drop-in, or Super Saiyan full bring-up)
 
 Usage:
-    ./scripts/launch.py                 full walkthrough, asks the mode
-    ./scripts/launch.py --mode=saiyan   skip the mode question
+    ./scripts/launch.py                 full walkthrough
+    ./scripts/launch.py --mode=saiyan   pre-pick the mode (still asks step 3's
+                                        mode-specific questions)
     ./scripts/launch.py --minimal       absolute-minimum keys only
 
 Idempotent — re-run any time. Reads existing .env and only re-prompts for
@@ -127,40 +130,6 @@ def prompt_choice(question: str, options: list[str], default_idx: int = 0) -> st
         return options[default_idx]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Step 1 — pick your power level (Saiyan vs Super Saiyan)
-# ─────────────────────────────────────────────────────────────────────────────
-def step_mode(env: dict[str, str], cli_mode: str | None, reset: bool) -> str:
-    print()
-    print(cyan("Step 1 — pick your power level"))
-    print()
-
-    if cli_mode in (MODE_SAIYAN, MODE_SUPER_SAIYAN):
-        mode = cli_mode
-        print(f"  --mode={mode} passed; skipping the question")
-    elif env.get("INSTALL_MODE") in (MODE_SAIYAN, MODE_SUPER_SAIYAN) and not reset:
-        mode = env["INSTALL_MODE"]
-        print(f"  .env already set INSTALL_MODE={mode} (re-run with --reset to change)")
-    else:
-        print(f"  {bold('Saiyan')}        {MODE_BLURB[MODE_SAIYAN]}")
-        print()
-        print(f"  {bold('Super Saiyan')}  {MODE_BLURB[MODE_SUPER_SAIYAN]}")
-        print()
-        print(yellow("  When in doubt, start Saiyan — ~3 min, no infra. Upgrading later"))
-        print(yellow("  to Super Saiyan doesn't undo anything."))
-        print()
-        choice = prompt_choice(
-            "  Which path?",
-            ["Saiyan (lite)", "Super Saiyan (full)"],
-            default_idx=0,
-        )
-        mode = MODE_SAIYAN if choice.startswith("Saiyan ") else MODE_SUPER_SAIYAN
-
-    env["INSTALL_MODE"] = mode
-    print(green(f"  → {mode}"))
-    return mode
-
-
 def _run_hermes_version() -> subprocess.CompletedProcess[str]:
     """Return `hermes --version`, using a login-ish shell if PATH was just updated."""
     if shutil.which("hermes"):
@@ -171,11 +140,11 @@ def _run_hermes_version() -> subprocess.CompletedProcess[str]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 2 — Hermes preflight
+# Step 1 — Hermes preflight
 # ─────────────────────────────────────────────────────────────────────────────
 def step_hermes_preflight(skip_install: bool) -> bool:
     print()
-    print(cyan("Step 2 — Hermes Agent preflight"))
+    print(cyan("Step 1 — Hermes Agent preflight"))
     print()
 
     version = _run_hermes_version()
@@ -287,11 +256,11 @@ def hermes_env_path() -> Path | None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 3 — keys & channels (conversational)
+# Step 2 — keys & channels (common to every mode)
 # ─────────────────────────────────────────────────────────────────────────────
-def step_keys(env: dict[str, str], mode: str, minimal: bool, reset: bool) -> dict[str, str]:
+def step_keys(env: dict[str, str], minimal: bool, reset: bool) -> dict[str, str]:
     print()
-    print(cyan("Step 3 — keys and channels"))
+    print(cyan("Step 2 — keys and channels"))
     print()
 
     operator = env.get("AGENT_OS_OWNER") if not reset else ""
@@ -486,12 +455,6 @@ def step_keys(env: dict[str, str], mode: str, minimal: bool, reset: bool) -> dic
         ("EXA_API_KEY", "Exa neural search (free tier at exa.ai)"),
         ("OPENROUTER_API_KEY", "OpenRouter for non-Anthropic / non-OpenAI models"),
     ]
-    # Super Saiyan provisions cloud infra; surface the infra keys for that mode.
-    if mode == MODE_SUPER_SAIYAN:
-        optional += [
-            ("RAILWAY_TOKEN", "Railway — the Super Saiyan fabric runs here"),
-            ("DIGITALOCEAN_ACCESS_TOKEN", "DigitalOcean — Tier 2 VPS spawning"),
-        ]
     for k, desc in optional:
         if env.get(k) and not reset:
             continue
@@ -501,6 +464,65 @@ def step_keys(env: dict[str, str], mode: str, minimal: bool, reset: bool) -> dic
     return env
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Step 3 — pick your power level, then the mode-specific setup
+# ─────────────────────────────────────────────────────────────────────────────
+def step_mode(env: dict[str, str], cli_mode: str | None, reset: bool) -> str:
+    print()
+    print(cyan("Step 3 — pick your power level"))
+    print()
+
+    if cli_mode in (MODE_SAIYAN, MODE_SUPER_SAIYAN):
+        mode = cli_mode
+        print(f"  --mode={mode} passed; skipping the question")
+    elif env.get("INSTALL_MODE") in (MODE_SAIYAN, MODE_SUPER_SAIYAN) and not reset:
+        mode = env["INSTALL_MODE"]
+        print(f"  .env already set INSTALL_MODE={mode} (re-run with --reset to change)")
+    else:
+        print(f"  {bold('Saiyan')}        {MODE_BLURB[MODE_SAIYAN]}")
+        print()
+        print(f"  {bold('Super Saiyan')}  {MODE_BLURB[MODE_SUPER_SAIYAN]}")
+        print()
+        print(yellow("  When in doubt, start Saiyan — ~3 min, no infra. Upgrading later"))
+        print(yellow("  to Super Saiyan doesn't undo anything."))
+        print()
+        choice = prompt_choice(
+            "  Which path?",
+            ["Saiyan (lite)", "Super Saiyan (full)"],
+            default_idx=0,
+        )
+        mode = MODE_SAIYAN if choice.startswith("Saiyan ") else MODE_SUPER_SAIYAN
+
+    env["INSTALL_MODE"] = mode
+    print(green(f"  → {mode}"))
+
+    # The rest of the setup depends on the mode.
+    print()
+    if mode == MODE_SAIYAN:
+        print(cyan("  Saiyan setup — drop-in target"))
+        if not env.get("SAIYAN_TARGET") or reset:
+            env["SAIYAN_TARGET"] = prompt(
+                "  Project root to install the planner + 14 runtimes into",
+                default=env.get("SAIYAN_TARGET", str(ROOT)),
+            )
+    else:
+        print(cyan("  Super Saiyan setup — cloud fabric keys"))
+        print("  (the full fabric runs on Railway; Tier 2 spawns VPSes on DigitalOcean)")
+        for k, desc in (
+            ("RAILWAY_TOKEN", "Railway — the Super Saiyan fabric runs here"),
+            ("DIGITALOCEAN_ACCESS_TOKEN", "DigitalOcean — Tier 2 VPS spawning"),
+        ):
+            if env.get(k) and not reset:
+                continue
+            if prompt_yn(f"  Configure {k} ({desc})?", default=True):
+                env[k] = prompt(f"    {k}", secret=True)
+
+    return mode
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Step 4 — configure Hermes itself
+# ─────────────────────────────────────────────────────────────────────────────
 def step_hermes_config(env: dict[str, str], skip_config: bool) -> bool:
     print()
     print(cyan("Step 4 — configure Hermes itself"))
@@ -573,13 +595,7 @@ def step_install(env: dict[str, str], mode: str, minimal: bool, skip_install: bo
 
     if mode == MODE_SAIYAN:
         # Drop-in install into an existing Hermes/Python project.
-        target = env.get("SAIYAN_TARGET", "")
-        if not target:
-            target = prompt(
-                "  Project root to install the planner + 14 runtimes into",
-                default=str(ROOT),
-            )
-            env["SAIYAN_TARGET"] = target
+        target = env.get("SAIYAN_TARGET", str(ROOT))
         installer = ROOT / "install.py"
         if not installer.exists():
             print(red(f"  missing {installer}"))
@@ -665,7 +681,7 @@ def main() -> int:
         "--mode",
         choices=[MODE_SAIYAN, MODE_SUPER_SAIYAN],
         default=None,
-        help="pre-pick the power level and skip the question",
+        help="pre-pick the power level and skip the step 3 question",
     )
     p.add_argument(
         "--minimal",
@@ -693,15 +709,15 @@ def main() -> int:
     banner()
     env = load_env()
 
-    # Step 1 — power level FIRST, so the rest of the walkthrough can adapt.
-    mode = step_mode(env, cli_mode=args.mode, reset=args.reset)
-
-    # Step 2 — Hermes runtime must exist before anything else.
+    # Step 1 — Hermes runtime must exist before anything else.
     if not step_hermes_preflight(skip_install=args.skip_hermes_install):
         return 1
 
-    # Step 3 — keys & channels.
-    env = step_keys(env, mode=mode, minimal=args.minimal, reset=args.reset)
+    # Step 2 — keys & channels (common to every mode).
+    env = step_keys(env, minimal=args.minimal, reset=args.reset)
+
+    # Step 3 — pick the power level, then the mode-specific setup.
+    mode = step_mode(env, cli_mode=args.mode, reset=args.reset)
     write_env(env)
 
     # Step 4 — push the relevant bits into Hermes' own config.
