@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hermes Super Agent installer — saiyan (lite) or super-saiyan (full).
+"""Super Agent installer — saiyan (lite) or super-saiyan (full).
 
 Single-file, stdlib-only. Designed to be invoked from a Claude Code /
 Codex / Cursor session running the master prompt in INSTALL.md, but
@@ -102,7 +102,7 @@ def main(argv: list[str] | None = None) -> int:
 # ---------------------------------------------------------------------------
 
 def _saiyan(*, target: Path, dry_run: bool, force: bool) -> int:
-    print(f"\n⚡ Hermes saiyan-mode install → {target}\n")
+    print(f"\n⚡ Super Agent — Saiyan install → {target}\n")
 
     if sys.version_info < (3, 11):
         print(f"✗ Python 3.11+ required (you have {sys.version_info.major}."
@@ -340,7 +340,7 @@ def _merge_deps(*, target: Path, dry_run: bool) -> None:
         with reqs.open("a") as fh:
             if existing and not existing.endswith("\n"):
                 fh.write("\n")
-            fh.write("# Hermes saiyan deps\n")
+            fh.write("# Super Agent saiyan deps\n")
             for d in added_lines:
                 fh.write(d + "\n")
         print(f"  appended {len(added_lines)} dep(s) to requirements.txt")
@@ -400,7 +400,7 @@ def _smoke_test(*, target: Path, layout: str) -> bool:
 
 def _print_next_steps() -> None:
     print(
-        "Next steps — wire it into your Hermes turn handler:\n"
+        "Next steps — wire it into your Super Agent turn handler:\n"
         "\n"
         "  from agent_os.orchestrator import intent_classifier\n"
         "  from agent_os.orchestrator.adapters.job_router import Job, dispatch\n"
@@ -431,7 +431,7 @@ def _super_saiyan() -> int:
               "install.py from the hermes-super-agent repo root?")
         return 2
 
-    print("\n🟡 Hermes super-saiyan-mode install — full Railway fabric.\n")
+    print("\n🟡 Super Agent — Super Saiyan install — full Railway fabric.\n")
     print("  This runs: scripts/setup.sh (interactive credentials)")
     print("            scripts/deploy.sh (Railway deploy of 5 services)")
     print()

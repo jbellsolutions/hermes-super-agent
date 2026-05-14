@@ -7,6 +7,22 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PROFILE="${HERMES_PROFILE:-supersan}"
 export PATH="$HOME/.local/bin:$PATH"
 
+# ── 0. Tier selection ──────────────────────────────────────────────────────────
+MODE="${INSTALL_MODE:-}"
+if [[ -z "$MODE" ]]; then
+  if [[ -t 0 ]]; then
+    echo "[start] Pick your power level:"
+    echo "  [1] Saiyan       — planner + 14 runtimes, no new infra (~3 min)"
+    echo "  [2] Super Saiyan — full Railway fabric + VPS spawning (~30 min)"
+    read -r -p "  Choice [2]: " _choice
+    [[ "$_choice" == "1" ]] && MODE="saiyan" || MODE="super-saiyan"
+  else
+    MODE="super-saiyan"
+  fi
+fi
+export INSTALL_MODE="$MODE"
+echo "[start] mode: $MODE"
+
 # ── 1. Install Hermes if missing ──────────────────────────────────────────────
 if ! command -v hermes >/dev/null 2>&1; then
   echo "[start] installing Hermes..."
@@ -22,11 +38,17 @@ echo "[start] hermes: $HERMES_VERSION | profile: $PROFILE"
 PROFILE_DIR="$HOME/.hermes/profiles/$PROFILE"
 mkdir -p "$PROFILE_DIR"
 
-# ── 3. Inject SOUL.md from repo ───────────────────────────────────────────────
-SOUL_SRC="$REPO_ROOT/SOUL.md"
+# ── 3. Inject tier SOUL.md from repo ─────────────────────────────────────────
+SOUL_SRC="$REPO_ROOT/SOUL-${MODE}.md"
+[[ -f "$SOUL_SRC" ]] || SOUL_SRC="$REPO_ROOT/SOUL.md"
 if [[ -f "$SOUL_SRC" ]]; then
   cp "$SOUL_SRC" "$PROFILE_DIR/SOUL.md"
-  echo "[start] SOUL.md injected from repo"
+  echo "[start] SOUL.md injected (${MODE})"
+fi
+
+# ── 3b. Install tier tools ────────────────────────────────────────────────────
+if command -v python3 >/dev/null 2>&1 && [[ "$MODE" == "saiyan" ]]; then
+  python3 "$REPO_ROOT/install.py" --mode=saiyan --target="$REPO_ROOT" --force 2>/dev/null || true
 fi
 
 # ── 4. Sync env vars into profile .env (no-clobber for secrets already set) ──

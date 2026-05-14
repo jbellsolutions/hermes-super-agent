@@ -17,4 +17,5 @@ RUN uv sync
 COPY . .
 
 EXPOSE 8000
-CMD ["uv", "run", "agent-os", "boot"]
+ENV INSTALL_MODE=super-saiyan
+CMD ["bash", "scripts/start.sh"]
