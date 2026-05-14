@@ -35,7 +35,8 @@ DECISIONS_DIR = ROOT / "vault" / "decisions"
 MODELS: list[tuple[str, str, str]] = [
     ("Kimi K2.6 (baseline)", "moonshotai/Kimi-K2.6", "custom"),
     ("DeepSeek V4 Pro", "deepseek-ai/DeepSeek-V4-Pro", "custom"),
-    ("Claude Sonnet 4.7", "claude-sonnet-4.7", "anthropic"),
+    # Latest Sonnet available on the Anthropic key (no "4.7" exists yet).
+    ("Claude Sonnet 4.6", "claude-sonnet-4-6", "anthropic"),
 ]
 
 # (id, dimension, prompt). Prompts 1-5 are describe-don't-execute (zero side
