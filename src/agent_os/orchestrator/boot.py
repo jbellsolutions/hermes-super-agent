@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 VAULT_ROOT = Path(os.environ.get("VAULT_ROOT", "./vault")).resolve()
-DEFAULT_IDENTITY = "coo"
+DEFAULT_IDENTITY = os.environ.get("HERMES_PROFILE", "supersan")
 
 
 def _hermes_version() -> str | None:
