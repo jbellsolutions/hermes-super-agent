@@ -67,9 +67,9 @@ the fix.
 That's the natural-language single-link install. Paste it, agent does the rest.
 
 **Prefer a runnable wizard?** `scripts/launch.py` is the twin of this master
-prompt — same flow, same wording. It asks Saiyan vs Super Saiyan first, runs
-the Hermes preflight, walks you through keys and channels, then runs the
-mode-aware installer:
+prompt — same flow, same wording: Hermes preflight, then pick Saiyan vs Super
+Saiyan, then it asks only the keys that mode needs, then the mode-aware
+installer:
 
 ```bash
 git clone https://github.com/jbellsolutions/hermes-super-agent
