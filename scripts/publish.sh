@@ -121,9 +121,12 @@ if [ -f WORKLOG.md ] && git remote get-url internal > /dev/null 2>&1; then
     cp -f .git/index "$tmp_index"
     trap 'cp -f "$tmp_index" .git/index; rm -f "$tmp_index"' EXIT
 
-    # Create/update worklog branch tip from current main, add WORKLOG.md
+    # Create/update worklog branch tip from current main, add WORKLOG.md.
+    # Use hash-object + cacheinfo so we bypass .gitignore (WORKLOG.md is
+    # ignored on main but tracked on the worklog branch).
     git read-tree "$sha_before"
-    git update-index --add --force-add WORKLOG.md
+    worklog_blob=$(git hash-object -w WORKLOG.md)
+    git update-index --add --cacheinfo "100644,$worklog_blob,WORKLOG.md"
     new_tree=$(git write-tree)
 
     # Parent: previous worklog tip if it exists on internal, else current main
