@@ -38,6 +38,10 @@ _API_BASE = "https://api.telegram.org"
 _PENDING_APPROVALS: dict[int, dict[str, Any]] = {}
 _APPROVAL_TTL_SECONDS = 300
 
+# chat_id → active identity name (set via /identity <name>).
+# Falls back to AGENT_IDENTITY env var when not set.
+_ACTIVE_IDENTITY: dict[int, str] = {}
+
 # Telegram message hard cap is 4096 chars; leave headroom for our wrapper text.
 _MAX_BODY_CHARS = 3500
 
@@ -168,6 +172,31 @@ async def _handle_message(client: httpx.AsyncClient, msg: dict[str, Any]) -> Non
                         f"Forced to tier {pending['plan'].tier}. Reply 'yes' to run.")
             return
 
+        if override.kind == "identity":
+            name = override.identity
+            if not name:
+                # List available identities
+                from pathlib import Path  # noqa: PLC0415
+                identity_dir = (
+                    Path(__file__).parents[3]
+                    / "orchestrator/config/identities"
+                )
+                available = sorted(
+                    p.stem for p in identity_dir.glob("*.yaml")
+                )
+                current = _ACTIVE_IDENTITY.get(chat_id) or os.getenv("AGENT_IDENTITY", "supersan")
+                await _send(
+                    client, chat_id,
+                    f"Current identity: {current}\n"
+                    f"Available: {', '.join(available)}\n\n"
+                    "Switch with: /identity <name>",
+                )
+                return
+            _ACTIVE_IDENTITY[chat_id] = name
+            await _send(client, chat_id,
+                        f"Identity set to '{name}'. All future messages will use this persona.")
+            return
+
         if override.kind == "confirm":
             if not pending:
                 await _send(client, chat_id, "No pending tier-3 plan to confirm.")
@@ -210,7 +239,10 @@ async def _handle_message(client: httpx.AsyncClient, msg: dict[str, Any]) -> Non
     # outbound intent it can prove from the wording. No fuzziness, no LLM
     # call, no auto-spawn from ambiguous prompts.
     intent = intent_classifier.classify(text)
-    job = Job(prompt=text, tags=set(intent.tags), metadata={"user_id": str(chat_id)})
+    meta: dict[str, str] = {"user_id": str(chat_id)}
+    if chat_id in _ACTIVE_IDENTITY:
+        meta["identity"] = _ACTIVE_IDENTITY[chat_id]
+    job = Job(prompt=text, tags=set(intent.tags), metadata=meta)
 
     tool_plan = plan_fn(job, identity="primary_hermes")
     # tool_plan.tier already came from tier_classifier.classify with the
@@ -283,6 +315,8 @@ def _handle_command(text: str) -> str:
             "  /why        explain how this plan was picked\n"
             "  /tier <1|2|3>   force a tier override\n\n"
             "Other commands:\n"
+            "  /identity           show current persona + available options\n"
+            "  /identity <name>    switch persona (e.g. /identity coo)\n"
             "  /status — quick fleet status\n"
             "  /help — this message"
         )
