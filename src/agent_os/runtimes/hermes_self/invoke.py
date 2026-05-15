@@ -26,23 +26,31 @@ from agent_os.runtimes._base import RuntimeResult, new_job_id, write_run_artifac
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Identity — loaded once from the supersan identity YAML
+# Identity — loaded once per identity name, keyed by AGENT_IDENTITY env var.
+#
+# Each deployed agent sets AGENT_IDENTITY=<name> (e.g. coo, gtm, head_of_ops,
+# supersan). The name maps directly to a YAML file in
+# orchestrator/config/identities/<name>.yaml.
+# Defaults to "supersan" if unset.
 # ---------------------------------------------------------------------------
 
-_SYSTEM_PROMPT: str = ""
+_IDENTITY_ROOT = Path(__file__).parents[3] / "orchestrator/config/identities"
+_PROMPT_CACHE: dict[str, str] = {}
 
 
-def _get_system_prompt() -> str:
-    global _SYSTEM_PROMPT
-    if not _SYSTEM_PROMPT:
-        try:
-            import yaml  # noqa: PLC0415
-            p = Path(__file__).parents[3] / "orchestrator/config/identities/supersan.yaml"
-            data = yaml.safe_load(p.read_text())
-            _SYSTEM_PROMPT = (data.get("system_prompt") or "").strip()
-        except Exception as exc:
-            logger.warning("Could not load system prompt from identity YAML: %s", exc)
-    return _SYSTEM_PROMPT
+def _get_system_prompt(identity: str | None = None) -> str:
+    name = identity or os.getenv("AGENT_IDENTITY", "supersan")
+    if name in _PROMPT_CACHE:
+        return _PROMPT_CACHE[name]
+    try:
+        import yaml  # noqa: PLC0415
+        p = _IDENTITY_ROOT / f"{name}.yaml"
+        data = yaml.safe_load(p.read_text())
+        _PROMPT_CACHE[name] = (data.get("system_prompt") or "").strip()
+    except Exception as exc:
+        logger.warning("Could not load system prompt for identity %r: %s", name, exc)
+        _PROMPT_CACHE[name] = ""
+    return _PROMPT_CACHE[name]
 
 
 # ---------------------------------------------------------------------------
@@ -81,13 +89,14 @@ def invoke(job) -> RuntimeResult:
         meta = {}
     model = meta.get("model") or meta.get("model_recommendation") or _default_model()
     user_id = meta.get("user_id", "default")
+    identity = meta.get("identity")  # optional per-job override; falls back to AGENT_IDENTITY env
 
     if not prompt:
         return _result(job_id, "error", {"error": "empty prompt"}, t0)
 
     # Load identity and conversation history before the LLM call
     from agent_os.orchestrator.adapters import vault_memory as _vault  # noqa: PLC0415
-    system_prompt = _get_system_prompt()
+    system_prompt = _get_system_prompt(identity)
     history = _vault.parse_history(user_id, limit=10)
 
     try:
