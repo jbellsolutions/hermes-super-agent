@@ -79,3 +79,6 @@ supabase/.local
 coverage/
 htmlcov/
 .coverage
+
+# Local-only build log — backed up to internal/worklog branch by publish.sh
+WORKLOG.md

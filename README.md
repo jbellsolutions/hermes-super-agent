@@ -314,6 +314,7 @@ Because *saiyan* and *super-saiyan* describe the actual difference: base form vs
 | [QUICKSTART.md](QUICKSTART.md) | ~30 min Super Saiyan deploy |
 | [INSTALL.md](INSTALL.md) | The master prompt + manual fallback for both modes |
 | [docs/modes.md](docs/modes.md) | Saiyan vs Super Saiyan deep-dive, what's in each |
+| [docs/working-with-this-repo.md](docs/working-with-this-repo.md) | Contributor workflow: log entries, safety-scan, safe-publish |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | A2A + NATS + Temporal contracts, dispatch flow, planner internals |
 | [STORY.md](STORY.md) | The 14 frameworks this replaced |
 | [ETHOS.md](ETHOS.md) | The rules that keep it from sprawling again |
