@@ -24,7 +24,7 @@ from typing import Literal
 
 OverrideKind = Literal[
     "cancel", "use", "why", "plan_on", "plan_off",
-    "tier", "confirm", "unknown",
+    "tier", "confirm", "identity", "unknown",
 ]
 
 
@@ -35,11 +35,13 @@ class Override:
     tool: str | None = None
     model: str | None = None
     tier: int | None = None
+    identity: str | None = None
     error: str | None = None
 
 
 _USE_RE = re.compile(r"^/use\s+([A-Za-z0-9_]+)(?:\s+([A-Za-z0-9_.-]+))?\s*$")
 _TIER_RE = re.compile(r"^/tier\s+([123])\s*$")
+_IDENTITY_RE = re.compile(r"^/identity(?:\s+([A-Za-z0-9_]+))?\s*$")
 
 
 def parse(text: str) -> Override | None:
@@ -90,6 +92,16 @@ def parse(text: str) -> Override | None:
                 error="usage: /tier <1|2|3>",
             )
         return Override(kind="tier", raw=raw, tier=int(m.group(1)))
+
+    if lower.startswith("/identity"):
+        m = _IDENTITY_RE.match(lower)
+        if not m:
+            return Override(
+                kind="unknown",
+                raw=raw,
+                error="usage: /identity <name>  (e.g. /identity coo)",
+            )
+        return Override(kind="identity", raw=raw, identity=m.group(1))
 
     if raw.startswith("/"):
         return Override(
