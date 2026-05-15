@@ -18,7 +18,7 @@ The intended product experience is:
 7. Verify with smoke tests before declaring ready.
 ```
 
-This is the recommended first-run path for ***REMOVED***' computer and for future commercial installs.
+This is the recommended first-run path for a fresh machine and for future commercial installs.
 
 ## Important status
 
@@ -241,7 +241,7 @@ Add only when the customer/project needs it:
 - isolated profiles/secrets
 - approval and budget policies
 - optional Orgo or managed cloud computer
-- Paperclip company/team dashboard
+- specialist agent dashboard
 
 ## Step 7 — verify
 
@@ -288,9 +288,9 @@ A Super Agent install is ready only when:
 - The selected tier's tools have been smoke-tested.
 - The agent can answer: who it serves, what tools it has, what it may do without approval, and where it logs actions.
 
-## First ***REMOVED*** test recommendation
+## First-machine test recommendation
 
-For ***REMOVED***' computer, start with Operator tier:
+For a fresh machine, start with Operator tier:
 
 - Hermes CLI
 - one model/provider

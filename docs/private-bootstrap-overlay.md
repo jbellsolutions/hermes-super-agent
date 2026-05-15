@@ -28,10 +28,9 @@ jbellsolutions/hermes-super-agent-private    # private/internal overlay
 
 Hermes profiles
   ├── primary/default
-  ├── trading-agent
-  ├── ***REMOVED***-coo
-  ├── zions-agent
-  └── paperclip-* agents
+  ├── specialist-a
+  ├── specialist-b
+  └── specialist-c
 ```
 
 ## Why use a private overlay instead of putting secrets in this repo?

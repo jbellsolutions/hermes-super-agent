@@ -35,7 +35,7 @@ config.<group>.yaml → jap.kpi_fields           # Which KPIs to track
    a. Check applications today — if 0, check prior N days (config.jap.stall_threshold_days)
    b. If 0 applications for >= stall_threshold_days: add to stalled list
    c. Note: if member posted ANY activity (comment, post, reply), downgrade to "low activity" not "stalled"
-2. Determine if Justin Bell needs to personally intervene (stalled > 3 days = escalate)
+2. Determine if the operator needs to personally intervene (stalled > 3 days = escalate)
 
 ### Step 3 — Aggregate KPIs
 1. Sum across all JAP members:

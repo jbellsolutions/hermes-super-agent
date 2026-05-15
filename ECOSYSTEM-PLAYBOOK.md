@@ -27,21 +27,20 @@ The Nate Jones thesis: the agent market is moving toward LAYERS, not one-product
 
 ## What every old framework repo becomes
 
-| Old repo | Disposition |
+| Source pattern | Disposition |
 |---|---|
-| `agent-core` | Identity packs → Hermes config in `packages/orchestrator/config/identities/`. |
-| `coo-agent` | Restart heuristics → upgrader smoke; Computer Use playbooks → OpenClaw configs. |
-| `forge` | Swarm-design prompts → Hermes skill `vault/skills/_templates/design-swarm.md`. |
-| `agent-company` | Meta→CEO→Lead→Worker pattern → Hermes skill `vault/skills/_templates/hierarchical-delegation.md`. |
-| `ultimate-agent-framework` / `division-builder` | Division presets → Hermes identity-pack bundles. |
+| Identity-pack frameworks | Identity packs → Hermes config in `packages/orchestrator/config/identities/`. |
+| Restart-on-failure agent repos | Restart heuristics → upgrader smoke; Computer Use playbooks → OpenClaw configs. |
+| Swarm-design prompt frameworks | Swarm-design prompts → Hermes skill `vault/skills/_templates/design-swarm.md`. |
+| Meta→CEO→Lead→Worker pattern repos | Hierarchical delegation → Hermes skill `vault/skills/_templates/hierarchical-delegation.md`. |
+| Division-preset frameworks | Division presets → Hermes identity-pack bundles. |
 | `agi-1` | **Vendored as `vendor/agi-1`. Auto-updated. No code change.** |
-| `agi-codex` | Folded into agi-1 as additional skills. |
-| `titans-of-direct-response-mastermind-council` | Council engine → generic AGI-1 skill. Titans content stays in its own repo. |
-| `***REMOVED***` / `coo-dashboard` / `operations-core` | Best of three → `packages/dashboard/`. |
-| `gstack-framework` | Skill templates → `vault/skills/_templates/`. |
-| `agentstack` / `agentstack-fleet-builder` | Skip — nearly empty. |
-| `ops-os` / `***REMOVED***` / `***REMOVED***` | Heartbeat patterns + Paperclip MCP → Hermes config + MCP entries. |
-| Vertical apps (`cold-email-agent`, `speakeragent-*`, `linkedin-autopilot`, `titans-*`, etc.) | Stay in their own repos. Each gets a `manifest.yaml`. They consume agent-os. |
+| Codex-pattern repos | Folded into agi-1 as additional skills. |
+| Council deliberation repos | Council engine → generic AGI-1 skill. Source content stays in its own repo. |
+| Dashboard prototypes | Best of N → `packages/dashboard/`. |
+| Skill-template frameworks | Skill templates → `vault/skills/_templates/`. |
+| Heartbeat / MCP wiring repos | Heartbeat patterns + MCP wiring → Hermes config + MCP entries. |
+| Vertical apps (cold-email, content engines, SDR fleets, recruiting, etc.) | Stay in their own repos. Each gets a `manifest.yaml`. They consume agent-os. |
 
 ## Day-to-day rule changes
 

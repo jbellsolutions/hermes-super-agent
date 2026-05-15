@@ -75,9 +75,9 @@ skool-scrape-members ──→ vault/runs/YYYY-MM-DD/member-activity.md
 ```
 
 ## Examples
-- "Run the Skool daily workflow for ***REMOVED***"
-  → loads `config.***REMOVED***.yaml`, executes full sequence
-- "Manually trigger the EOD report for ***REMOVED***"
+- "Run the Skool daily workflow for `<your-group>`"
+  → loads `config.<your-group>.yaml`, executes full sequence
+- "Manually trigger the EOD report for `<your-group>`"
   → skips to Phase 5, reads whatever run files exist
 
 ## Configuration

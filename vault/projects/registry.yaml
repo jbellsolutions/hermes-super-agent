@@ -16,6 +16,9 @@
 #   tags:         routing tags this agent handles
 #   created_at:   ISO-8601 timestamp
 #   created_by:   admiral | manual
+#
+# This file is auto-managed by src/agent_os/orchestrator/spawner.py.
+# Manual edits are fine but treat the schema above as the contract.
 
 agents:
 
@@ -26,113 +29,10 @@ agents:
     a2a_endpoint: "${HERMES_BASE_URL:-http://localhost:8080}"
     nats_subject: "agents.admiral.*"
     vps_ip: ""
-    railway_service: ***REMOVED***
-    model: claude-sonnet-4.7
-    tags:
-      - orchestrate
-      - plan
-      - route
-      - spawn-specialist
-      - spawn-superagent
-    created_at: "2026-05-07T00:00:00Z"
-    created_by: manual
-    notes: >
-      Admiral Hermes — the primary orchestrator. Receives all Telegram messages,
-      runs tier_classifier → tool_planner → model_planner → job_router.
-      A2A endpoint serves /agentCard so external agents can delegate back to Admiral.
-
-  - id: coordinator
-    tier: 1
-    runtime: coordinator
-    status: inactive
-    a2a_endpoint: "${COORDINATOR_URL:-}"
-    nats_subject: "agents.coordinator.*"
-    vps_ip: ""
-    railway_service: ""
-    model: coordinator
-    tags:
-      - fan-out
-      - coordinator
-      - swarm-coordinator
-      - parallel
-      - batch
-    created_at: "2026-05-07T00:00:00Z"
-    created_by: manual
-    notes: >
-      Fan-out Coordinator — deployed A2A service that runs N parallel sub-agents.
-      Model is selected per-job via job.metadata['coordinator_model'] or via the
-      COORDINATOR_DEFAULT_MODEL env var. Set COORDINATOR_URL to activate.
-      Status will update to 'active' once first heartbeat is received on NATS.
-
-  - id: coo-specialist
-    tier: 1
-    runtime: retell_channel
-    status: inactive
-    a2a_endpoint: ""
-    nats_subject: "agents.coo-specialist.*"
-    vps_ip: ""
     railway_service: ""
     model: claude-sonnet-4.7
     tags:
-      - phone
-      - outbound-phone
-      - email
-      - outbound-email
-      - retell
-      - instantly
-      - cold-email
-      - coo-specialist
-    created_at: "2026-05-07T00:00:00Z"
+      - orchestrator
+      - planner
+    created_at: ""
     created_by: manual
-    notes: >
-      COO Specialist Hermes — same brain, two outbound channels.
-      phone/retell tags → Retell AI API (RETELL_API_KEY + RETELL_AGENT_ID).
-      email/instantly tags → Instantly.ai API (INSTANTLY_API_KEY).
-      Both channels are Tier 3 (hard stop, explicit YES required).
-
-  - id: archon-builder
-    tier: 1
-    runtime: a2a_delegate
-    status: inactive
-    a2a_endpoint: "${ARCHON_A2A_URL:-}"
-    nats_subject: "agents.archon-builder.*"
-    vps_ip: ""
-    railway_service: ""
-    model: claude-sonnet-4.7
-    tags:
-      - build-specialist
-      - archon
-      - agent-gen
-      - spawn-specialist
-    created_at: "2026-05-07T00:00:00Z"
-    created_by: manual
-    notes: >
-      Archon meta-agent — receives natural-language specialist specs and generates
-      AGENT.md + skill definitions + Railway deploy config. Admiral delegates
-      'build-specialist' tagged jobs to this A2A endpoint, then takes the output
-      and deploys via Railway API. Set ARCHON_A2A_URL to activate.
-
-# ---------------------------------------------------------------------------
-# Superagent slots — populated by spawner.py at spawn time
-# ---------------------------------------------------------------------------
-# When a Tier 2 superagent is spawned, spawner.py appends an entry here:
-#
-#   - id: cold-email-superagent
-#     tier: 2
-#     runtime: vps_spawn
-#     status: active
-#     a2a_endpoint: http://123.45.67.89:8080
-#     nats_subject: agents.cold-email-superagent.*
-#     vps_ip: 123.45.67.89
-#     railway_service: ""
-#     model: deepseek-v4-pro
-#     tags: [cold-email, phone, coo-specialist, coordinator]
-#     created_at: "2026-05-07T12:34:56Z"
-#     created_by: admiral
-#     sub_fleet:
-#       - id: coordinator
-#         endpoint: http://123.45.67.89:8081
-#       - id: coo-specialist
-#         endpoint: http://123.45.67.89:8082
-#       - id: retell-phone
-#         endpoint: http://123.45.67.89:8083

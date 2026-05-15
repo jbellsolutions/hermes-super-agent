@@ -8,8 +8,8 @@ group:
   admin_credentials_key: "vault/secrets/skool-YOUR_SLUG.env"  # Env file with SKOOL_EMAIL, SKOOL_PASSWORD
 
 operator:
-  name: "YOUR_NAME"                             # e.g. "Justin Bell"
-  brand_name: "YOUR_BRAND"                      # e.g. "***REMOVED***" — used in post signatures
+  name: "YOUR_NAME"                             # display name used in EOD reports
+  brand_name: "YOUR_BRAND"                      # nickname used in post signatures
   slack_channel: "#daily-ops"                   # Channel for EOD report
 
 calls:

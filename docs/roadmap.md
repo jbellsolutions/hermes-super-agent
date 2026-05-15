@@ -44,13 +44,7 @@
 - [ ] Add Tier 1 steipete tools one at a time with smoke tests: Peekaboo, macos-automator-mcp, gogcli, wacli, claude-code-mcp, agent-rules, mcporter.
 - [ ] Add optional Orgo AI runtime only after API/auth/cost/security discovery.
 - [x] Document Operator / Pro Operator / Enterprise packaging.
-- [x] Document hub-and-spoke portfolio model: primary Hermes plus isolated specialist agents.
-- [x] Inventory Railway and DigitalOcean resources read-only, then create `docs/deployments-inventory.md`.
-- [x] Create project registry entries for COO Platform, Paperclip/Hermes stack, Paperclip Ops, and Single Brain.
 - [x] Add Cursor SDK intake as optional builder-swarm backend.
-- [x] Define Single Brain COO rebuild plan.
-- [ ] Find source repos for `***REMOVED***`, `***REMOVED***`, `***REMOVED***`, and `***REMOVED***`.
-- [ ] Restore SSH access to `***REMOVED***` or choose clean replacement deployment target.
 - [ ] Create first deployment health specialist report loop.
 
 ## Phase 5 — Production workflows

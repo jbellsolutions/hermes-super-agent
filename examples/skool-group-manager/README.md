@@ -83,7 +83,6 @@ The EOD report's `justinNeeds` field is auto-populated from:
 examples/skool-group-manager/
 ├── manifest.yaml                    # Component declaration
 ├── config.template.yaml             # Per-group config template
-├── config.***REMOVED***.yaml       # ***REMOVED*** instance config
 ├── README.md                        # This file
 └── agent-briefs/
     ├── content-agent.md

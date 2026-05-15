@@ -4,7 +4,7 @@ _Last updated: 2026-05-02_
 
 ## Requirement
 
-All meaningful Super Agent, Single Brain COO, Paperclip company, and project-agent conversations/actions must sync to both:
+All meaningful Super Agent, specialist-agent, and project-agent conversations/actions must sync to both:
 
 - Obsidian
 - Notion
@@ -47,7 +47,7 @@ Log every meaningful action:
 - Railway/DigitalOcean inventory
 - SSH attempt or access change
 - service restart/redeploy/delete proposal or execution
-- Paperclip company/team changes
+- Per-business/specialist-agent state changes
 - COO decisions
 - model/tool routing decisions
 - agent/profile creation
@@ -79,11 +79,11 @@ Obsidian Vault/
     Daily Reports/
     Weekly Reviews/
     Company Scorecards/
-  Paperclip Companies/
+  Specialist Agents/
     SDR Fleet/
     Expert Offer/
     Sovereign Offer/
-    ***REMOVED***/
+    Project Alpha/
   Projects/
   People/
   Vendors/
@@ -139,9 +139,9 @@ Separate Hermes profiles/agents may have isolated memory and secrets, but they s
 Examples:
 
 - Primary Hermes writes system/build/infra actions.
-- Single Brain COO writes business decisions, scorecards, and operating cadence.
-- ***REMOVED*** agent writes project-specific reports but shares high-level status to the macro vault.
-- Paperclip company CEOs write company-level heartbeats and approval requests.
+- COO specialist writes business decisions, scorecards, and operating cadence.
+- Project agents write project-specific reports but share high-level status to the macro vault.
+- Business/customer-CEO specialists write company-level heartbeats and approval requests.
 
 ## First implementation steps
 

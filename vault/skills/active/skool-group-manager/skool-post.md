@@ -41,8 +41,8 @@ description: Post content to a Skool group feed. Navigates to the group, opens t
 - No LLM cost for the posting step itself (drafting is upstream)
 
 ## Examples
-- "Post this morning FOMO content to ***REMOVED*** Skool group"
-  → `job.prompt = [post text]`, `job.metadata.group_config = "config.***REMOVED***.yaml"`
+- "Post this morning FOMO content to my Skool group"
+  → `job.prompt = [post text]`, `job.metadata.group_config = "config.<your-group>.yaml"`
 - "Drop the 14:00 job leads post to Skool"
   → same pattern with afternoon post copy
 

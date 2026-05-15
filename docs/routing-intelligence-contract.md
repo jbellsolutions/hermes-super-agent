@@ -229,7 +229,7 @@ Agents should receive role-specific bundles.
 - deployment health report reads
 - no direct destructive infra by default
 
-### Paperclip company CEO
+### Per-business CEO specialist
 
 - company scorecard
 - company tasks/issues

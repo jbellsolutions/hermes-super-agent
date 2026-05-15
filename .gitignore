@@ -32,6 +32,21 @@ out/
 *.pem
 *.key
 
+# Internal-only — these live in the private working copy
+# (hermes-super-agent-internal), never in the public repo.
+docs/deployments-inventory.md
+docs/inventory.md
+docs/deployment-health-specialist.md
+docs/coo-***REMOVED***-rebuild.md
+docs/portfolio-roadmap.md
+docs/specialist-agent-operations.md
+docs/portfolio-agent-architecture.md
+vault/projects/*.md
+vault/secrets/
+examples/*/config.*.yaml
+!examples/*/config.template.yaml
+!examples/*/config.example.yaml
+
 # OS
 .DS_Store
 Thumbs.db
