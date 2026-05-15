@@ -114,6 +114,30 @@ _set_env HERMES_INFERENCE_PROVIDER "$SA_PROVIDER"
 _set_env HERMES_BASE_URL "$SA_BASE_URL"
 echo "[start] model locked: $SA_MODEL via $SA_PROVIDER ($SA_BASE_URL)"
 
+# ── 7b. Enable persistent memory ─────────────────────────────────────────────
+# Memory is disabled by default in Hermes profiles. Enable it and set limits so
+# architectural decisions and user preferences survive across sessions.
+hermes --profile "$PROFILE" config set memory.memory_enabled true           || true
+hermes --profile "$PROFILE" config set memory.user_profile_enabled true     || true
+hermes --profile "$PROFILE" config set memory.memory_char_limit 2200        || true
+hermes --profile "$PROFILE" config set memory.user_char_limit 1375          || true
+echo "[start] memory enabled"
+
+# ── 7c. Seed memories from repo (no-clobber) ─────────────────────────────────
+# On a fresh VPS the memories/ dir is empty. Copy seed files from config/memories/
+# so the agent starts with known architectural decisions pre-loaded.
+MEMORIES_DIR="$PROFILE_DIR/memories"
+mkdir -p "$MEMORIES_DIR"
+SEED_DIR="$REPO_ROOT/config/memories"
+for seed_file in MEMORY.md USER.md; do
+  dest="$MEMORIES_DIR/$seed_file"
+  src="$SEED_DIR/$seed_file"
+  if [[ -f "$src" && ! -f "$dest" ]]; then
+    cp "$src" "$dest"
+    echo "[start] seeded $seed_file"
+  fi
+done
+
 # ── 8. Start gateway ─────────────────────────────────────────────────────────
 echo "[start] launching hermes --profile $PROFILE gateway run"
 exec hermes --profile "$PROFILE" gateway run
