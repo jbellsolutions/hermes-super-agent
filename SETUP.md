@@ -6,6 +6,71 @@ The default deploy is **Railway-managed** — every fabric service runs as its o
 
 ---
 
+## Agent personas — giving each agent its own identity
+
+Every agent in the fleet has a **persona**: a name, a role, a voice, and a list of tools it's allowed to use. Personas are defined in plain YAML files — no code changes needed to create or swap them.
+
+### How it works
+
+When an agent starts up, it reads its identity from an environment variable called `AGENT_IDENTITY`. That name maps to a file in `src/agent_os/orchestrator/config/identities/<name>.yaml`. The file contains a `system_prompt` that gets injected into every LLM call, so the agent always knows who it is, what it owns, and what tools it has access to.
+
+Four personas ship out of the box:
+
+| Name | Who they are |
+|---|---|
+| `supersan` | The Super Agent — the primary orchestrator. Owns everything, routes work to the right specialist. |
+| `coo` | Alex, the COO — sees the whole org, delegates aggressively, holds everyone accountable. |
+| `gtm` | Jordan, the GTM Agent — owns content, leads, and brand. Knows your CRM and email tools. |
+| `head_of_ops` | Morgan, the Head of Operations — runs the client pipeline, watches the funnel, catches broken jobs. |
+
+### Switching personas from Telegram
+
+You don't need to redeploy to switch personas. In any Telegram conversation with Hermes:
+
+- `/identity` — shows which persona is active and lists all available options
+- `/identity coo` — switches to Alex for the rest of that conversation
+- `/identity video_agent` — switches to any custom persona you've created
+
+The persona you set is remembered for that chat session. Every message after the switch goes through that agent's system prompt, memory, and tool rules.
+
+### Setting a default persona for a deployment
+
+If you want a service to always start as a specific persona, set this in its environment:
+
+```
+AGENT_IDENTITY=coo
+```
+
+On Railway, set it under the service's Variables tab. On a VPS, add it to the `.env` file. On Docker, pass it with `-e AGENT_IDENTITY=coo`.
+
+### Creating a new persona
+
+1. Create a YAML file at `src/agent_os/orchestrator/config/identities/<name>.yaml`
+2. Give it a `system_prompt` that describes who the agent is, what it owns, and how it should behave
+3. Optionally add `tools_allowed`, `tools_denied`, and `default_tier_ceiling`
+4. Commit and deploy — then send `/identity <name>` in Telegram to activate it
+
+Example — a video production agent:
+
+```yaml
+name: Vex
+title: Video Production Agent
+system_prompt: |
+  You are Vex, the video production agent. You own the full video pipeline:
+  scripting, transcription, editing workflows, thumbnail generation, and
+  publishing to YouTube and social. You have shell access and know ffmpeg.
+  You remember every project we've worked on together.
+tools_allowed:
+  - hermes_self
+  - terminal
+  - exa
+default_tier_ceiling: 2
+```
+
+The file name (without `.yaml`) is what you type after `/identity`. That's all there is to it.
+
+---
+
 ## Why both Railway and DigitalOcean?
 
 - **Railway** runs the **fixed always-on services** (NATS, Temporal, Coordinator, Archon wrapper, Admiral). One Dockerfile per service, auto-restart, public TLS URLs, env vars in a dashboard. You set it up once and forget.
