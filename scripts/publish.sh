@@ -63,10 +63,8 @@ if git rev-parse --verify --quiet origin/main > /dev/null; then
     behind=$(git rev-list --count main..origin/main)
     echo "  main is ahead of origin/main by $ahead commit(s), behind by $behind"
     if [ "$ahead" -eq 0 ] && [ "$behind" -eq 0 ]; then
-        echo -e "  ${G}✓ already in sync — nothing to push${RESET}"
-        echo
-        echo "Done."
-        exit 0
+        echo -e "  ${G}✓ main is in sync — nothing to push${RESET}"
+        SKIP_PUSH=1
     fi
     if [ "$behind" -gt 0 ]; then
         echo -e "  ${Y}origin has $behind commit(s) you don't have locally. Pull first?${RESET}"
@@ -98,18 +96,20 @@ if [ -z "$YES" ]; then
     esac
 fi
 
-if [ -z "$INTERNAL_ONLY" ]; then
-    echo -e "${B}Pushing main → origin (PUBLIC)...${RESET}"
-    git push origin main
-    echo -e "${G}✓ published to public${RESET}"
-    echo
-fi
+if [ -z "${SKIP_PUSH:-}" ]; then
+    if [ -z "$INTERNAL_ONLY" ]; then
+        echo -e "${B}Pushing main → origin (PUBLIC)...${RESET}"
+        git push origin main
+        echo -e "${G}✓ published to public${RESET}"
+        echo
+    fi
 
-if git remote get-url internal > /dev/null 2>&1; then
-    echo -e "${B}Pushing main → internal (private working copy)...${RESET}"
-    git push internal main
-    echo -e "${G}✓ pushed to private${RESET}"
-    echo
+    if git remote get-url internal > /dev/null 2>&1; then
+        echo -e "${B}Pushing main → internal (private working copy)...${RESET}"
+        git push internal main
+        echo -e "${G}✓ pushed to private${RESET}"
+        echo
+    fi
 fi
 
 # Optional: back up WORKLOG.md to internal on a separate `worklog` branch
