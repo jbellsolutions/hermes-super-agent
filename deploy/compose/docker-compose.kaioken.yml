@@ -1,0 +1,104 @@
+# Kaioken overlay — extends docker-compose.yml with the Admiral container
+# and an optional Telegram bot sidecar so the entire Hermes fabric runs
+# on a single laptop with one `docker compose up -d`.
+#
+# Usage:
+#   cp ../../.env.example ../../.env       # add ANTHROPIC_API_KEY (required)
+#                                          # add TELEGRAM_BOT_TOKEN (optional)
+#   cd deploy/compose
+#   docker compose -f docker-compose.yml -f docker-compose.kaioken.yml up -d
+#
+# Or use the wrapper:
+#   ./scripts/kaioken-up.sh
+#
+# Resource budget on idle: base (~600MB) + admiral (~150MB) + telegram-bot (~50MB)
+# = ~800MB RAM. ~3GB disk. Spawned superagents add ~200MB RAM each.
+#
+# Networking: all services live on the implicit `hermes-fabric_default` bridge
+# network. Spawned superagent containers (created at runtime by local_spawn
+# runtime) join the explicit `hermes-fabric` network — local_spawner.py
+# creates it on demand if compose hasn't already.
+
+name: hermes-fabric
+
+# Overlay extras: attach the fabric services to the explicit hermes-fabric
+# network too so spawned superagent containers (which join hermes-fabric
+# alone) can reach nats:4222, temporal:7233, coordinator:8000 by service
+# name. The base compose only puts them on the default network — fine for
+# admiral-on-host (Mode B), but breaks worker-in-container (Kaioken).
+services:
+  nats:
+    networks:
+      - default
+      - hermes-fabric
+
+  temporal:
+    networks:
+      - default
+      - hermes-fabric
+
+  coordinator:
+    networks:
+      - default
+      - hermes-fabric
+
+  admiral:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: hermes-superagent:latest    # same tag local_spawn looks for
+    container_name: hermes-admiral
+    hostname: hermes-admiral
+    environment:
+      - HERMES_ROLE=admiral
+      - HERMES_MODE=kaioken
+      - HERMES_DOCKER_NETWORK=hermes-fabric
+      - HERMES_SUPERAGENT_IMAGE=hermes-superagent:latest
+      - NATS_URL=nats://nats:4222
+      - TEMPORAL_HOST=temporal:7233
+      - COORDINATOR_URL=http://coordinator:8000
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - MOONSHOT_API_KEY=${MOONSHOT_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+    ports:
+      - "8080:8080"   # A2A server — GET /agentCard, POST /messages
+    volumes:
+      # Mount the host Docker socket so local_spawn can spin up sibling
+      # containers (the spawned superagents). This is Kaioken's whole
+      # premise: Admiral talks to its own host's Docker.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Persist the vault so agent state survives compose down/up.
+      - admiral_vault:/app/vault
+    depends_on:
+      nats:
+        condition: service_healthy
+      coordinator:
+        condition: service_healthy
+    networks:
+      - default
+      - hermes-fabric    # join the same explicit net spawned children use
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+
+  # Telegram bot sidecar — DISABLED in this overlay until the
+  # agent_os.channels.telegram_bot module lands in the package. The
+  # `--telegram` flag on kaioken-up.sh / install.py is now a no-op with
+  # a friendly message rather than a service that immediately crashloops.
+  # Track: see docs/modes.md "Telegram in Kaioken" for the workaround
+  # (run the bot directly on the host via uv run, pointed at admiral:8080).
+
+volumes:
+  admiral_vault:
+
+networks:
+  hermes-fabric:
+    name: hermes-fabric
+    driver: bridge

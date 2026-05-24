@@ -1,6 +1,7 @@
 """Decide which runtime handles a given job, based on tags."""
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -22,6 +23,7 @@ RuntimeName = Literal[
     # Fabric runtimes — external A2A endpoints and VPS provisioner
     "a2a_delegate",      # delegate entire job to an external A2A agent endpoint
     "vps_spawn",         # provision a new Tier 2 superagent on a dedicated VPS
+    "local_spawn",       # Kaioken — spawn a Tier 2 superagent as a local Docker container
     "coordinator",       # fan-out to N-agent swarm via deployed A2A service (model-pluggable)
     "retell_channel",    # outbound phone via Retell AI
 ]
@@ -47,8 +49,12 @@ def route(job: Job) -> RuntimeName:
     # Coordinator: N-agent fan-out via A2A service, Temporal-wrapped, model-pluggable.
     if "fan-out" in t or "coordinator" in t or "swarm-coordinator" in t:
         return "coordinator"
-    # VPS superagent spawning — full Hermes + orchestrator on a dedicated droplet.
+    # Superagent spawning — full Hermes + orchestrator. In Kaioken mode the
+    # spawn lands in a local Docker container; in Super-Saiyan-5 mode it's a
+    # real DigitalOcean droplet. Same A2A contract on both ends.
     if "spawn-superagent" in t or "vps-spawn" in t:
+        if os.getenv("HERMES_MODE", "").lower() == "kaioken":
+            return "local_spawn"
         return "vps_spawn"
     # Archon agent builder — delegates "create a specialist" to Archon A2A endpoint.
     if "build-specialist" in t or "archon" in t:
@@ -115,8 +121,18 @@ _ASYNC_RUNTIMES = {
     "coordinator":      "agent_os.runtimes.coordinator.invoke",
     "retell_channel":   "agent_os.runtimes.retell_channel.invoke",
     "vps_spawn":        "agent_os.runtimes.vps_spawn.invoke",
+    "local_spawn":      "agent_os.runtimes.local_spawn.invoke",
     "a2a_delegate":     "agent_os.runtimes.a2a_delegate.invoke",
 }
+
+# Fabric runtimes are intent-driven: when the user (or upstream classifier)
+# explicitly tags a job `spawn-superagent`, `fan-out`, etc., that is an
+# instruction about WHICH LANE to take — not a tool preference the planner
+# is allowed to second-guess. dispatch() prefers tag-routing over
+# plan.primary_tool when route() lands on one of these.
+_FABRIC_RUNTIMES = frozenset({
+    "coordinator", "vps_spawn", "local_spawn", "a2a_delegate", "retell_channel",
+})
 _SYNC_RUNTIMES = {
     "openclaw":        "agent_os.runtimes.openclaw.invoke",
     "openswarm":       "agent_os.runtimes.openswarm.invoke",
@@ -151,18 +167,28 @@ async def dispatch(job: Job, plan=None):
     """
     import asyncio
 
-    # Honor plan.primary_tool / model_recommendation when supplied.
+    # Always compute tag-based route first — for fabric runtimes (spawn,
+    # fan-out, delegate, retell), tag intent OVERRIDES any planner choice.
+    # The planner scores skills/tools; it doesn't know that the user
+    # explicitly asked to spawn a superagent rather than do research.
+    tag_route = route(job)
+
     runtime = None
     if plan is not None:
-        primary = getattr(plan, "primary_tool", None)
-        if primary and primary in KNOWN_RUNTIMES:
-            runtime = primary
         rec = getattr(plan, "model_recommendation", None)
         if rec and not job.metadata.get("model"):
             job.metadata["model"] = rec
 
+        primary = getattr(plan, "primary_tool", None)
+        if tag_route in _FABRIC_RUNTIMES:
+            # Spawn/fan-out/delegate jobs: tag intent wins. The plan card's
+            # model recommendation is still honored above.
+            runtime = tag_route
+        elif primary and primary in KNOWN_RUNTIMES:
+            runtime = primary
+
     if runtime is None:
-        runtime = route(job)
+        runtime = tag_route
 
     if runtime in _ASYNC_RUNTIMES:
         import importlib

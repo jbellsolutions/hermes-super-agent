@@ -1,153 +1,199 @@
-# Modes — Saiyan vs Super-saiyan
+# Modes — Saiyan, Kaioken, Super Saiyan 5
 
-Two install modes, one repo, one share link. This doc explains what's actually in each mode, when to pick which, and how to upgrade later.
+Three install modes, one repo, one share link. This doc explains what's in each mode, when to pick which, and how to upgrade.
 
 ## TL;DR
 
-| | Saiyan (lite) | Super-saiyan (full) |
-|---|---|---|
-| **For** | You already have a Hermes / Python agent project | You're starting fresh, want the full fleet |
-| **What gets installed** | Planner + 14 in-process runtimes + 16 SKILL.md files, copied into your project | NATS + Temporal + Coordinator + Archon + Admiral on Railway, plus the skills layer baked in |
-| **New infrastructure** | None | 5 Railway services, optional DigitalOcean VPSes on demand |
-| **Cost floor** | $0 (you keep your existing setup) | ~$45/mo + LLM usage |
-| **Install time** | ~3 minutes | ~30 minutes |
-| **Install command** | `python3 install.py --mode=saiyan --target=/path/to/your/project` | `python3 install.py --mode=super-saiyan` |
-| **Best when** | "I want the planner and tool catalog inside my existing Hermes" | "I want the full multi-agent fleet, fan-out, VPS spawning, the works" |
+|                       | **Saiyan (lite)**            | **Kaioken (local full)**             | **Super Saiyan 5 (cloud)**                   |
+|-----------------------|------------------------------|--------------------------------------|----------------------------------------------|
+| For                   | You already run Hermes; you want the brain | You want the full fleet on your laptop | You want always-on, team-shared, public-reachable |
+| Where it runs         | Inside your existing project | Docker on your laptop                | Railway control plane + DigitalOcean spawns |
+| Cloud accounts needed | None                         | None                                 | Anthropic + Railway + DO + Telegram + optional |
+| Cost / month          | $0 infra                     | $0 infra                             | ~$45 floor + ~$24/mo per Tier 2 VPS          |
+| Install time          | ~3 min                       | ~10 min (mostly Docker pull)         | ~30 min (signups + DNS + first deploy)       |
+| Survives laptop sleep | n/a                          | No                                   | Yes                                          |
+| Internet-reachable    | No                           | No (localhost only)                  | Yes — public HTTPS + webhook URL             |
+| Tier 2 spawn target   | n/a                          | Local Docker container               | DigitalOcean droplet (~$24/mo)               |
+| Upgrade path          | → Kaioken or → SS5           | → SS5 (same compose, different host) | terminal — this is the full form             |
 
-If unsure, start saiyan. Upgrading to super-saiyan later doesn't undo anything.
-
----
-
-## What saiyan mode contains (in depth)
-
-When you run `install.py --mode=saiyan --target=YOUR_PROJECT`, the script copies the following into your project. Nothing is run on Railway. Nothing requires NATS or Temporal. Everything runs in-process inside whatever Hermes you already have.
-
-### `agent_os/orchestrator/` (~1,300 lines)
-
-| File | Lines | What it does |
-|---|---|---|
-| `tier_classifier.py` | 134 | Classify each job as Tier 1 (auto), 2 (plan card + 'yes' to run), or 3 (hard stop, requires uppercase YES). Rules tunable in `config/tiers.yaml`. |
-| `tool_planner.py` | 261 | Score every registered tool against the job. Return a `ToolPlan` with primary tool, alternatives, tier, cost/time estimate, model recommendation, and a `permanent_resource` flag for spawn-intent jobs. |
-| `model_planner.py` | 110 | Pick the model deterministically (no LLM call). Seven models registered in `config/models.yaml`. Architecture / debug / security work auto-pairs `gpt-5.5 ↔ claude-opus-4.7` for dual-frontier review. |
-| `plan_card.py` | 180 | Render the plan into Markdown / JSON / `/why` long-form. Tier 3 cards print an explicit `⚠ Permanent infra` warning when the job will provision a VPS or Railway service. |
-| `intent_classifier.py` | 162 | Pure regex pass over the prompt. Detects spawn intent, fan-out intent, outbound phone/email. Adds tags so the planner picks the right runtime AND the tier gate fires. No LLM call, no fuzzy matching, no surprises. |
-| `catalog.py` | 264 | Build `vault/graph/tool-catalog.yaml` from the SKILL.md files + identity packs + model registry. Single source of truth for the planner. |
-| `adapters/job_router.py` | 177 | `Job` dataclass + `route()` (tag → runtime) + `dispatch()` (runtime → invoke). Saiyan-mode `dispatch()` only knows the 14 in-process runtimes; asking for a fabric runtime raises a friendly `RuntimeError` pointing at super-saiyan. |
-| `adapters/plan_overrides.py` | 105 | Parse `/cancel /use /why /tier N YES` from any channel. Returns a structured `Override`. |
-| `adapters/vault_memory.py` | 29 | Vault read/write adapter. |
-| `config/models.yaml` | data | 7 models: Claude Opus 4.7, Sonnet 4.7, Sonnet 4.6, GPT-5.5, Kimi K2, DeepSeek v4 Pro, Gemini 2.5 Pro. Per-Mtok pricing, task-class tags, dual-frontier review pairs. |
-| `config/tiers.yaml` | data | Tier rules. Spawn tags (`spawn-superagent`, `vps-spawn`, `build-specialist`, `archon`, `hire`, `permanent-agent`) are forced to Tier 3. Tunable without code changes. |
-| `config/identities/*.yaml` | data | Identity packs (COO, GTM, Head of Ops). Each declares `tools_allowed`, `tools_denied`, `default_tier_ceiling`. |
-
-### `agent_os/runtimes/` (14 in-process runtimes)
-
-Each runtime has an `invoke.py` exposing `def invoke(job) -> RuntimeResult` (sync) or `async def run(job)` (async). They're called by `dispatch()` and they all run inside your Hermes process — no network, no event bus, no Temporal.
-
-| Runtime | What it does |
-|---|---|
-| `hermes_self` | The default. Single Anthropic / OpenAI / DeepSeek / Moonshot / Gemini / OpenRouter call. |
-| `claude_subagents` | Claude Code subagents — direct, in-repo coding. |
-| `codex_cli` | OpenAI Codex CLI — background coding. |
-| `aider` | Git-aware incremental coding. |
-| `claude_managed` | Anthropic Claude Managed Agents — long-running cloud tasks. |
-| `openclaw` | Autonomous-grind, shell, file-ops. |
-| `openswarm` | Multi-agent deliverable production (slides, decks, research, charts) + agent-builder. |
-| `browser_use` | Structured browser automation. |
-| `agent_zero` | Visual / autonomous browser UI. |
-| `computer_use` | Anthropic Computer Use SDK — raw desktop. |
-| `e2b` | Sandboxed code execution (clean VM per run). |
-| `exa` | Exa neural search. |
-| `livekit` | Voice / realtime channel. |
-| `terminal` | Plain cron-style scripts. |
-
-### `vault/skills/active/tools/` (16 SKILL.md files)
-
-One markdown file per runtime + `_catalog.md`. Frontmatter declares `tier`, `cost_class`, `risk_class`, `preferred_models`, `category`. The body explains *when to use*, *when NOT*, *alternatives*, *examples*. The planner's catalog reads these to score tools against jobs.
+When in doubt: **start Saiyan**. Free, 3 minutes, easy to upgrade. Step up to Kaioken when you want to actually spawn superagents. Step up to SS5 when you want them to outlive your laptop.
 
 ---
 
-## What's NOT in saiyan mode (only in super-saiyan)
+## Saiyan (lite)
 
-These live only in `hermes-super-agent` itself. Saiyan mode skips them on copy.
+**What you get:** the planner + 14 in-process runtimes + 16 skill files dropped into your existing project. Your code, your turn handler, our brain.
 
-| Not in saiyan | Reason |
-|---|---|
-| `agent_os/bus/` (NATS publisher + subscriber) | Needs a running NATS server |
-| `agent_os/workflows/` (Temporal workflows) | Needs a running Temporal server |
-| `agent_os/a2a/` (FastAPI A2A server) | Needs FastAPI + uvicorn deployed |
-| `agent_os/channels/telegram/` | The Admiral Telegram bot |
-| `agent_os/orchestrator/{bootstrap,spawner,vps_provisioner,boot}.py` | Provision DigitalOcean VPSes via SSH bootstrap |
-| `agent_os/runtimes/{a2a_delegate,coordinator,retell_channel,vps_spawn}/` | All depend on the fabric layer above |
-| `vault/skills/active/tools/{archon_builder,coordinator,retell_channel}.md` | Describe fabric runtimes |
-| `deploy/`, `scripts/setup.sh`, `scripts/deploy.sh` | Railway deploy automation |
+**What ships:**
 
-If your saiyan-installed planner asks for one of these (because the user said "spin up a cold email superagent" and the intent classifier added the `spawn-superagent` tag), `dispatch()` raises:
+- `agent_os/orchestrator/` — `tool_planner.py`, `model_planner.py`, `intent_classifier.py`, `tier_classifier.py`, `plan_card.py`, `catalog.py`, plus `adapters/` (job_router, plan_overrides, vault_memory, saiyan_overrides)
+- `agent_os/orchestrator/config/` — `models.yaml`, `tiers.yaml`, plus selected `identities/*.yaml` (default `primary_hermes`; use `--identities=coo,gtm-cmo` to add more)
+- `agent_os/runtimes/` — `_base.py` + 14 runtimes: `agent_zero`, `aider`, `browser_use`, `claude_managed`, `claude_subagents`, `codex_cli`, `computer_use`, `e2b`, `exa`, `hermes_self`, `livekit`, `openclaw`, `openswarm`, `terminal`
+- `vault/skills/active/tools/` — 16 SKILL.md files (the 14 above + `composio.md` and `_catalog.md`)
+- `examples/saiyan_hello.py` — 80-line working demo, uses only the `terminal` runtime (no API keys needed)
 
-```
-RuntimeError: runtime 'vps_spawn' needs the super-saiyan fabric layer
-(NATS + Temporal + Coordinator + spawner). Re-run install.py with
---mode=super-saiyan, or install the full fabric:
-https://github.com/jbellsolutions/hermes-super-agent
+**What's deliberately NOT shipped:** the fabric. No NATS bus, no Temporal workflows, no Coordinator, no spawning. The copied `saiyan_overrides.apply()` strips those from the runtime registry at import time, and dispatch raises a friendly error pointing at Kaioken / SS5 if you ask for one.
+
+**Use it for:** layering planning, model selection, and tier gating onto an agent you've already built. Or as a starting point for a custom Hermes-style stack without committing to the cloud fabric.
+
+**Install:**
+
+```bash
+python3 install.py --mode=saiyan --target=/path/to/your/project --yes
 ```
 
-Honest about the boundary, points the user at the fix.
+**Manage:**
+
+```bash
+python3 install.py --mode=saiyan --target=PATH --check       # drift report
+python3 install.py --mode=saiyan --target=PATH --update      # refresh from upstream
+python3 install.py --mode=saiyan --target=PATH --uninstall   # remove everything
+python3 install.py --mode=saiyan --identities=list           # enumerate identities
+```
+
+**Limits:**
+
+- No Tier 2 spawning (asking for `spawn-superagent` raises a friendly RuntimeError)
+- No NATS event stream — anything that publishes events will no-op
+- No Temporal durability — long-running fan-outs are best-effort within your process
 
 ---
 
-## Upgrade path: saiyan → super-saiyan
+## Kaioken (local full)
 
-You don't need to uninstall saiyan to upgrade. The two layers compose:
+**What you get:** every capability Super Saiyan 5 has, running entirely on your laptop. NATS + Temporal + Coordinator + Admiral in Docker. Tier 2 spawns become sibling Docker containers instead of cloud VPSes.
 
-1. Keep saiyan installed in your existing Hermes project. The local planner and skills layer stay live there.
-2. Clone `hermes-super-agent` separately. Run `install.py --mode=super-saiyan`. Five Railway services come up.
-3. Point your local Hermes at the new Admiral's A2A endpoint via env var.
-4. Now your local Hermes can delegate tasks to the Railway fleet via A2A — and the Railway fleet can spawn Tier 2 superagent VPSes.
+**What ships (in addition to everything in Saiyan):**
 
-The skills code is the same in both places (saiyan mode copies a snapshot, super-saiyan ships the live source). If you ever want to refresh saiyan to match super-saiyan, re-run `install.py --mode=saiyan --target=YOUR_PROJECT --force`.
+- `deploy/compose/docker-compose.kaioken.yml` — extends the base compose with the **admiral** service (built from root `Dockerfile`) and an optional **telegram-bot** sidecar (long-poll mode — no public URL needed)
+- `src/agent_os/runtimes/local_spawn/` — the new runtime that talks to your laptop's Docker daemon via the SDK
+- `src/agent_os/orchestrator/local_spawner.py` — Docker-API counterpart to `spawner.py`. Builds the `hermes-superagent:latest` image on first use, spawns containers on the `hermes-fabric` network, waits for `/agentCard` to respond, registers in `vault/projects/registry.yaml`
+- `scripts/kaioken-up.sh`, `scripts/kaioken-down.sh` — one-command bring-up + tear-down
+- `examples/kaioken_spawn_demo.py` — end-to-end proof: spawn 3 superagents, fan out, tear down
+
+**How spawning differs:** the router checks `HERMES_MODE=kaioken` and routes `spawn-superagent` → `local_spawn` (instead of `vps_spawn`). Same A2A contract on both ends: parent Admiral gets back an agent card and an A2A URL. Doesn't matter whether the child is `http://hermes-superagent-xxx:8080` on the bridge network or `http://138.197.x.y:8080` on a droplet.
+
+**Use it for:** real Tier 2 spawning without cloud spend. Testing fan-out patterns. Demos. Personal use where you don't need always-on. Air-gapped or compliance environments.
+
+**Install:**
+
+```bash
+python3 install.py --mode=kaioken --yes              # standard bring-up
+python3 install.py --mode=kaioken --yes --telegram   # also start Telegram bot
+```
+
+**Verify:**
+
+```bash
+uv run python examples/kaioken_spawn_demo.py
+# spawns 3 superagents on the local fabric, waits for healthy, tears down
+```
+
+**Resource budget:** ~800MB RAM idle (NATS 50MB, Temporal 400MB, Coordinator 150MB, Admiral 200MB). Each spawned superagent ≈ 200MB. On a 16GB laptop you can comfortably run the fabric + ~30 spawns.
+
+**Limits:**
+
+- Laptop closed = fabric stops. No background work, no scheduled jobs.
+- No public URL. Inbound webhooks (Retell, Telegram webhook mode, Instantly callbacks) don't work — but Telegram long-poll is fine because it's outbound.
+- Spawned superagents share your laptop's resources. If Admiral crashes, children crash with it.
+- Outbound traffic goes through your home/coffee-shop IP. Bad for email deliverability and risky for any provider that fingerprints residential IPs.
+
+**Can I expose Kaioken via ngrok?** Yes for testing — `ngrok http 8080` and Admiral's A2A endpoint is reachable. But for anything ongoing, that's what Super Saiyan 5 is for.
 
 ---
 
-## Cost breakdown
+## Super Saiyan 5 (cloud)
 
-### Saiyan mode
+**What you get:** the full Hermes fleet, in the cloud, always-on, public, team-shared.
 
-| | Cost |
-|---|---|
-| Infrastructure | $0 |
-| LLM API usage | Whatever your existing Hermes already spends |
-| Total incremental | **$0/mo** |
+**What ships (in addition to everything in Kaioken):**
 
-### Super-saiyan mode
+- `deploy/railway.toml`, `deploy/compose/docker-compose.yml` deployed to Railway
+- 5 Railway services: NATS → Temporal → Coordinator → Archon → Admiral
+- `src/agent_os/orchestrator/vps_provisioner.py` configured for DigitalOcean (or Hetzner — set `VPS_PROVIDER=hetzner`)
+- `src/agent_os/orchestrator/bootstrap.py` SSH-bootstraps new Tier 2 VPSes
+- Public A2A endpoint (Railway gives you `https://<your-app>.up.railway.app/agentCard`)
 
-| | Cost |
-|---|---|
-| Railway (5 services: NATS, Temporal, Coordinator, Archon, Admiral) | ~$40/mo |
-| Anthropic API (light usage) | $5–50/mo |
-| Tier 2 superagent VPSes | $5/mo each, only when spawned |
-| Retell AI phone (when calling) | $0.05/min |
-| Instantly.ai email (per campaign) | usage-based |
-| AgentOps | free tier covers most usage |
-| **Floor** | **~$45/mo** |
+### The 10 reasons to choose SS5 over Kaioken
 
-The Coordinator has hard caps (`COORDINATOR_MAX_SUBTASKS=300`, `COORDINATOR_MAX_RETAINED=1000`) so a hostile or confused prompt can't melt your bill. Cost guardrails fire a NATS alert at 80% of `DAILY_COST_CAP_USD` and hard-block at 100%.
+1. **Always-on.** Cron jobs survive laptop sleep, OS updates, travel. The agent can wake at 3am to scrape competitor pricing and have a brief in your inbox by 7am.
+2. **Internet-reachable.** Public HTTPS means: Retell can call your A2A webhook for voice-channel turns; Instantly can post reply events back; Telegram can use webhook mode (lower latency than long-poll); other agents on the open agent web can discover your `/agentCard` and delegate work to you.
+3. **Team-shared.** Cofounder, ops hire, CoS all hit the same Admiral. Identity packs route by sender (your Telegram ID → COO identity; partner's → CMO identity).
+4. **Real Tier 2 spawning.** When the planner decides "this is a 6-hour job that needs its own VPS so it doesn't choke the main Admiral," SS5 provisions an actual isolated droplet. Spawns survive Admiral restarts and live independently until their TTL expires. Kaioken's local containers share laptop resources — Admiral crashes, they crash too.
+5. **Dedicated outbound IP.** DO droplets get static IPs. Warm one for cold-email sending reputation (Instantly), or allow-list it for outbound calls (Retell PSTN trunk). Kaioken outbound looks residential — terrible for deliverability.
+6. **Geographic placement.** Deploy in the region closest to the team (us-east, eu-west, etc.) for lowest user-facing latency. Tier 2 spawns can also be placed regionally — a scrape job targeting EU sites gets a Frankfurt droplet.
+7. **Compute headroom.** Railway services can be sized up (2GB, 8GB, 16GB) without touching your laptop. Run 200 concurrent Tier 1 jobs without sweating local CPU.
+8. **Isolated blast radius.** A bug in a runtime (or a malicious tool call from a hijacked prompt) is contained inside a Railway service / DO droplet, not running as your local user. SS5 keeps your dev machine safe.
+9. **Observability story.** AgentOps + Datadog + Sentry plugged into a stable hostname. Aggregated metrics across all spawns. Kaioken can do the same but only while the laptop is open.
+10. **Survivable.** Laptop dies? SS5 doesn't care. The Admiral's state (Temporal workflows, NATS streams, vault) is in the cloud. Replacing the laptop = `git clone && uv sync` = back at full power.
+
+**Install:**
+
+```bash
+python3 install.py --mode=super-saiyan-5
+# or directly:
+./scripts/setup.sh && ./scripts/deploy.sh
+```
+
+**Cost floor (typical):** Railway ~$25/mo (5 small services), Temporal Cloud or self-hosted Temporal on Railway ~$10-20/mo, plus ~$24/mo per active Tier 2 VPS. Anthropic / model API usage on top.
 
 ---
 
-## When to pick which
+## Upgrade paths
 
-**Pick saiyan if:**
-- You already have a working Hermes / Python agent project
-- You want the planner, tier gates, override surface, and tool catalog without managing 5 Railway services
-- You're prototyping
-- You want to stay at $0 incremental infra
-- You don't need fan-out (or your existing setup already handles it)
-- You don't need to spawn permanent specialist VPSes
+### Saiyan → Kaioken
 
-**Pick super-saiyan if:**
-- You're starting fresh — no existing Hermes
-- You want fan-out across N parallel sub-agents (Coordinator + Temporal)
-- You want to spawn permanent superagents on demand ("hire a cold-email specialist")
-- You want a Telegram bot that ties the fleet together
-- You're building a multi-agent product, not just adding skills to an existing one
+Saiyan installed in your existing project? Bring up Kaioken alongside:
 
-When in doubt: start saiyan. ~3 minutes to install. Upgrading later costs nothing extra.
+```bash
+# In a separate clone of hermes-super-agent
+python3 install.py --mode=kaioken --yes
+```
+
+Then point your saiyan project at the Kaioken Admiral via env var:
+
+```bash
+HERMES_ADMIRAL_A2A=http://localhost:8080
+```
+
+Your saiyan planner can now delegate spawn jobs to the Kaioken Admiral instead of raising the friendly RuntimeError.
+
+### Saiyan → Super Saiyan 5
+
+Same idea, point at the Railway URL:
+
+```bash
+HERMES_ADMIRAL_A2A=https://your-app.up.railway.app
+```
+
+### Kaioken → Super Saiyan 5
+
+Same compose file pattern, different host. Take your tested local `.env`, push the relevant keys to Railway, run `./scripts/deploy.sh`. Local Kaioken stays up for dev; production traffic moves to the cloud.
+
+---
+
+## FAQ
+
+**Why is Saiyan called "Saiyan" and not "lite"?**
+
+Because the names describe the actual difference: base form, powered-up form, ultimate form. `lite`, `full`, `super-saiyan` all work as aliases — the installer accepts both spellings.
+
+**Does Kaioken survive a reboot?**
+
+The containers restart automatically (the compose file sets `restart: unless-stopped`), so yes, once you've brought it up once it'll come back after a reboot — *if* Docker Desktop is set to start on login. Laptop sleep is different: the containers pause and resume.
+
+**Can I run Kaioken on a Raspberry Pi / cheap VPS?**
+
+Probably yes for the fabric (NATS + Coordinator + Admiral fit in ~500MB), but Temporal alone wants ~400MB. A 2GB Pi 4 works for the fabric; spawning superagents needs more headroom.
+
+**Can I mix modes — Saiyan in my main app, Kaioken running on the side for spawns?**
+
+Yes. Wire your Saiyan app to use Kaioken's Admiral as a delegation target via A2A. Your local planner picks tools; when it picks `spawn-superagent`, it sends the job to Kaioken's Admiral which actually spawns.
+
+**Where does Kaioken's `hermes-superagent:latest` image come from?**
+
+It's built from the root `Dockerfile` (the same image Railway uses for the Admiral in SS5). The first spawn pays a ~30s build cost; subsequent spawns are instant. `./scripts/kaioken-up.sh --rebuild` forces a rebuild.
+
+**Is there a "Super Saiyan God" mode for the recursive fleet?**
+
+Not yet. The naming hook is there for when Hermes spawns Hermeses that spawn their own Hermeses — the recursive multi-agent fleet. For now, Tier 2 superagents can spawn Tier 1 specialists, but they don't recurse into more Tier 2s. That's the next round.

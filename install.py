@@ -1,21 +1,39 @@
 #!/usr/bin/env python3
-"""Hermes Super Agent installer — saiyan (lite) or super-saiyan (full).
+"""Hermes Super Agent installer — saiyan (lite), kaioken (local fabric), super-saiyan-5 (cloud).
 
 Single-file, stdlib-only. Designed to be invoked from a Claude Code /
 Codex / Cursor session running the master prompt in INSTALL.md, but
 runnable by hand too.
 
-Usage:
-    python3 install.py --mode=saiyan       [--target=PATH] [--dry-run] [--force]
-    python3 install.py --mode=super-saiyan
-    python3 install.py --mode=lite          # alias for saiyan
-    python3 install.py --mode=full          # alias for super-saiyan
+USAGE
+=====
 
-Saiyan (lite): copies the planner + 14 in-process runtimes + 16 SKILL.md
-files into the target project. No new infrastructure. ~3 minutes.
+  python3 install.py --mode=saiyan           [--target=PATH] [--dry-run] [--force] [--yes]
+                                             [--check] [--update] [--uninstall]
+                                             [--identities=primary_hermes,coo,...]
+  python3 install.py --mode=kaioken          [--yes] [--telegram]
+  python3 install.py --mode=super-saiyan-5
 
-Super-saiyan (full): runs scripts/setup.sh + scripts/deploy.sh from this
-repo to bring up the full Railway fabric. ~30 minutes.
+ALIASES
+=======
+
+  lite          → saiyan
+  full          → super-saiyan-5
+  super-saiyan  → super-saiyan-5   (old name, kept for backward compat)
+
+MODES
+=====
+
+  saiyan         — drop the planner + 14 in-process runtimes + 16 skills
+                   into an existing project. ~3 min, $0 infra.
+
+  kaioken        — full local Hermes fabric in Docker (NATS + Temporal +
+                   Coordinator + Admiral). Spawns Tier 2 superagents as
+                   sibling Docker containers. ~10 min, $0 infra, Docker required.
+
+  super-saiyan-5 — full Railway control plane + DigitalOcean Tier 2
+                   spawning. Always-on, public A2A endpoint, team-shared.
+                   ~30 min, ~$45/mo floor + per-spawn.
 """
 from __future__ import annotations
 
@@ -25,13 +43,13 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 # Pure-skills surface — copied verbatim by saiyan mode.
-# (relative_source, relative_target) — target is relative to target_root + agent_os layout.
 _ORCH_PURE = [
     "__init__.py",
     "tier_classifier.py",
@@ -47,6 +65,7 @@ _ADAPTERS_PURE = [
     "job_router.py",
     "plan_overrides.py",
     "vault_memory.py",
+    "saiyan_overrides.py",   # NEW — replaces the old regex patch
 ]
 
 _PURE_RUNTIMES = [
@@ -62,8 +81,8 @@ _PURE_SKILL_MD = [
     "openclaw.md", "openswarm.md", "terminal.md",
 ]
 
-# Saiyan mode runtime registry — what dispatch() should know about.
-_SAIYAN_RUNTIMES = sorted(_PURE_RUNTIMES)
+# Default identity for saiyan installs. Override with --identities.
+_DEFAULT_IDENTITIES = ["primary_hermes"]
 
 # Minimal deps for saiyan mode (no fabric).
 _SAIYAN_DEPS = [
@@ -71,44 +90,105 @@ _SAIYAN_DEPS = [
     "httpx>=0.27",
 ]
 
+# Stamp prefix that survives `--check` / `--update` / `--uninstall`. The
+# *marker* (the bit that identifies a line as ours) is stamp-agnostic — both
+# `# saiyan-installed: ...` (Python/YAML) and `<!-- saiyan-installed: ... -->`
+# (Markdown) get recognized via the bare _STAMP_MARKER.
+_STAMP_MARKER = "saiyan-installed:"
+_STAMP_PREFIX = f"# {_STAMP_MARKER}"
+
 
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0])
+    p = argparse.ArgumentParser(
+        description=__doc__.split("\n\n", 1)[0],
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     p.add_argument("--mode", required=True,
-                   choices=["saiyan", "super-saiyan", "lite", "full"])
+                   choices=["saiyan", "kaioken", "super-saiyan-5",
+                            "lite", "full", "super-saiyan"])
     p.add_argument("--target", default=None,
-                   help="Target project root (default: current working dir).")
+                   help="Target project root for saiyan mode (default: cwd).")
     p.add_argument("--dry-run", action="store_true",
                    help="Print what would happen, write nothing.")
     p.add_argument("--force", action="store_true",
                    help="Overwrite existing files in the target.")
+    p.add_argument("--yes", action="store_true",
+                   help="Skip confirmation prompts (e.g. pip install).")
+    p.add_argument("--check", action="store_true",
+                   help="(saiyan) report drift between installed copies and upstream; write nothing.")
+    p.add_argument("--update", action="store_true",
+                   help="(saiyan) re-run copy, refreshing stamped files. Skips files the user has modified locally unless --force.")
+    p.add_argument("--uninstall", action="store_true",
+                   help="(saiyan) remove every stamped file (with confirmation).")
+    p.add_argument("--identities", default=",".join(_DEFAULT_IDENTITIES),
+                   help="(saiyan) comma-separated identity packs to install. "
+                        "Use --identities=list to print available identities and exit. "
+                        "Use --identities=all to install everything.")
+    p.add_argument("--telegram", action="store_true",
+                   help="(kaioken) also start the Telegram bot sidecar.")
     args = p.parse_args(argv)
 
-    mode = "saiyan" if args.mode in ("saiyan", "lite") else "super-saiyan"
+    mode = _canonical_mode(args.mode)
 
-    if mode == "super-saiyan":
-        return _super_saiyan()
+    if mode == "super-saiyan-5":
+        return _super_saiyan_5()
+    if mode == "kaioken":
+        return _kaioken(yes=args.yes, telegram=args.telegram)
 
+    # saiyan
     target = Path(args.target or os.getcwd()).resolve()
-    return _saiyan(target=target, dry_run=args.dry_run, force=args.force)
+    if args.identities.strip().lower() == "list":
+        return _list_identities()
+    identities = _parse_identities(args.identities)
+
+    if args.check:
+        return _saiyan_check(target=target)
+    if args.uninstall:
+        return _saiyan_uninstall(target=target, yes=args.yes)
+    return _saiyan(
+        target=target,
+        dry_run=args.dry_run,
+        # --update refreshes stamped (ours) files but does NOT overwrite
+        # user-modified unstamped files unless --force is also passed.
+        force=args.force,
+        yes=args.yes,
+        identities=identities,
+        is_update=args.update,
+    )
+
+
+def _canonical_mode(raw: str) -> str:
+    if raw in ("saiyan", "lite"):
+        return "saiyan"
+    if raw == "kaioken":
+        return "kaioken"
+    return "super-saiyan-5"   # super-saiyan-5, full, super-saiyan all map here
 
 
 # ---------------------------------------------------------------------------
 # Saiyan mode (lite)
 # ---------------------------------------------------------------------------
 
-def _saiyan(*, target: Path, dry_run: bool, force: bool) -> int:
-    print(f"\n⚡ Hermes saiyan-mode install → {target}\n")
+def _saiyan(
+    *,
+    target: Path,
+    dry_run: bool,
+    force: bool,
+    yes: bool,
+    identities: list[str],
+    is_update: bool,
+) -> int:
+    label = "saiyan-mode update" if is_update else "saiyan-mode install"
+    print(f"\n⚡ Hermes {label} → {target}\n")
 
     if sys.version_info < (3, 11):
-        print(f"✗ Python 3.11+ required (you have {sys.version_info.major}."
-              f"{sys.version_info.minor}).")
+        print(f"✗ Python 3.11+ required (you have "
+              f"{sys.version_info.major}.{sys.version_info.minor}).")
         return 2
-
     if not target.exists():
         print(f"✗ Target {target} does not exist. Create it or pass --target.")
         return 2
@@ -117,42 +197,60 @@ def _saiyan(*, target: Path, dry_run: bool, force: bool) -> int:
     target_agent_os = target / layout / "agent_os"
     target_vault = target / "vault" / "skills" / "active" / "tools"
 
-    print(f"  layout:        {layout}/agent_os/...")
-    print(f"  agent_os →     {target_agent_os}")
-    print(f"  vault/skills → {target_vault}")
-    print(f"  dry-run:       {dry_run}")
-    print(f"  force:         {force}")
-    print()
+    print(f"  layout:       {layout}/agent_os/...")
+    print(f"  agent_os →    {target_agent_os}")
+    print(f"  vault/skills →{target_vault}")
+    print(f"  identities:   {', '.join(identities)}")
+    print(f"  dry-run:      {dry_run}   force: {force}   yes: {yes}\n")
 
-    plan = _build_copy_plan(target_agent_os, target_vault)
+    plan = _build_copy_plan(target_agent_os, target_vault, identities=identities)
 
-    conflicts = [t for _, t in plan if t.exists() and not _identical(_, t)]
+    # Conflict detection: skip files that already exist with the same content,
+    # warn-and-skip user-modified files unless --force.
+    conflicts = []
+    for src, tgt in plan:
+        if not tgt.exists():
+            continue
+        if _identical_ignoring_stamp(src, tgt):
+            continue
+        # If the target has our stamp, it's safe to refresh (we wrote it last).
+        if _has_stamp(tgt):
+            continue
+        conflicts.append(tgt)
+
     if conflicts and not force:
-        print(f"✗ {len(conflicts)} target files would be overwritten with different "
-              f"content:")
+        print(f"✗ {len(conflicts)} target file(s) would be overwritten with "
+              f"different content (and they're not stamped as ours):")
         for c in conflicts[:10]:
             print(f"    {c}")
         if len(conflicts) > 10:
             print(f"    ... and {len(conflicts) - 10} more")
-        print(f"\n  Re-run with --force to overwrite, or --dry-run to inspect.")
+        print("\n  Re-run with --force to overwrite, --dry-run to inspect.")
         return 3
 
-    # Copy
+    # Copy + stamp
+    sha = _repo_sha()
+    stamp = f"{_STAMP_PREFIX} hermes-super-agent@{sha} on {_today()}"
+    written = 0
     for src, tgt in plan:
         if dry_run:
             verb = "WOULD UPDATE" if tgt.exists() else "WOULD CREATE"
             print(f"  {verb}  {tgt}")
             continue
         tgt.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, tgt)
+        _copy_with_stamp(src, tgt, stamp=stamp)
+        written += 1
 
     if not dry_run:
-        # Patch the copied job_router.py for lite-mode dispatch.
-        _patch_job_router_for_saiyan(target_agent_os / "orchestrator" / "adapters" / "job_router.py")
-        # Merge deps.
-        _merge_deps(target=target, dry_run=dry_run)
-        # Smoke test.
-        ok = _smoke_test(target=target, layout=layout)
+        # Wire saiyan_overrides into the copied adapters/__init__.py so it
+        # runs every time the user imports agent_os.orchestrator.adapters.
+        _wire_saiyan_overrides(target_agent_os / "orchestrator" / "adapters" / "__init__.py")
+        # Merge deps (and offer to install them).
+        _merge_deps(target=target, yes=yes)
+        # Stage the example so the user has a working demo.
+        _copy_example(target, "saiyan_hello.py", stamp=stamp)
+        # Real smoke test.
+        ok = _smoke_test_saiyan(target=target, layout=layout)
         if not ok:
             print("\n✗ Smoke test failed. See output above.")
             return 4
@@ -161,61 +259,90 @@ def _saiyan(*, target: Path, dry_run: bool, force: bool) -> int:
     if dry_run:
         print(f"  dry-run complete: {len(plan)} files would be written.")
     else:
-        print(f"✓ saiyan install complete: {len(plan)} files written.\n")
+        print(f"✓ saiyan {'updated' if is_update else 'install complete'}: "
+              f"{written} files written.\n")
         _print_next_steps()
     return 0
 
 
 def _detect_layout(target: Path) -> str:
-    """Return 'src' if target uses src/agent_os/ layout, else '.' (flat)."""
     if (target / "src" / "agent_os").exists():
         return "src"
     if (target / "agent_os").exists():
         return "."
-    # No existing agent_os/ — pick a default based on whether there's a src/ dir.
     return "src" if (target / "src").exists() else "."
 
 
-def _build_copy_plan(target_agent_os: Path, target_vault: Path) -> list[tuple[Path, Path]]:
-    """Return [(source, target)] pairs for all files to copy in saiyan mode."""
-    pairs: list[tuple[Path, Path]] = []
+def _list_identities() -> int:
+    src = SCRIPT_DIR / "src" / "agent_os" / "orchestrator" / "config" / "identities"
+    if not src.exists():
+        print("(no identities/ dir found in upstream)")
+        return 1
+    print("Available identities:")
+    for p in sorted(src.glob("*.yaml")):
+        print(f"  {p.stem}")
+    print("\nUse --identities=name1,name2 or --identities=all")
+    return 0
 
+
+def _parse_identities(raw: str) -> list[str]:
+    raw = raw.strip()
+    if not raw or raw.lower() == "all":
+        src = SCRIPT_DIR / "src" / "agent_os" / "orchestrator" / "config" / "identities"
+        if src.exists():
+            return sorted(p.stem for p in src.glob("*.yaml"))
+        return list(_DEFAULT_IDENTITIES)
+    return [x.strip() for x in raw.split(",") if x.strip()]
+
+
+def _build_copy_plan(
+    target_agent_os: Path,
+    target_vault: Path,
+    *,
+    identities: list[str],
+) -> list[tuple[Path, Path]]:
+    pairs: list[tuple[Path, Path]] = []
     src_orch = SCRIPT_DIR / "src" / "agent_os" / "orchestrator"
     tgt_orch = target_agent_os / "orchestrator"
+
     for f in _ORCH_PURE:
         pairs.append((src_orch / f, tgt_orch / f))
     for f in _ADAPTERS_PURE:
-        pairs.append((src_orch / "adapters" / f, tgt_orch / "adapters" / f))
+        src_f = src_orch / "adapters" / f
+        if src_f.exists():
+            pairs.append((src_f, tgt_orch / "adapters" / f))
 
-    # Configs (yaml + identities/*.yaml)
-    pairs.append((src_orch / "config" / "models.yaml", tgt_orch / "config" / "models.yaml"))
-    pairs.append((src_orch / "config" / "tiers.yaml", tgt_orch / "config" / "tiers.yaml"))
+    # Configs
+    for cfg in ("models.yaml", "tiers.yaml"):
+        src_cfg = src_orch / "config" / cfg
+        if src_cfg.exists():
+            pairs.append((src_cfg, tgt_orch / "config" / cfg))
+
     identities_dir = src_orch / "config" / "identities"
     if identities_dir.exists():
+        wanted = set(identities)
         for ident in sorted(identities_dir.glob("*.yaml")):
-            pairs.append((ident, tgt_orch / "config" / "identities" / ident.name))
+            if ident.stem in wanted:
+                pairs.append((ident, tgt_orch / "config" / "identities" / ident.name))
 
-    # Runtimes — _base.py + 14 pure runtime dirs (every .py and .yaml inside)
+    # Runtimes
     src_rt = SCRIPT_DIR / "src" / "agent_os" / "runtimes"
     tgt_rt = target_agent_os / "runtimes"
-    base_py = src_rt / "_base.py"
-    if base_py.exists():
-        pairs.append((base_py, tgt_rt / "_base.py"))
-    init_py = src_rt / "__init__.py"
-    if init_py.exists():
-        pairs.append((init_py, tgt_rt / "__init__.py"))
+    for top in ("_base.py", "__init__.py"):
+        f = src_rt / top
+        if f.exists():
+            pairs.append((f, tgt_rt / top))
     for runtime in _PURE_RUNTIMES:
         rt_src = src_rt / runtime
-        rt_tgt = tgt_rt / runtime
         if not rt_src.exists():
             continue
         for f in sorted(rt_src.rglob("*")):
-            if f.is_dir() or f.name == "__pycache__" or "__pycache__" in f.parts:
+            if f.is_dir() or "__pycache__" in f.parts:
                 continue
             if f.suffix not in (".py", ".yaml", ".md"):
                 continue
             rel = f.relative_to(rt_src)
-            pairs.append((f, rt_tgt / rel))
+            pairs.append((f, tgt_rt / runtime / rel))
 
     # 16 SKILL.md files
     src_tools = SCRIPT_DIR / "vault" / "skills" / "active" / "tools"
@@ -224,86 +351,136 @@ def _build_copy_plan(target_agent_os: Path, target_vault: Path) -> list[tuple[Pa
         if src_md.exists():
             pairs.append((src_md, target_vault / md))
 
-    # Top-level agent_os/__init__.py shim if target doesn't have one
+    # Top-level agent_os/__init__.py if target doesn't have one
     target_init = target_agent_os / "__init__.py"
-    if not target_init.exists():
-        pairs.append((SCRIPT_DIR / "src" / "agent_os" / "__init__.py", target_init))
+    src_init = SCRIPT_DIR / "src" / "agent_os" / "__init__.py"
+    if not target_init.exists() and src_init.exists():
+        pairs.append((src_init, target_init))
 
     return pairs
 
 
-def _identical(src: Path, tgt: Path) -> bool:
+# ---------------------------------------------------------------------------
+# Stamping + file copy
+# ---------------------------------------------------------------------------
+
+def _copy_with_stamp(src: Path, tgt: Path, *, stamp: str) -> None:
+    """Copy src→tgt, prepending an install stamp for .py/.md/.yaml files."""
+    data = src.read_bytes()
+    if src.suffix in (".py", ".md", ".yaml", ".yml"):
+        stamped = _stamp_text(data.decode("utf-8", errors="replace"), src.suffix, stamp)
+        tgt.write_text(stamped)
+    else:
+        tgt.write_bytes(data)
     try:
-        return src.read_bytes() == tgt.read_bytes()
-    except Exception:
-        return False
+        shutil.copymode(src, tgt)
+    except OSError:
+        pass
 
 
-def _patch_job_router_for_saiyan(router_path: Path) -> None:
-    """Trim runtime registries in the copied job_router.py to lite-only set
-    and rewrite the unknown-runtime error to point at super-saiyan."""
-    if not router_path.exists():
-        return
-    text = router_path.read_text()
+def _stamp_text(text: str, suffix: str, stamp: str) -> str:
+    """Insert a stamp comment near the top of the file. Idempotent — strips
+    any previous stamp first so re-installs don't accumulate banners.
 
-    # Remove fabric runtimes from KNOWN_RUNTIMES via the dicts that feed it.
-    # Strategy: replace the literal _ASYNC_RUNTIMES / _SYNC_RUNTIMES dicts with
-    # saiyan-only versions, leaving everything else (route(), Job, dispatch)
-    # untouched.
-    saiyan_async = '_ASYNC_RUNTIMES = {\n}\n'  # no async runtimes in lite mode
-    saiyan_sync = (
-        "_SYNC_RUNTIMES = {\n"
-        + "\n".join(
-            f'    "{r}": "agent_os.runtimes.{r}.invoke",'
-            for r in _SAIYAN_RUNTIMES
-        )
-        + "\n}\n"
-    )
-
-    text = re.sub(
-        r"_ASYNC_RUNTIMES = \{[^}]*\}\s*\n",
-        saiyan_async,
-        text,
-        count=1,
-        flags=re.DOTALL,
-    )
-    text = re.sub(
-        r"_SYNC_RUNTIMES = \{[^}]*\}\s*\n",
-        saiyan_sync,
-        text,
-        count=1,
-        flags=re.DOTALL,
-    )
-
-    # Rewrite "Unknown runtime" error message to point at super-saiyan.
-    text = text.replace(
-        'raise ValueError(f"Unknown runtime: {runtime}")',
-        'raise RuntimeError(\n'
-        '        f"runtime {runtime!r} needs the super-saiyan fabric layer "\n'
-        '        "(NATS + Temporal + Coordinator + spawner). Re-run install.py "\n'
-        '        "with --mode=super-saiyan, or install the full fabric: "\n'
-        '        "https://github.com/jbellsolutions/hermes-super-agent"\n'
-        '    )',
-    )
-
-    # Mark the file with a saiyan banner so it's obvious this was patched.
-    if "saiyan-mode patched" not in text:
-        text = (
-            "# saiyan-mode patched: fabric runtimes (a2a_delegate, coordinator,\n"
-            "# retell_channel, vps_spawn) are NOT registered here. Asking the\n"
-            "# planner to dispatch one raises a friendly RuntimeError pointing\n"
-            "# at super-saiyan mode.\n"
-            + text
-        )
-
-    router_path.write_text(text)
-
-
-def _merge_deps(*, target: Path, dry_run: bool) -> None:
-    """Merge saiyan deps into target's pyproject.toml or requirements.txt.
-
-    Idempotent: if our deps are already declared, no-op.
+    Suffix-specific placement:
+      .py     — after the first blank line (past shebang/docstring/imports header)
+      .md     — AFTER the YAML frontmatter (so catalog.parse_skill() still
+                sees the `---` block at the very top of the file)
+      .yaml   — at the top, as a leading comment
     """
+    comment_prefix = "# " if suffix in (".py", ".yaml", ".yml") else "<!-- "
+    comment_suffix = "" if suffix in (".py", ".yaml", ".yml") else " -->"
+    full_stamp = f"{comment_prefix}{stamp[2:].strip()}{comment_suffix}\n"
+
+    # Strip any existing saiyan-installed banner (the marker appears whether
+    # the comment style is `# …` or `<!-- … -->`).
+    lines = text.splitlines(keepends=True)
+    cleaned = [line for line in lines if _STAMP_MARKER not in line]
+    body = "".join(cleaned)
+
+    if suffix == ".py":
+        # Insert after the first blank line (past shebang / docstring).
+        match = re.search(r"\n\n", body)
+        if match:
+            return body[:match.end()] + full_stamp + body[match.end():]
+        return full_stamp + body
+
+    if suffix == ".md":
+        # If the file starts with a YAML frontmatter block, insert the stamp
+        # AFTER it so catalog.parse_skill()'s ^---\n…\n---\n regex still
+        # matches at byte 0 and the SKILL metadata is preserved.
+        fm_match = re.match(r"^---\n.*?\n---\n", body, flags=re.DOTALL)
+        if fm_match:
+            return body[:fm_match.end()] + full_stamp + body[fm_match.end():]
+        return full_stamp + body
+
+    return full_stamp + body
+
+
+def _has_stamp(path: Path) -> bool:
+    if not path.exists() or path.suffix not in (".py", ".md", ".yaml", ".yml"):
+        return False
+    try:
+        head = path.read_text(errors="replace").splitlines()[:20]
+    except OSError:
+        return False
+    return any(_STAMP_MARKER in line for line in head)
+
+
+def _identical_ignoring_stamp(src: Path, tgt: Path) -> bool:
+    try:
+        a = src.read_text(errors="replace")
+        b = tgt.read_text(errors="replace")
+    except OSError:
+        return False
+    return _strip_stamp(a) == _strip_stamp(b)
+
+
+def _strip_stamp(text: str) -> str:
+    return "\n".join(
+        line for line in text.splitlines()
+        if _STAMP_MARKER not in line
+    )
+
+
+def _wire_saiyan_overrides(adapters_init: Path) -> None:
+    """Ensure adapters/__init__.py imports saiyan_overrides and calls apply()."""
+    if not adapters_init.exists():
+        adapters_init.parent.mkdir(parents=True, exist_ok=True)
+        adapters_init.write_text(
+            "from . import saiyan_overrides  # saiyan-mode runtime trim\n"
+            "saiyan_overrides.apply()\n"
+        )
+        return
+    text = adapters_init.read_text()
+    if "saiyan_overrides" in text:
+        return
+    text = text.rstrip() + (
+        "\n\n# saiyan-mode runtime trim — installed by install.py --mode=saiyan\n"
+        "from . import saiyan_overrides  # noqa: F401\n"
+        "saiyan_overrides.apply()\n"
+    )
+    adapters_init.write_text(text)
+
+
+def _copy_example(target: Path, name: str, *, stamp: str) -> None:
+    src = SCRIPT_DIR / "examples" / name
+    if not src.exists():
+        return
+    tgt = target / "examples" / name
+    tgt.parent.mkdir(parents=True, exist_ok=True)
+    _copy_with_stamp(src, tgt, stamp=stamp)
+    try:
+        tgt.chmod(0o755)
+    except OSError:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Deps + smoke test
+# ---------------------------------------------------------------------------
+
+def _merge_deps(*, target: Path, yes: bool) -> None:
     pyproject = target / "pyproject.toml"
     reqs = target / "requirements.txt"
 
@@ -312,95 +489,111 @@ def _merge_deps(*, target: Path, dry_run: bool) -> None:
         added = []
         for dep in _SAIYAN_DEPS:
             pkg = dep.split(">=")[0].split("==")[0].split("[")[0].strip().lower()
-            # Skip if any line in the [project] table mentions this pkg
             if re.search(rf'["\']?{re.escape(pkg)}["\[\>\=]', text, flags=re.IGNORECASE):
                 continue
             added.append(dep)
         if added:
             print(f"  merging {len(added)} dep(s) into pyproject.toml")
-            # Best-effort append into [project] dependencies = [...]
             new = re.sub(
                 r"(dependencies\s*=\s*\[)([^\]]*)\]",
                 lambda m: m.group(0).rstrip("]")
                 + ("    \"" + "\",\n    \"".join(added) + "\",\n]"),
-                text,
-                count=1,
+                text, count=1,
             )
-            if new != text and not dry_run:
+            if new != text:
                 pyproject.write_text(new)
         else:
             print("  pyproject.toml already has saiyan deps — skipping.")
+    else:
+        # requirements.txt fallback
+        existing = reqs.read_text() if reqs.exists() else ""
+        added_lines = [
+            d for d in _SAIYAN_DEPS
+            if d.split(">=")[0].split("==")[0].lower() not in existing.lower()
+        ]
+        if added_lines:
+            with reqs.open("a") as fh:
+                if existing and not existing.endswith("\n"):
+                    fh.write("\n")
+                fh.write("# Hermes saiyan deps\n")
+                for d in added_lines:
+                    fh.write(d + "\n")
+            print(f"  appended {len(added_lines)} dep(s) to requirements.txt")
+
+    # Actually install them. Pick uv if available, else pip.
+    if not _yes_or_ask("  Install saiyan deps now?", yes=yes):
+        print("  skipped — install yourself when ready:")
+        print("    uv sync           # or")
+        print("    pip install pyyaml httpx")
         return
 
-    # Fall back to requirements.txt
-    existing = reqs.read_text() if reqs.exists() else ""
-    added_lines = [d for d in _SAIYAN_DEPS
-                   if d.split(">=")[0].split("==")[0].lower() not in existing.lower()]
-    if added_lines and not dry_run:
-        with reqs.open("a") as fh:
-            if existing and not existing.endswith("\n"):
-                fh.write("\n")
-            fh.write("# Hermes saiyan deps\n")
-            for d in added_lines:
-                fh.write(d + "\n")
-        print(f"  appended {len(added_lines)} dep(s) to requirements.txt")
+    if shutil.which("uv") and pyproject.exists():
+        print("  → uv sync")
+        rc = subprocess.call(["uv", "sync"], cwd=target)
+        if rc != 0:
+            print("  ⚠ uv sync exited non-zero — try `pip install -r requirements.txt`")
+    else:
+        print(f"  → {sys.executable} -m pip install {' '.join(_SAIYAN_DEPS)}")
+        rc = subprocess.call(
+            [sys.executable, "-m", "pip", "install", *_SAIYAN_DEPS],
+            cwd=target,
+        )
+        if rc != 0:
+            print("  ⚠ pip install exited non-zero — review output above")
 
 
-def _smoke_test(*, target: Path, layout: str) -> bool:
-    """Import tool_planner.plan from the target and run a one-line plan.
+def _smoke_test_saiyan(*, target: Path, layout: str) -> bool:
+    """Run examples/saiyan_hello.py via the user's Python; assert output."""
+    example = target / "examples" / "saiyan_hello.py"
+    if not example.exists():
+        print("  ⚠ examples/saiyan_hello.py not found in target — skipping smoke test")
+        return True
 
-    Soft on missing third-party deps: if pyyaml or another dep isn't
-    installed in the user's Python yet, we still consider the install
-    successful (the files copied correctly) and print instructions for
-    installing deps.
-    """
     pythonpath = str(target / layout) if layout == "src" else str(target)
-    code = (
-        "from agent_os.orchestrator.adapters.job_router import Job\n"
-        "from agent_os.orchestrator.tool_planner import plan\n"
-        "p = plan(Job(prompt='hi', tags=set()))\n"
-        "print(f'OK primary_tool={p.primary_tool} tier={p.tier}')\n"
-    )
-    print("  smoke test:")
     env = os.environ.copy()
     env["PYTHONPATH"] = pythonpath + os.pathsep + env.get("PYTHONPATH", "")
+
+    sentinel = "hello-from-saiyan-install"
+    print(f"  smoke test: examples/saiyan_hello.py --prompt 'echo {sentinel}' --quiet")
     try:
         result = subprocess.run(
-            [sys.executable, "-c", code],
+            [sys.executable, str(example), "--prompt", f"echo {sentinel}", "--quiet"],
             cwd=target, env=env, capture_output=True, text=True, timeout=30,
         )
     except Exception as exc:
-        print(f"    ✗ failed to invoke smoke test: {exc}")
+        print(f"    ✗ failed to invoke: {exc}")
         return False
 
-    output = (result.stdout + result.stderr).strip()
+    out = (result.stdout or "") + (result.stderr or "")
 
-    # ModuleNotFoundError is "you haven't pip-installed yet" — that's a
-    # follow-up step, not an install failure. Files are on disk; deps are
-    # listed in your pyproject.toml / requirements.txt.
-    if "ModuleNotFoundError" in output:
-        missing = re.search(r"No module named ['\"]([^'\"]+)['\"]", output)
-        modname = missing.group(1) if missing else "<unknown>"
-        print(f"    ⚠ Files copied OK, but Python module {modname!r} isn't "
-              "installed yet.")
-        print("    Run `pip install -r requirements.txt` (or `uv sync` if you")
-        print("    use uv) in your project root, then re-run the smoke test:")
-        print()
-        print("        python -c \"from agent_os.orchestrator.tool_planner "
-              "import plan; \\")
-        print("                   from agent_os.orchestrator.adapters."
-              "job_router import Job; \\")
-        print("                   p = plan(Job(prompt='hi', tags=set())); \\")
-        print("                   print('OK', p.primary_tool, p.tier)\"")
-        return True  # install itself succeeded
+    if "ModuleNotFoundError" in out:
+        modname_match = re.search(r"No module named ['\"]([^'\"]+)['\"]", out)
+        modname = modname_match.group(1) if modname_match else "<unknown>"
+        print(f"    ✗ Python module {modname!r} not installed.")
+        print(f"    Run `pip install {modname}` (or `uv sync`) and re-run the install.")
+        return False
 
-    print("    " + (result.stdout.strip() or result.stderr.strip()))
-    return result.returncode == 0
+    if result.returncode != 0:
+        print(f"    ✗ smoke test exited {result.returncode}")
+        for line in (out.strip().splitlines() or [""])[-10:]:
+            print(f"      {line}")
+        return False
+    if sentinel not in out:
+        print(f"    ✗ expected output {sentinel!r} not found")
+        print(f"      got: {out.strip()[:200]}")
+        return False
+
+    print(f"    ✓ {sentinel} returned through the orchestrator")
+    return True
 
 
 def _print_next_steps() -> None:
     print(
-        "Next steps — wire it into your Hermes turn handler:\n"
+        "Next steps — try the demo:\n"
+        "\n"
+        "  python examples/saiyan_hello.py --prompt 'echo hello'\n"
+        "\n"
+        "Then wire it into your turn handler:\n"
         "\n"
         "  from agent_os.orchestrator import intent_classifier\n"
         "  from agent_os.orchestrator.adapters.job_router import Job, dispatch\n"
@@ -410,20 +603,184 @@ def _print_next_steps() -> None:
         "  intent = intent_classifier.classify(user_text)\n"
         "  job = Job(prompt=user_text, tags=set(intent.tags))\n"
         "  tool_plan = plan(job, identity='primary_hermes')\n"
-        "  print(render(tool_plan))   # show plan card\n"
-        "  # await user yes / YES / cancel...\n"
+        "  print(render(tool_plan))            # show plan card\n"
         "  result = await dispatch(job, plan=tool_plan)\n"
+        "\n"
+        "Manage your install:\n"
+        "  python3 install.py --mode=saiyan --check         # drift report\n"
+        "  python3 install.py --mode=saiyan --update        # refresh from upstream\n"
+        "  python3 install.py --mode=saiyan --uninstall     # remove everything\n"
+        "\n"
+        "Upgrade path:\n"
+        "  python3 install.py --mode=kaioken           # local full fabric in Docker\n"
+        "  python3 install.py --mode=super-saiyan-5    # cloud always-on fabric\n"
         "\n"
         "Docs: https://github.com/jbellsolutions/hermes-super-agent/blob/main/docs/modes.md\n"
     )
 
 
 # ---------------------------------------------------------------------------
-# Super-saiyan mode (full)
+# Saiyan: --check
 # ---------------------------------------------------------------------------
 
-def _super_saiyan() -> int:
-    """Delegate to scripts/setup.sh + scripts/deploy.sh — the existing path."""
+def _saiyan_check(*, target: Path) -> int:
+    layout = _detect_layout(target)
+    target_agent_os = target / layout / "agent_os"
+    target_vault = target / "vault" / "skills" / "active" / "tools"
+    plan = _build_copy_plan(target_agent_os, target_vault, identities=_parse_identities("all"))
+
+    missing = []
+    drifted = []
+    user_modified = []
+    in_sync = 0
+    for src, tgt in plan:
+        if not tgt.exists():
+            missing.append(tgt)
+            continue
+        if _identical_ignoring_stamp(src, tgt):
+            in_sync += 1
+            continue
+        if _has_stamp(tgt):
+            # Was ours, upstream changed — needs --update
+            drifted.append(tgt)
+        else:
+            user_modified.append(tgt)
+
+    print(f"\n⚡ saiyan --check → {target}\n")
+    print(f"  in sync:       {in_sync}")
+    print(f"  drifted:       {len(drifted)} (use --update to refresh)")
+    print(f"  user-modified: {len(user_modified)} (use --update --force to overwrite)")
+    print(f"  missing:       {len(missing)} (use --update to install)")
+
+    if drifted[:5]:
+        print("\n  drifted:")
+        for d in drifted[:10]:
+            print(f"    {d.relative_to(target)}")
+        if len(drifted) > 10:
+            print(f"    ... and {len(drifted) - 10} more")
+
+    if user_modified[:5]:
+        print("\n  user-modified (preserved):")
+        for d in user_modified[:10]:
+            print(f"    {d.relative_to(target)}")
+        if len(user_modified) > 10:
+            print(f"    ... and {len(user_modified) - 10} more")
+
+    return 0 if not (drifted or missing) else 1
+
+
+# ---------------------------------------------------------------------------
+# Saiyan: --uninstall
+# ---------------------------------------------------------------------------
+
+def _saiyan_uninstall(*, target: Path, yes: bool) -> int:
+    layout = _detect_layout(target)
+    target_agent_os = target / layout / "agent_os"
+    target_vault = target / "vault" / "skills" / "active" / "tools"
+    target_examples = target / "examples"
+
+    candidates: list[Path] = []
+    for root in (target_agent_os, target_vault, target_examples):
+        if not root.exists():
+            continue
+        for p in root.rglob("*"):
+            if p.is_file() and _has_stamp(p):
+                candidates.append(p)
+
+    print(f"\n⚡ saiyan --uninstall → {target}")
+    print(f"  Found {len(candidates)} stamped file(s).\n")
+
+    if not candidates:
+        print("  Nothing to remove.")
+        return 0
+
+    # Show 10 examples
+    for p in candidates[:10]:
+        print(f"    {p.relative_to(target)}")
+    if len(candidates) > 10:
+        print(f"    ... and {len(candidates) - 10} more")
+    print()
+
+    if not _yes_or_ask("  Remove all stamped files?", yes=yes):
+        print("  Cancelled.")
+        return 0
+
+    removed = 0
+    for p in candidates:
+        try:
+            p.unlink()
+            removed += 1
+        except OSError as exc:
+            print(f"  ⚠ couldn't remove {p}: {exc}")
+
+    # Prune empty agent_os/ subdirs (best-effort, leaves user dirs alone).
+    for root in (target_agent_os, target_vault):
+        if not root.exists():
+            continue
+        for p in sorted(root.rglob("*"), key=lambda x: -len(x.parts)):
+            if p.is_dir():
+                try:
+                    p.rmdir()
+                except OSError:
+                    pass
+
+    print(f"\n✓ removed {removed} file(s).")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Kaioken mode (local fabric)
+# ---------------------------------------------------------------------------
+
+def _kaioken(*, yes: bool, telegram: bool) -> int:
+    print("\n⚡ Hermes kaioken-mode install — local Docker fabric.\n")
+
+    # Doctor: docker available
+    docker_path = shutil.which("docker")
+    if not docker_path:
+        print("✗ docker not found on PATH.")
+        print("  Install Docker Desktop: https://docs.docker.com/desktop/")
+        return 2
+    rc = subprocess.call(["docker", "info"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if rc != 0:
+        print("✗ docker daemon not running. Start Docker Desktop and re-run.")
+        return 2
+
+    setup = SCRIPT_DIR / "scripts" / "setup.sh"
+    up = SCRIPT_DIR / "scripts" / "kaioken-up.sh"
+    if not up.exists():
+        print(f"✗ {up} missing. Re-clone the repo.")
+        return 2
+
+    # Optional .env scaffolding via setup.sh in kaioken mode (it knows to
+    # only ask for ANTHROPIC_API_KEY + optional TELEGRAM_BOT_TOKEN).
+    if setup.exists() and _yes_or_ask("  Run scripts/setup.sh to scaffold .env?", yes=yes):
+        env = os.environ.copy()
+        env["HERMES_INSTALL_MODE"] = "kaioken"
+        rc = subprocess.call(["bash", str(setup)], env=env)
+        if rc != 0:
+            print("✗ setup.sh exited non-zero — re-run when ready.")
+            return rc
+
+    print("\n==> Bringing up the fabric")
+    cmd = ["bash", str(up)]
+    if telegram:
+        cmd.append("--telegram")
+    rc = subprocess.call(cmd)
+    if rc != 0:
+        return rc
+
+    print("\n✓ kaioken install complete.")
+    print("  Demo:        uv run python examples/kaioken_spawn_demo.py")
+    print("  Tear down:   ./scripts/kaioken-down.sh")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Super-saiyan-5 mode (cloud)
+# ---------------------------------------------------------------------------
+
+def _super_saiyan_5() -> int:
     setup = SCRIPT_DIR / "scripts" / "setup.sh"
     deploy = SCRIPT_DIR / "scripts" / "deploy.sh"
     if not setup.exists() or not deploy.exists():
@@ -431,15 +788,48 @@ def _super_saiyan() -> int:
               "install.py from the hermes-super-agent repo root?")
         return 2
 
-    print("\n🟡 Hermes super-saiyan-mode install — full Railway fabric.\n")
-    print("  This runs: scripts/setup.sh (interactive credentials)")
-    print("            scripts/deploy.sh (Railway deploy of 5 services)")
-    print()
+    print("\n🔵 Hermes super-saiyan-5-mode install — full Railway + DO fabric.\n")
+    print("  This runs:  scripts/setup.sh   (interactive credentials)")
+    print("              scripts/deploy.sh  (Railway deploy of 5 services)\n")
 
-    rc = subprocess.call(["bash", str(setup)])
+    env = os.environ.copy()
+    env["HERMES_INSTALL_MODE"] = "super-saiyan-5"
+
+    rc = subprocess.call(["bash", str(setup)], env=env)
     if rc != 0:
         return rc
-    return subprocess.call(["bash", str(deploy)])
+    return subprocess.call(["bash", str(deploy)], env=env)
+
+
+# ---------------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------------
+
+def _yes_or_ask(prompt: str, *, yes: bool) -> bool:
+    if yes:
+        return True
+    if not sys.stdin.isatty():
+        # Non-interactive without --yes → default to NO (safe).
+        return False
+    try:
+        ans = input(f"{prompt} [y/N] ").strip().lower()
+    except EOFError:
+        return False
+    return ans in ("y", "yes")
+
+
+def _repo_sha() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=SCRIPT_DIR, stderr=subprocess.DEVNULL,
+        ).decode().strip()
+    except Exception:
+        return "unknown"
+
+
+def _today() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
 if __name__ == "__main__":
