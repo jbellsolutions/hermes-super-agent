@@ -106,6 +106,54 @@ deploy the GTM specialist to production   ← Tier 3, asks for YES
 
 ---
 
+## Step 5 — Give your agent a persona
+
+By default Hermes runs as the Super Agent — a generalist that owns workflows and routes tasks. But you can switch it to a specialist persona at any time, right from Telegram.
+
+**See what personas are available:**
+```
+/identity
+```
+Hermes will reply with the current persona and a list of every option — like `coo`, `gtm`, `head_of_ops`.
+
+**Switch to a persona:**
+```
+/identity coo
+```
+From that point on, every message in that chat goes to Alex, your COO — with Alex's role, voice, and tool access baked in. The persona sticks until you change it or restart.
+
+**Create your own persona:**
+
+You don't need to touch any code. Just create a file called `<name>.yaml` in `src/agent_os/orchestrator/config/identities/`. For example, to create a video production agent:
+
+```yaml
+# src/agent_os/orchestrator/config/identities/video_agent.yaml
+name: Vex
+title: Video Production Agent
+system_prompt: |
+  You are Vex, the video production agent. You own the full video pipeline:
+  scripting, transcription, editing workflows, thumbnail generation, and
+  publishing to YouTube/social. You know ffmpeg and have shell access.
+  You remember every project we've worked on together.
+tools_allowed:
+  - hermes_self
+  - terminal
+  - exa
+default_tier_ceiling: 2
+```
+
+Commit that file, deploy, then send `/identity video_agent` in Telegram. That's it — Vex is live.
+
+**If you want a persona to be the default** (so it loads on startup without needing `/identity`), set this in your `.env` or Railway environment variables:
+
+```
+AGENT_IDENTITY=video_agent
+```
+
+Each machine or Railway service can have its own `AGENT_IDENTITY`. One instance is the Super Agent, another is the COO, a third is your video agent — all separate processes, all sharing the same memory vault so they have the same conversation history.
+
+---
+
 ## What to do if something breaks
 
 | Problem | Fix |
