@@ -108,6 +108,9 @@ SA_BASE_URL="${HERMES_BASE_URL:-https://api.together.xyz/v1}"
 hermes --profile "$PROFILE" config set model.default "$SA_MODEL"     || true
 hermes --profile "$PROFILE" config set model.provider "$SA_PROVIDER" || true
 hermes --profile "$PROFILE" config set model.base_url "$SA_BASE_URL" || true
+# Kimi K2.6 defaults to ~4096 output tokens which truncates mid-tool-call.
+# Raise the ceiling to 16384 so complex tool responses complete fully.
+hermes --profile "$PROFILE" config set model.max_tokens 16384        || true
 # Mirror into the profile .env under the names Hermes actually reads.
 _set_env HERMES_MODEL "$SA_MODEL"
 _set_env HERMES_INFERENCE_PROVIDER "$SA_PROVIDER"
