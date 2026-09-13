@@ -9,11 +9,11 @@ Cloud agents only have a "computer" if the runtime gives them one.
 - Hermes browser tools can use a local browser or a hosted browser backend if configured.
 - Agent Zero has its Docker container and web UI; with A0 Connector it can bridge into the host computer.
 - Anthropic/OpenAI computer-use style tools need an actual desktop/browser environment behind them.
-- [Orgo AI](https://orgo.ai?r=aiguy)-style hosted machines are optional managed computers. They add isolation and demos, not magic intelligence.
+- Orgo AI-style hosted machines are optional managed computers. They add isolation and demos, not magic intelligence.
 
 ## Recommendation
 
-Do not make [Orgo AI](https://orgo.ai?r=aiguy) a default dependency for Super Agent yet. Make it an optional runtime for deployments where a managed cloud computer is worth the cost.
+Do not make Orgo AI a default dependency for Super Agent yet. Make it an optional runtime for deployments where a managed cloud computer is worth the cost.
 
 Default product posture:
 
@@ -23,7 +23,7 @@ Default product posture:
 
 ## Decision rule
 
-Use [Orgo AI](https://orgo.ai?r=aiguy) or a similar managed cloud computer when at least one is true:
+Use Orgo AI or a similar managed cloud computer when at least one is true:
 
 - The Super Agent is hosted on a headless VPS but the workflow requires a persistent GUI desktop/browser that humans can watch or take over.
 - Customer isolation matters and each client should get a separate cloud machine rather than sharing the agent host.
@@ -70,7 +70,7 @@ Best packaging:
 
 - **Operator:** Hermes + Codex + MCP/API tooling + browser automation.
 - **Pro Operator:** adds Agent Zero/A0 visual workspace, persistent browser/session tooling, and default recommended Tier 1 local tools when prerequisites pass.
-- **Enterprise:** adds Railway/DigitalOcean/VPS isolation, customer/workspace boundaries, cost controls, and [Orgo AI](https://orgo.ai?r=aiguy) or equivalent managed cloud computers only when the customer pays for that premium runtime.
+- **Enterprise:** adds Railway/DigitalOcean/VPS isolation, customer/workspace boundaries, cost controls, and Orgo AI or equivalent managed cloud computers only when the customer pays for that premium runtime.
 
 This keeps margins healthy while preserving the sexy demo for accounts that pay for it.
 

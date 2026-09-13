@@ -64,7 +64,7 @@ Includes everything in Pro Operator where appropriate, plus:
 - Agent company hierarchy templates.
 - Cost caps and customer-level budgets.
 - Approval gates for risky actions.
-- Optional [Orgo AI](https://orgo.ai?r=aiguy) or equivalent managed cloud computer per customer/workspace.
+- Optional Orgo AI or equivalent managed cloud computer per customer/workspace.
 - Audit logs and rollback records.
 
 Use when:
@@ -74,7 +74,7 @@ Use when:
 - Agents need to run persistently on Railway, DigitalOcean, or a VPS.
 - A visible managed cloud computer is worth the additional cost.
 
-## [Orgo AI](https://orgo.ai?r=aiguy) positioning
+## Orgo AI positioning
 
 Orgo is not a baseline install and should not block setup.
 

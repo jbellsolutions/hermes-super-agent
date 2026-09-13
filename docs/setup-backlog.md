@@ -106,11 +106,11 @@ Add first, one at a time with smoke tests:
 
 Do not bulk-install the whole list. Each tool needs install docs, permission notes, and a health check.
 
-### Optional cloud computer / [Orgo AI](https://orgo.ai?r=aiguy)
+### Optional cloud computer / Orgo AI
 
 Decision doc: `docs/cloud-computer-options.md`.
 
-Current recommendation: do not make [Orgo AI](https://orgo.ai?r=aiguy) a default dependency. Add it conditionally for VPS/customer deployments that need an isolated visible desktop, persistent browser GUI, or premium demo workspace.
+Current recommendation: do not make Orgo AI a default dependency. Add it conditionally for VPS/customer deployments that need an isolated visible desktop, persistent browser GUI, or premium demo workspace.
 
 Before implementation, collect Orgo API/auth docs, cost model, teardown controls, and security boundaries. Then add as an optional runtime under `src/agent_os/runtimes/orgo/`.
 

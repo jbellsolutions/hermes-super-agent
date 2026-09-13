@@ -58,7 +58,7 @@ Reproduction runbook: [`runbooks/a0-connector.md`](../runbooks/a0-connector.md).
 
 ### Optional cloud computer
 
-Managed cloud computers such as [Orgo AI](https://orgo.ai?r=aiguy) are not baseline dependencies. They are premium/conditional runtimes for VPS or customer deployments that need an isolated visible desktop, persistent browser GUI, or customer-specific machine boundary. See [`cloud-computer-options.md`](./cloud-computer-options.md).
+Managed cloud computers such as Orgo AI are not baseline dependencies. They are premium/conditional runtimes for VPS or customer deployments that need an isolated visible desktop, persistent browser GUI, or customer-specific machine boundary. See [`cloud-computer-options.md`](./cloud-computer-options.md).
 
 ### Docker/Colima
 
