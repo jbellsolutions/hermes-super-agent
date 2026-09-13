@@ -133,7 +133,7 @@ This is the dogfood test of the architecture. If Hermes can stand up the rest of
 - **OpenRouter** — `OPENROUTER_API_KEY` if you want non-Anthropic / non-OpenAI models.
 - **Railway** — `RAILWAY_TOKEN` only when discovering/deploying Railway apps.
 - **DigitalOcean** — `DIGITALOCEAN_ACCESS_TOKEN` only when discovering/managing droplets/apps.
-- **Orgo AI** — `ORGO_API_KEY` only for Enterprise deployments that need an isolated visible cloud computer.
+- **[Orgo AI](https://orgo.ai?r=aiguy)** — `ORGO_API_KEY` only for Enterprise deployments that need an isolated visible cloud computer.
 
 ### Observability (optional, free if self-hosted)
 - **Langfuse** — runs in your Docker Compose stack at `localhost:3000`. No external account needed.

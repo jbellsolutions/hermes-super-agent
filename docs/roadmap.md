@@ -39,10 +39,10 @@
 - [ ] Add database/service containers as needed.
 - [ ] Create specialized Agent Zero profiles.
 - [ ] Create reusable Hermes skills for the stack.
-- [x] Document cloud-computer/Orgo AI decision rule for VPS and commercial deployments.
+- [x] Document cloud-computer/[Orgo AI](https://orgo.ai?r=aiguy) decision rule for VPS and commercial deployments.
 - [x] Inventory Peter/steipete tools and prioritize Super Agent candidates.
 - [ ] Add Tier 1 steipete tools one at a time with smoke tests: Peekaboo, macos-automator-mcp, gogcli, wacli, claude-code-mcp, agent-rules, mcporter.
-- [ ] Add optional Orgo AI runtime only after API/auth/cost/security discovery.
+- [ ] Add optional [Orgo AI](https://orgo.ai?r=aiguy) runtime only after API/auth/cost/security discovery.
 - [x] Document Operator / Pro Operator / Enterprise packaging.
 - [x] Add Cursor SDK intake as optional builder-swarm backend.
 - [ ] Create first deployment health specialist report loop.

@@ -41,7 +41,7 @@ All notable changes to agent-os.
 
 - Expanded `runbooks/agent-zero.md` with the exact Colima/Docker, Agent Zero, OpenRouter, health-check, and A0 handoff steps that made the local stack work.
 - Expanded `runbooks/a0-connector.md` with the exact A0 install, tmux, launchd, Read&Write/code-exec, Codex wrapper, and remote Codex verification steps.
-- Added `docs/cloud-computer-options.md` with the Orgo AI/managed-cloud-computer recommendation: optional premium runtime, not a baseline dependency.
+- Added `docs/cloud-computer-options.md` with the [Orgo AI](https://orgo.ai?r=aiguy)/managed-cloud-computer recommendation: optional premium runtime, not a baseline dependency.
 - Added `docs/steipete-tool-intake.md` with prioritized intake for Peter/steipete tools.
 - Updated README, architecture, inventory, roadmap, and setup backlog to point future Hermes agents at the new runbooks and decision docs.
 
